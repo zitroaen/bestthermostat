@@ -100,6 +100,13 @@ export class BestThermostatOverviewCard extends LitElement {
                 @click=${() => this._call("override/set", { active: !ov.active })}>
                 ${ov.active ? t.active : t.off}
               </button>
+            </div>
+            <div class="chips sub-row">
+              <button class="chip small" aria-pressed=${ov.all_modes}
+                @click=${() => this._call("override/set", { all_modes: !ov.all_modes })}>
+                <ha-icon icon=${ov.all_modes ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+                ${t.override_all}
+              </button>
             </div>`
           : nothing}
         ${this._config.show_variables && snap.variables.length
@@ -185,6 +192,16 @@ export class BestThermostatOverviewCard extends LitElement {
       .val {
         min-width: 58px;
         text-align: center;
+      }
+      .sub-row {
+        margin-top: -4px;
+      }
+      .chip.small {
+        min-height: 30px;
+        font-size: 13px;
+      }
+      .chip.small ha-icon {
+        --mdc-icon-size: 18px;
       }
       .chip.static {
         cursor: default;

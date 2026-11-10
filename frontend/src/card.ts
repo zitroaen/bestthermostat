@@ -232,6 +232,7 @@ export class BestThermostatCard extends LitElement {
       else if (room.next_change)
         parts.push(`${fmtTime(room.next_change, this.hass!)} → ${fmtTemp(room.next_temperature)}`);
     } else parts.push(room.mode === "off" ? t.src_off : t.src_manual);
+    if (this._snap?.override.active && !room.override_active) parts.push(t.override_not_applied);
     if (room.hvac_action === "heating") parts.push(t.heating);
     return parts.filter(Boolean).join(" · ");
   }
