@@ -96,8 +96,12 @@ managed in the card.
 | Priority | Layer |
 |---|---|
 | 1 | Global override (rooms in auto always; rooms in manual/off only if the respective switch is on) |
-| 2 | Period (on overlap the **most recently created** one wins) |
-| 3 | Room: off → frost protection, manual → manual temperature, hand change "until next slot", slot of the active schedule |
+| 2 | Hand change "until next slot" (ends with the next slot or the period at the latest) |
+| 3 | Period (on overlap the **most recently created** one wins) |
+| 4 | Room: off → frost protection, manual → manual temperature, auto → slot of the active schedule |
+
+The room card can show these layers and which one is in control (card option
+`show_priorities`).
 
 The override and periods never modify the room's own state, they are layers on top of it
 (like a BACnet priority array). That is why everything is exactly as before once they end,
@@ -175,6 +179,7 @@ show_schedules: true
 show_timeline: true
 show_editor: true
 show_periods: true    # list active/planned periods and the "Plan period" button
+show_priorities: false  # show the priority layers and which one is in control
 ```
 
 ```yaml

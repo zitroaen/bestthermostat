@@ -722,6 +722,7 @@ class RoomController:
             "mode": self.mode,
             "base_mode": self.state.mode,
             "manual_temperature": self.effective().manual_temperature,
+            "base_manual_temperature": self.state.manual_temperature,
             "frost_temperature": self.frost_temperature,
             "target_temperature": target.temperature,
             "target_source": target.source,

@@ -59,6 +59,7 @@ export interface RoomData {
   active_schedule: string;
   base_schedule: string;
   base_mode: "auto" | "heat" | "off";
+  base_manual_temperature: number;
   period: PeriodData | null;
   periods: PeriodData[];
   hand_until: string | null;
