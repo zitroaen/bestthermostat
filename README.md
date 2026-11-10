@@ -119,6 +119,11 @@ continues **exactly as before**.
   ends the running period.
 - A schedule used by a planned period cannot be deleted.
 
+**In the card:** "Plan period" in the room card opens a dialog: choose a schedule, manual
+(with temperature) or off, a start (now or a date/time), an end (until cancelled or a
+date/time) and an optional title. Active and planned periods are listed with a button to
+end or delete them.
+
 **Calendar:** every room has a `calendar.<room>_periods` entity. It shows all periods and
 lets you create, change and delete them. The event title defines what happens: a schedule
 name ("Guest"), "Off", "Auto" or a temperature ("Manual 22"). German titles ("Aus",
@@ -169,6 +174,7 @@ show_modes: true
 show_schedules: true
 show_timeline: true
 show_editor: true
+show_periods: true    # list active/planned periods and the "Plan period" button
 ```
 
 ```yaml
@@ -176,6 +182,7 @@ type: custom:bestthermostat-overview-card
 title: Heating
 show_override: true
 show_variables: true
+show_periods: true    # show the next planned period per room
 ```
 
 In the overview card, tapping a variable opens a −/+ control. Below each room there are
