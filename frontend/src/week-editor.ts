@@ -38,6 +38,7 @@ export class BtWeekEditor extends LitElement {
     _error: { state: true },
     _nameAction: { state: true },
     _busy: { state: true },
+    _drag: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -466,8 +467,15 @@ export class BtWeekEditor extends LitElement {
           </button>`;
         })}
         ${segs.slice(1).map(
-          (s, i) => html`<div class="handle" style="left:${(s.start / DAY_MIN) * 100}%"
-            @pointerdown=${(e: PointerEvent) => this._dragStart(e, d, i + 1)}><span></span></div>`,
+          (s, i) => {
+            const dragging = this._drag?.day === d && this._drag.idx === i + 1;
+            return html`<div class="handle ${dragging ? "dragging" : ""}"
+              style="left:${(s.start / DAY_MIN) * 100}%"
+              @pointerdown=${(e: PointerEvent) => this._dragStart(e, d, i + 1)}>
+              <span></span>
+              ${dragging ? html`<div class="time-tip">${toHHMM(s.start)}</div>` : nothing}
+            </div>`;
+          },
         )}
       </div>
     </div>`;
@@ -732,8 +740,35 @@ export class BtWeekEditor extends LitElement {
         opacity: 0.55;
       }
       .handle:hover span,
-      .handle:active span {
+      .handle:active span,
+      .handle.dragging span {
         opacity: 1;
+      }
+      .time-tip {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 4px 8px;
+        border-radius: 8px;
+        background: var(--primary-text-color);
+        color: var(--card-background-color, #fff);
+        font-size: 13px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        pointer-events: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        z-index: 3;
+      }
+      .time-tip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border: 5px solid transparent;
+        border-top-color: var(--primary-text-color);
       }
       .hint,
       .small-text {
