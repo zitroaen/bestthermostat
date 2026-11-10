@@ -13,6 +13,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import slugify
 
 from .const import DEFAULT_VARIABLES, DOMAIN, SIGNAL_UPDATE, STORAGE_KEY, STORAGE_VERSION
+from .i18n import text
 from .schedule import GlobalOverride, ScheduleError, validate_temperature
 from .sender import Sender
 
@@ -61,8 +62,8 @@ class Hub:
         raw_vars = data.get("variables")
         if raw_vars is None:
             raw_vars = [
-                {"id": vid, "name": name, "value": value}
-                for vid, (name, value) in DEFAULT_VARIABLES.items()
+                {"id": vid, "name": text(self.hass, key), "value": value}
+                for vid, (key, value) in DEFAULT_VARIABLES.items()
             ]
         self.variables = {
             v["id"]: Variable(v["id"], v["name"], float(v["value"])) for v in raw_vars

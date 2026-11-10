@@ -87,13 +87,13 @@ async def test_setup_creates_entities_and_global_entry(
     assert state.state == "auto"
     assert state.attributes["temperature"] == 21.0
     assert state.attributes["current_temperature"] == 19.0
-    assert hass.states.get("select.arbeitszimmer_schedule").state == "Standard"  # type: ignore[union-attr]
+    assert hass.states.get("select.arbeitszimmer_schedule").state == "Default"  # type: ignore[union-attr]
     assert hass.states.get("sensor.arbeitszimmer_next_change") is not None
     assert hass.states.get("binary_sensor.arbeitszimmer_schedule_paused").state == "off"  # type: ignore[union-attr]
     entries = hass.config_entries.async_entries(DOMAIN)
     assert any(e.data.get("entry_type") == ENTRY_TYPE_GLOBAL for e in entries)
     assert hass.states.get("switch.best_thermostat_global_override") is not None
-    assert hass.states.get("number.best_thermostat_komfort").state == "21.0"  # type: ignore[union-attr]
+    assert hass.states.get("number.best_thermostat_comfort").state == "21.0"  # type: ignore[union-attr]
 
 
 async def test_slot_change(
@@ -224,7 +224,7 @@ async def test_variable_change_and_delete_protection(
     """Changing a variable updates rooms; used variables cannot be deleted."""
     hub = get_hub(hass)
     await hass.services.async_call(
-        DOMAIN, "set_variable", {"variable": "Komfort", "value": 20.5}, blocking=True
+        DOMAIN, "set_variable", {"variable": "Comfort", "value": 20.5}, blocking=True
     )
     await settle(hass)
     assert temps(hass) == (20.5, 20.5)
@@ -237,7 +237,7 @@ async def test_variable_change_and_delete_protection(
 
 async def test_global_override_restores(hass: HomeAssistant, room: RoomController) -> None:
     """Override pauses schedules, follows its value and restores afterwards."""
-    room.set_active_schedule("Standard")
+    room.set_active_schedule("Default")
     await hass.services.async_call(
         DOMAIN, "set_global_override", {"active": True, "temperature": 16.0}, blocking=True
     )
@@ -289,7 +289,7 @@ async def test_restart_keeps_state(hass: HomeAssistant, room: RoomController) ->
     assert entry is not None
     new: RoomController = entry.runtime_data
     assert new is not room
-    assert {s.name for s in new.state.schedules.values()} == {"Standard", "Gast"}
+    assert {s.name for s in new.state.schedules.values()} == {"Default", "Gast"}
     assert new.hand_active
     assert temps(hass) == (23.0, 23.0)
 
@@ -310,7 +310,7 @@ async def test_get_and_set_schedule_services(hass: HomeAssistant, room: RoomCont
     await hass.services.async_call(
         DOMAIN,
         "set_schedule",
-        {"entity_id": "climate.arbeitszimmer", "schedule": "Standard", "week": week},
+        {"entity_id": "climate.arbeitszimmer", "schedule": "Default", "week": week},
         blocking=True,
     )
     await settle(hass)
@@ -320,7 +320,7 @@ async def test_get_and_set_schedule_services(hass: HomeAssistant, room: RoomCont
         await hass.services.async_call(
             DOMAIN,
             "set_schedule",
-            {"entity_id": "climate.arbeitszimmer", "schedule": "Standard", "week": week},
+            {"entity_id": "climate.arbeitszimmer", "schedule": "Default", "week": week},
             blocking=True,
         )
     await hass.services.async_call(
@@ -472,3 +472,17 @@ async def test_override_manual_and_off_separately(
         blocking=True,
     )
     assert hub.override.include_off
+
+
+async def test_german_defaults(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """With Home Assistant in German, default names are German."""
+    hass.config.language = "de"
+    freezer.move_to(MONDAY_7)
+    entry = await create_room(hass)
+    controller: RoomController = entry.runtime_data
+    assert controller.state.schedule.name == "Standard"
+    assert {v.name for v in get_hub(hass).variables.values()} == {"Komfort", "Absenk"}
+    period = controller.add_period(mode="off")
+    assert controller.period_summary(period) == "Aus"

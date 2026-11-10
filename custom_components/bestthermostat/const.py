@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "bestthermostat"
 NAME: Final = "Best Thermostat"
-VERSION: Final = "0.2.0"
+VERSION: Final = "0.2.1"
 
 CONF_ENTRY_TYPE: Final = "entry_type"
 ENTRY_TYPE_GLOBAL: Final = "global"
@@ -29,10 +29,10 @@ DEFAULT_HAND_CHANGE: Final = HAND_UNTIL_NEXT_SLOT
 DEFAULT_SYNC_TRVS: Final = True
 DEFAULT_HIDE_TRVS: Final = False
 DEFAULT_SCHEDULE_ID: Final = "standard"
-DEFAULT_SCHEDULE_NAME: Final = "Standard"
 DEFAULT_VARIABLES: Final = {
-    "comfort": ("Komfort", 21.0),
-    "eco": ("Absenk", 17.0),
+    # id: (i18n key of the name, value)
+    "comfort": ("var_comfort", 21.0),
+    "eco": ("var_eco", 17.0),
 }
 
 STORAGE_KEY: Final = DOMAIN

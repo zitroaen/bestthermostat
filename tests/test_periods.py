@@ -49,7 +49,7 @@ async def test_period_now_until_cancelled(hass: HomeAssistant, guest_room: RoomC
     guest_room.cancel_period(period.id)
     await settle(hass)
     assert temps(hass) == (21.0, 21.0)
-    assert hass.states.get("select.arbeitszimmer_schedule").state == "Standard"  # type: ignore[union-attr]
+    assert hass.states.get("select.arbeitszimmer_schedule").state == "Default"  # type: ignore[union-attr]
 
 
 async def test_period_with_start_and_end(
@@ -222,7 +222,7 @@ def test_parse_summary(guest_room_sync: None = None) -> None:
     class Fake:
         class state:
             schedules = {
-                "standard": type("S", (), {"id": "standard", "name": "Standard"})(),
+                "standard": type("S", (), {"id": "standard", "name": "Default"})(),
                 "gast": type("S", (), {"id": "gast", "name": "Gast"})(),
             }
 

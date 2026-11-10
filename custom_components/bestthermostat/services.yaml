@@ -9,7 +9,7 @@ set_active_schedule:
           multiple: true
     schedule:
       required: true
-      example: "Gast"
+      example: "Guest"
       selector:
         text:
 set_mode:
@@ -118,7 +118,7 @@ add_period:
           domain: climate
           multiple: true
     schedule:
-      example: "Gast"
+      example: "Guest"
       selector:
         text:
     mode:
