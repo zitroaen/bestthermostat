@@ -103,7 +103,6 @@ compact: false        # true für kleine Wanddisplays (z. B. Shelly Wall Display
 show_modes: true
 show_schedules: true
 show_timeline: true
-show_actions: true
 show_editor: true
 ```
 
@@ -113,6 +112,10 @@ title: Heizung
 show_override: true
 show_variables: true
 ```
+
+In der Übersichtskarte öffnet ein Tipp auf eine Variable einen Regler (− / +). Unter jedem
+Raum gibt es Bubbles für Auto / Manuell / Aus und, bei mehreren Zeitplänen, für den
+aktiven Zeitplan.
 
 Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
 „Wochenplan bearbeiten“:
