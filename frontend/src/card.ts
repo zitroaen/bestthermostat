@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
-import type { HomeAssistant, RoomData, Snapshot } from "./api";
+import type { HomeAssistant, RoomData, Snapshot, PeriodData } from "./api";
 import { DAYS, findRoom, subscribe, ws } from "./api";
 import { shared } from "./styles";
 import {
@@ -40,6 +40,8 @@ export class BestThermostatCard extends LitElement {
     _pending: { state: true },
     _editing: { state: true },
     _planning: { state: true },
+    _editPeriod: { state: true },
+    _allPeriods: { state: true },
     _error: { state: true },
   };
 
@@ -49,6 +51,8 @@ export class BestThermostatCard extends LitElement {
   _pending?: number;
   _editing = false;
   _planning = false;
+  _editPeriod?: PeriodData;
+  _allPeriods = false;
   private _planner?: BtPeriodDialog;
   _error?: string;
   private _unsub?: () => void;
@@ -131,11 +135,15 @@ export class BestThermostatCard extends LitElement {
     if (this._planning && room && this.hass) {
       if (!this._planner) {
         this._planner = document.createElement("bt-period-dialog") as BtPeriodDialog;
-        this._planner.addEventListener("close", () => (this._planning = false));
+        this._planner.addEventListener("close", () => {
+          this._planning = false;
+          this._editPeriod = undefined;
+        });
         document.body.appendChild(this._planner);
       }
       this._planner.hass = this.hass;
       this._planner.room = room;
+      this._planner.period = this._editPeriod;
     } else if (this._planner) {
       this._planner.remove();
       this._planner = undefined;
@@ -324,6 +332,11 @@ export class BestThermostatCard extends LitElement {
     </div>`;
   }
 
+  private _openPeriod(period: PeriodData) {
+    this._editPeriod = period;
+    this._planning = true;
+  }
+
   private _renderPeriods(room: RoomData) {
     const c = this._config!;
     if (!c.show_periods) return nothing;
@@ -333,7 +346,7 @@ export class BestThermostatCard extends LitElement {
     const upcoming = (room.periods ?? [])
       .filter((p) => new Date(p.start).getTime() > now)
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    const shown = c.compact ? [] : upcoming.slice(0, 3);
+    const shown = c.compact ? [] : this._allPeriods ? upcoming : upcoming.slice(0, 3);
     if (!active && !shown.length && c.compact) return nothing;
     const range = (p: { start: string; end: string | null }) =>
       `${fmtTime(p.start, this.hass!)} – ${p.end ? fmtTime(p.end, this.hass!) : t.period_open}`;
@@ -341,7 +354,8 @@ export class BestThermostatCard extends LitElement {
       ${active
         ? html`<div class="period active">
             <ha-icon icon="mdi:calendar-star"></ha-icon>
-            <div class="period-text">
+            <div class="period-text" role="button" tabindex="0"
+              @click=${() => this._openPeriod(active)}>
               <div class="period-title">${active.title}</div>
               <div class="muted period-when">
                 ${active.end ? `${t.period_until} ${fmtTime(active.end, this.hass!)}` : t.period_open}
@@ -356,7 +370,7 @@ export class BestThermostatCard extends LitElement {
       ${shown.map(
         (p) => html`<div class="period">
           <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>
-          <div class="period-text">
+          <div class="period-text" role="button" tabindex="0" @click=${() => this._openPeriod(p)}>
             <div class="period-title">${p.title}</div>
             <div class="muted period-when">${range(p)}</div>
           </div>
@@ -366,8 +380,10 @@ export class BestThermostatCard extends LitElement {
           </button>
         </div>`,
       )}
-      ${upcoming.length > shown.length && !c.compact
-        ? html`<div class="muted more">+${upcoming.length - shown.length} ${t.period_more}</div>`
+      ${!c.compact && upcoming.length > 3
+        ? html`<button class="muted more" @click=${() => (this._allPeriods = !this._allPeriods)}>
+            ${this._allPeriods ? t.period_less : `+${upcoming.length - shown.length} ${t.period_more}`}
+          </button>`
         : nothing}
       ${c.compact
         ? nothing
@@ -618,7 +634,8 @@ export class BestThermostatCard extends LitElement {
       }
       .more {
         font-size: 12px;
-        padding-left: 12px;
+        padding: 2px 12px;
+        align-self: flex-start;
       }
       .round.small {
         width: 32px;
@@ -646,6 +663,10 @@ export class BestThermostatCard extends LitElement {
       .period-text {
         flex: 1;
         min-width: 0;
+        cursor: pointer;
+      }
+      .period-text:hover .period-title {
+        text-decoration: underline;
       }
       .period-title {
         font-weight: 500;

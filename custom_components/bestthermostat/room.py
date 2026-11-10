@@ -628,6 +628,56 @@ class RoomController:
         self.state.periods = [p for p in self.state.periods if not p.expired(now)]
         return len(self.state.periods) != before
 
+    def _build_period(
+        self,
+        *,
+        period_id: str,
+        created: datetime,
+        start: datetime,
+        end: datetime | None,
+        schedule: str | None,
+        mode: str | None,
+        temperature: float | None,
+        summary: str | None,
+    ) -> Period:
+        """Validate the settings of a period and build it."""
+        now = dt_util.utcnow()
+        start = dt_util.as_utc(start)
+        end = dt_util.as_utc(end) if end else None
+        if end is not None and end <= max(start, now):
+            raise HomeAssistantError("The end must be in the future and after the start")
+        if mode is not None and mode not in MODES:
+            raise HomeAssistantError(f"Unknown mode {mode!r}")
+        sched_id = self.find_schedule(schedule).id if schedule is not None else None
+        if temperature is not None:
+            temperature = self._temp(temperature)
+            if mode is None:
+                mode = MODE_HEAT
+        if sched_id is None and mode is None:
+            raise HomeAssistantError("A period needs a schedule, a mode or a temperature")
+        if mode == MODE_HEAT and temperature is None:
+            temperature = self.target().temperature or self.state.manual_temperature
+        if mode != MODE_HEAT:
+            temperature = None
+        if sched_id is not None and mode in (MODE_HEAT, MODE_OFF):
+            raise HomeAssistantError("A schedule can only be combined with mode 'auto'")
+        return Period(
+            id=period_id,
+            start=start,
+            end=end,
+            created=created,
+            schedule=sched_id,
+            mode=mode,
+            temperature=temperature,
+            summary=summary.strip() if summary and summary.strip() else None,
+        )
+
+    def _periods_changed(self) -> None:
+        now = dt_util.utcnow()
+        self._drop_expired_periods(now)
+        self.hub.save()
+        self._on_timer(now)  # re-evaluate (a period may start or end right now)
+
     @callback
     def add_period(
         self,
@@ -641,37 +691,66 @@ class RoomController:
     ) -> Period:
         """Plan a period that activates a schedule and/or mode."""
         now = dt_util.utcnow()
-        start = dt_util.as_utc(start) if start else now
-        end = dt_util.as_utc(end) if end else None
-        if end is not None and end <= max(start, now):
-            raise HomeAssistantError("The end must be in the future and after the start")
-        if mode is not None and mode not in MODES:
-            raise HomeAssistantError(f"Unknown mode {mode!r}")
-        sched_id = self.find_schedule(schedule).id if schedule is not None else None
-        if temperature is not None:
-            temperature = self._temp(temperature)
-            if mode is None:
-                mode = MODE_HEAT
-        if schedule is None and mode is None:
-            raise HomeAssistantError("A period needs a schedule, a mode or a temperature")
-        if mode == MODE_HEAT and temperature is None:
-            temperature = self.target().temperature or self.state.manual_temperature
-        if sched_id is not None and mode in (MODE_HEAT, MODE_OFF):
-            raise HomeAssistantError("A schedule can only be combined with mode 'auto'")
-        period = Period(
-            id=uuid.uuid4().hex[:12],
-            start=start,
-            end=end,
+        period = self._build_period(
+            period_id=uuid.uuid4().hex[:12],
             created=now,
-            schedule=sched_id,
+            start=start or now,
+            end=end,
+            schedule=schedule,
             mode=mode,
             temperature=temperature,
-            summary=summary.strip() if summary and summary.strip() else None,
+            summary=summary,
         )
         self.state.periods.append(period)
-        self._drop_expired_periods(now)
-        self.hub.save()
-        self._on_timer(now)  # re-evaluate (period may start right now)
+        self._periods_changed()
+        return period
+
+    def find_period(self, period_id: str) -> Period:
+        """Return a period by id."""
+        for period in self.state.periods:
+            if period.id == period_id:
+                return period
+        raise HomeAssistantError(f"{self.name}: unknown period {period_id!r}")
+
+    @callback
+    def update_period(
+        self,
+        period_id: str,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        open_end: bool = False,
+        schedule: str | None = None,
+        mode: str | None = None,
+        temperature: float | None = None,
+        summary: str | None = None,
+    ) -> Period:
+        """Change a period in place (id and priority are kept).
+
+        Only the given fields change. Choosing a schedule clears the mode and vice
+        versa unless both are given; ``open_end`` removes the end.
+        """
+        old = self.find_period(period_id)
+        if temperature is not None and mode is None and schedule is None:
+            mode = MODE_HEAT  # a temperature alone means manual mode
+        new_schedule = (
+            schedule if schedule is not None else (old.schedule if mode is None else None)
+        )
+        new_mode = mode if mode is not None else (old.mode if schedule is None else None)
+        if temperature is None and new_mode == MODE_HEAT and old.mode == MODE_HEAT:
+            temperature = old.temperature
+        period = self._build_period(
+            period_id=old.id,
+            created=old.created,
+            start=start or old.start,
+            end=None if open_end else (end or old.end),
+            schedule=new_schedule,
+            mode=new_mode,
+            temperature=temperature,
+            summary=old.summary if summary is None else summary,
+        )
+        self.state.periods[self.state.periods.index(old)] = period
+        self._periods_changed()
         return period
 
     @callback

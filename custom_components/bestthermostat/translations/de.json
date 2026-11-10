@@ -322,6 +322,52 @@
           "description": "Von add_period gelieferte ID."
         }
       }
+    },
+    "update_period": {
+      "name": "Zeitraum ändern",
+      "description": "Ändert einen geplanten oder laufenden Zeitraum. Nur angegebene Felder ändern sich; ein Zeitplan ersetzt einen Modus und umgekehrt.",
+      "fields": {
+        "period_id": {
+          "name": "Zeitraum-ID",
+          "description": "ID des Zeitraums."
+        },
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "schedule": {
+          "name": "Zeitplan",
+          "description": "Name oder ID des zu aktivierenden Zeitplans."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Modus während des Zeitraums (Manuell nutzt die Temperatur)."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Temperatur für den Modus Manuell."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Beginn (Standard: jetzt)."
+        },
+        "end": {
+          "name": "Ende",
+          "description": "Ende (Standard: bis auf Weiteres)."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Alternative zum Ende."
+        },
+        "summary": {
+          "name": "Titel",
+          "description": "Optionaler Titel für den Kalender."
+        },
+        "open_end": {
+          "name": "Bis auf Weiteres",
+          "description": "Ende entfernen."
+        }
+      }
     }
   }
 }

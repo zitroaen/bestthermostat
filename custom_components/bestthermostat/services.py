@@ -31,6 +31,7 @@ ATTR_END = "end"
 ATTR_DURATION = "duration"
 ATTR_PERIOD_ID = "period_id"
 ATTR_SUMMARY = "summary"
+ATTR_OPEN_END = "open_end"
 
 ROOM_SCHEMA: dict[Any, Any] = {vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids}
 
@@ -116,6 +117,29 @@ def async_register_services(hass: HomeAssistant) -> None:
             result.append({"room": room.climate_entity_id, **room.period_dict(period)})
         return {"periods": result}
 
+    async def update_period(call: ServiceCall) -> ServiceResponse:
+        start = call.data.get(ATTR_START)
+        end = call.data.get(ATTR_END)
+        if (duration := call.data.get(ATTR_DURATION)) is not None:
+            if end is not None:
+                raise ServiceValidationError("Use either end or duration, not both")
+            room = rooms_for(hass, call.data[ATTR_ENTITY_ID])[0]
+            end = (start or room.find_period(call.data[ATTR_PERIOD_ID]).start) + duration
+        result: list[Any] = []
+        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+            period = room.update_period(
+                call.data[ATTR_PERIOD_ID],
+                start=start,
+                end=end,
+                open_end=call.data.get(ATTR_OPEN_END, False),
+                schedule=call.data.get(ATTR_SCHEDULE),
+                mode=call.data.get(ATTR_MODE),
+                temperature=call.data.get(ATTR_TEMPERATURE),
+                summary=call.data.get(ATTR_SUMMARY),
+            )
+            result.append({"room": room.climate_entity_id, **room.period_dict(period)})
+        return {"periods": result}
+
     async def cancel_period(call: ServiceCall) -> None:
         for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
             room.cancel_period(call.data.get(ATTR_PERIOD_ID))
@@ -134,6 +158,26 @@ def async_register_services(hass: HomeAssistant) -> None:
                 vol.Optional(ATTR_START): cv.datetime,
                 vol.Optional(ATTR_END): cv.datetime,
                 vol.Optional(ATTR_DURATION): cv.positive_time_period,
+                vol.Optional(ATTR_SUMMARY): cv.string,
+            }
+        ),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "update_period",
+        update_period,
+        vol.Schema(
+            {
+                **ROOM_SCHEMA,
+                vol.Required(ATTR_PERIOD_ID): cv.string,
+                vol.Optional(ATTR_SCHEDULE): cv.string,
+                vol.Optional(ATTR_MODE): vol.In(MODES),
+                vol.Optional(ATTR_TEMPERATURE): temp,
+                vol.Optional(ATTR_START): cv.datetime,
+                vol.Optional(ATTR_END): cv.datetime,
+                vol.Optional(ATTR_DURATION): cv.positive_time_period,
+                vol.Optional(ATTR_OPEN_END): cv.boolean,
                 vol.Optional(ATTR_SUMMARY): cv.string,
             }
         ),

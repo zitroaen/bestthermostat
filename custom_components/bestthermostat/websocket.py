@@ -229,6 +229,32 @@ def async_register_websocket(hass: HomeAssistant) -> None:
         ),
         _handler(
             {
+                vol.Required("type"): t + "period/update",
+                entry: str,
+                vol.Required("period_id"): str,
+                vol.Optional("schedule_id"): str,
+                vol.Optional("mode"): str,
+                vol.Optional("temperature"): vol.Coerce(float),
+                vol.Optional("start"): str,
+                vol.Optional("end"): str,
+                vol.Optional("open_end"): bool,
+                vol.Optional("summary"): str,
+            },
+            lambda h, m: _room(h, m["entry_id"]).period_dict(
+                _room(h, m["entry_id"]).update_period(
+                    m["period_id"],
+                    start=_dt(m.get("start")),
+                    end=_dt(m.get("end")),
+                    open_end=m.get("open_end", False),
+                    schedule=m.get("schedule_id"),
+                    mode=m.get("mode"),
+                    temperature=m.get("temperature"),
+                    summary=m.get("summary"),
+                )
+            ),
+        ),
+        _handler(
+            {
                 vol.Required("type"): t + "period/cancel",
                 entry: str,
                 vol.Optional("period_id"): str,

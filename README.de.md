@@ -122,7 +122,8 @@ BACnet-Prioritäts-Array), beim Ende greift wieder die Ebene darunter.
 **In der Karte:** „Zeitraum planen“ in der Raumkarte öffnet einen Dialog: Zeitplan, Manuell
 (mit Temperatur) oder Aus wählen, Beginn (jetzt oder Datum/Uhrzeit), Ende (bis auf
 Weiteres oder Datum/Uhrzeit) und optional einen Titel. Aktive und geplante Zeiträume
-werden mit einem Button zum Beenden bzw. Löschen aufgelistet.
+werden aufgelistet; ein Tipp darauf öffnet sie zum Bearbeiten (alle Einstellungen, oder
+beenden/löschen). „+N weitere“ klappt die vollständige Liste auf.
 
 **Kalender:** Jeder Raum hat eine Entität `calendar.<raum>_zeitraume`. Dort siehst du alle
 Zeiträume und kannst sie anlegen, ändern und löschen. Der Titel bestimmt, was passiert:
@@ -208,6 +209,7 @@ Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
 | `bestthermostat.set_schedule` | Wochenplan als JSON setzen (legt den Zeitplan bei Bedarf an) |
 | `bestthermostat.set_variable` | Variable ändern (`variable`: ID oder Name, `value`, `name`) |
 | `bestthermostat.add_period` | Zeitraum planen: `schedule` und/oder `mode`/`temperature`, optional `start`, `end` oder `duration`, `summary`. Liefert die ID |
+| `bestthermostat.update_period` | Zeitraum ändern (`period_id`; nur angegebene Felder ändern sich, `open_end` entfernt das Ende). ID und Priorität bleiben |
 | `bestthermostat.cancel_period` | Zeitraum beenden/löschen (`period_id`, ohne ID: alle des Raums) |
 | `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `include_manual`, `include_off` (`all_modes` setzt beide) |
 

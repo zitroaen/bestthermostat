@@ -148,6 +148,53 @@ add_period:
     summary:
       selector:
         text:
+update_period:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          integration: bestthermostat
+          domain: climate
+          multiple: true
+    period_id:
+      required: true
+      selector:
+        text:
+    schedule:
+      example: "Guest"
+      selector:
+        text:
+    mode:
+      selector:
+        select:
+          translation_key: mode
+          options:
+            - auto
+            - heat
+            - "off"
+    temperature:
+      selector:
+        number:
+          min: 4
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    start:
+      selector:
+        datetime:
+    end:
+      selector:
+        datetime:
+    duration:
+      selector:
+        duration:
+    open_end:
+      selector:
+        boolean:
+    summary:
+      selector:
+        text:
 cancel_period:
   fields:
     entity_id:
