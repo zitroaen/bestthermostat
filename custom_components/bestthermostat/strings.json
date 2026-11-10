@@ -9,11 +9,13 @@
           "trvs": "Radiator thermostats",
           "frost_temperature": "Frost protection temperature (mode off)",
           "hand_change": "Behaviour on manual changes in auto mode",
-          "sync_trvs": "Sync changes on one thermostat to the others"
+          "sync_trvs": "Sync changes on one thermostat to the others",
+          "hide_trvs": "Hide the thermostats"
         },
         "data_description": {
           "trvs": "Climate entities of the room (ZHA / Zigbee2MQTT). Disable internal schedules of the devices.",
-          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot')."
+          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot').",
+          "hide_trvs": "Hides the individual TRV entities from dashboards and voice assistants; the room thermostat replaces them. They are shown again when the room is deleted or this option is turned off."
         }
       }
     },
@@ -37,11 +39,13 @@
           "trvs": "Radiator thermostats",
           "frost_temperature": "Frost protection temperature (mode off)",
           "hand_change": "Behaviour on manual changes in auto mode",
-          "sync_trvs": "Sync changes on one thermostat to the others"
+          "sync_trvs": "Sync changes on one thermostat to the others",
+          "hide_trvs": "Hide the thermostats"
         },
         "data_description": {
           "trvs": "Climate entities of the room (ZHA / Zigbee2MQTT). Disable internal schedules of the devices.",
-          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot')."
+          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot').",
+          "hide_trvs": "Hides the individual TRV entities from dashboards and voice assistants; the room thermostat replaces them. They are shown again when the room is deleted or this option is turned off."
         },
         "menu_options": {
           "add_variable": "Add variable",

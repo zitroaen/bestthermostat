@@ -36,6 +36,7 @@ durch eine Integration.
    wird automatisch erzeugt.
 
 Die Karte wird automatisch geladen. Eine manuelle Ressource ist **nicht** nötig.
+Das Integrations-Icon wird ab Home Assistant 2026.3 aus `brand/` angezeigt.
 
 > **Wichtig:** Deaktiviere interne Zeitpläne, Fenster-offen-Logik und Ähnliches direkt an
 > den Thermostaten. Sonst ändern sie die Solltemperatur selbstständig und es kommt zu
@@ -68,6 +69,10 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
   - *Ignorieren und Plan wiederherstellen*: Gilt für Änderungen am Thermostat. Am
     Raumthermostat wirkt diese Einstellung wie „bis zum nächsten Slot“.
 - Änderungen auf die anderen Thermostate übertragen (an/aus)
+- Thermostate verstecken (an/aus): blendet die einzelnen TRV-Entitäten in Dashboards und
+  bei Sprachassistenten aus, das Raumthermostat ersetzt sie. Von dir selbst versteckte
+  Entitäten bleiben unberührt. Beim Ausschalten der Option, beim Entfernen eines TRVs aus
+  dem Raum oder beim Löschen des Raums werden sie wieder eingeblendet.
 
 **Global** (Eintrag „Best Thermostat“ → *Konfigurieren*): Variablen hinzufügen,
 bearbeiten und löschen. Eine Variable, die noch in einem Zeitplan verwendet wird, lässt
