@@ -9,7 +9,6 @@ const LABELS: Record<string, { de: string; en: string }> = {
   show_modes: { de: "Modi anzeigen", en: "Show modes" },
   show_schedules: { de: "Zeitpläne anzeigen", en: "Show schedules" },
   show_timeline: { de: "Zeitleiste heute anzeigen", en: "Show today's timeline" },
-  show_actions: { de: "Schnellaktionen anzeigen", en: "Show quick actions" },
   show_editor: { de: "Button für Wocheneditor", en: "Weekly editor button" },
   title: { de: "Titel", en: "Title" },
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
@@ -31,7 +30,6 @@ const ROOM_SCHEMA = [
       { name: "show_modes", selector: { boolean: {} } },
       { name: "show_schedules", selector: { boolean: {} } },
       { name: "show_timeline", selector: { boolean: {} } },
-      { name: "show_actions", selector: { boolean: {} } },
       { name: "show_editor", selector: { boolean: {} } },
     ],
   },
@@ -93,7 +91,6 @@ export class BestThermostatCardEditor extends BaseEditor {
     show_modes: true,
     show_schedules: true,
     show_timeline: true,
-    show_actions: true,
     show_editor: true,
   };
 }

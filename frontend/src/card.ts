@@ -25,7 +25,6 @@ export interface CardConfig {
   show_modes?: boolean;
   show_schedules?: boolean;
   show_timeline?: boolean;
-  show_actions?: boolean;
   show_editor?: boolean;
 }
 
@@ -66,7 +65,6 @@ export class BestThermostatCard extends LitElement {
       show_modes: true,
       show_schedules: true,
       show_timeline: true,
-      show_actions: true,
       show_editor: true,
       ...config,
     };
@@ -207,8 +205,7 @@ export class BestThermostatCard extends LitElement {
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
-        ${c.show_schedules ? this._renderSchedules(room) : nothing}
-        ${c.show_timeline && !c.compact ? this._renderTimeline(room) : nothing}
+        ${this._renderScheduleSection(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${c.show_editor && !c.compact
           ? html`<div class="footer">
@@ -251,21 +248,31 @@ export class BestThermostatCard extends LitElement {
           <ha-icon icon=${icon}></ha-icon>${label}
         </button>`,
       )}
-      ${this._config?.show_actions && room.hand_until
-        ? html`<button class="chip" @click=${() => this._mode(room, "auto")}>
-            <ha-icon icon="mdi:restore"></ha-icon>${t.resume}
-          </button>`
-        : nothing}
     </div>`;
   }
 
-  private _renderSchedules(room: RoomData) {
-    if (room.schedules.length < 2) return nothing;
-    return html`<div class="chips scroll row">
-      ${room.schedules.map(
-        (s) => html`<button class="chip" aria-pressed=${s.id === room.active_schedule}
-          @click=${() => this._schedule(room, s.id)}>${s.name}</button>`,
-      )}
+  private _renderScheduleSection(room: RoomData) {
+    const c = this._config!;
+    const showChoice = c.show_schedules && room.schedules.length > 1;
+    const showTimeline = c.show_timeline && !c.compact;
+    if (!showChoice && !showTimeline) return nothing;
+    const t = strings(this.hass);
+    const paused = room.mode !== "auto" || room.override_active;
+    return html`<div class="sched-box ${paused ? "paused" : ""}">
+      <div class="sched-head">
+        <ha-icon icon="mdi:calendar-clock"></ha-icon>
+        <span>${t.schedule}</span>
+        ${paused ? html`<span class="muted sched-note">${t.schedule_paused}</span>` : nothing}
+      </div>
+      ${showChoice
+        ? html`<div class="segmented" role="tablist">
+            ${room.schedules.map(
+              (s) => html`<button role="tab" aria-selected=${s.id === room.active_schedule}
+                @click=${() => this._schedule(room, s.id)}>${s.name}</button>`,
+            )}
+          </div>`
+        : nothing}
+      ${showTimeline ? this._renderTimeline(room) : nothing}
     </div>`;
   }
 
@@ -387,6 +394,63 @@ export class BestThermostatCard extends LitElement {
       .row ha-icon {
         --mdc-icon-size: 18px;
       }
+      .sched-box {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--bt-surface);
+      }
+      .sched-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--bt-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .sched-head ha-icon {
+        --mdc-icon-size: 16px;
+      }
+      .sched-note {
+        margin-left: auto;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .sched-box.paused .timeline {
+        opacity: 0.55;
+      }
+      .segmented {
+        display: flex;
+        gap: 4px;
+        padding: 3px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .segmented button {
+        flex: 1 0 auto;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 9px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--bt-muted);
+        white-space: nowrap;
+      }
+      .segmented button[aria-selected="true"] {
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+      }
+      .sched-box .timeline .bar {
+        background: var(--card-background-color, #fff);
+      }
       .timeline .bar {
         position: relative;
         height: 28px;
@@ -404,7 +468,7 @@ export class BestThermostatCard extends LitElement {
         font-size: 11px;
         font-weight: 600;
         color: rgba(0, 0, 0, 0.7);
-        border-right: 1px solid var(--card-background-color, #fff);
+        border-right: 1px solid var(--bt-surface);
         box-sizing: border-box;
       }
       .now {
@@ -449,6 +513,12 @@ export class BestThermostatCard extends LitElement {
         min-height: 44px;
         flex: 1;
         justify-content: center;
+      }
+      ha-card.compact .segmented button {
+        min-height: 42px;
+      }
+      ha-card.compact .sched-head {
+        display: none;
       }
     `,
   ];
