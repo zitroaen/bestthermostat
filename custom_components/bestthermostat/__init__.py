@@ -16,6 +16,9 @@ from homeassistant.helpers.typing import ConfigType
 from .const import (
     CARD_FILENAME,
     CONF_ENTRY_TYPE,
+    CONF_HIDE_TRVS,
+    CONF_TRVS,
+    DEFAULT_HIDE_TRVS,
     DOMAIN,
     ENTRY_TYPE_GLOBAL,
     FRONTEND_URL_BASE,
@@ -24,6 +27,7 @@ from .const import (
 from .hub import Hub, get_hub
 from .room import RoomController
 from .services import async_register_services
+from .visibility import async_sync_trv_visibility, async_unhide_trvs
 from .websocket import async_register_websocket
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,6 +87,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_IMPORT}, data={})
         )
 
+    options = entry.options
+    async_sync_trv_visibility(
+        hass, list(options.get(CONF_TRVS, [])), options.get(CONF_HIDE_TRVS, DEFAULT_HIDE_TRVS)
+    )
+
     controller = RoomController(hass, hub, entry)
     entry.runtime_data = controller
     hub.controllers[entry.entry_id] = controller
@@ -119,5 +128,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete stored data of a removed room."""
-    if entry.data.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_GLOBAL and DOMAIN in hass.data:
+    if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_GLOBAL:
+        return
+    async_unhide_trvs(hass, list(entry.options.get(CONF_TRVS, [])))
+    if DOMAIN in hass.data:
         get_hub(hass).remove_room(entry.entry_id)

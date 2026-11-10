@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "bestthermostat"
 NAME: Final = "Best Thermostat"
-VERSION: Final = "0.1.0"
+VERSION: Final = "0.1.1"
 
 CONF_ENTRY_TYPE: Final = "entry_type"
 ENTRY_TYPE_GLOBAL: Final = "global"
@@ -17,6 +17,7 @@ CONF_TRVS: Final = "trvs"
 CONF_FROST_TEMPERATURE: Final = "frost_temperature"
 CONF_HAND_CHANGE: Final = "hand_change"
 CONF_SYNC_TRVS: Final = "sync_trvs"
+CONF_HIDE_TRVS: Final = "hide_trvs"
 
 HAND_MANUAL: Final = "manual"
 HAND_UNTIL_NEXT_SLOT: Final = "until_next_slot"
@@ -26,6 +27,7 @@ HAND_CHANGE_OPTIONS: Final = [HAND_MANUAL, HAND_UNTIL_NEXT_SLOT, HAND_IGNORE]
 DEFAULT_FROST_TEMPERATURE: Final = 5.0
 DEFAULT_HAND_CHANGE: Final = HAND_UNTIL_NEXT_SLOT
 DEFAULT_SYNC_TRVS: Final = True
+DEFAULT_HIDE_TRVS: Final = False
 DEFAULT_SCHEDULE_ID: Final = "standard"
 DEFAULT_SCHEDULE_NAME: Final = "Standard"
 DEFAULT_VARIABLES: Final = {

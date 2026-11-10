@@ -9,11 +9,13 @@
           "trvs": "Heizkörperthermostate",
           "frost_temperature": "Frostschutztemperatur (Modus Aus)",
           "hand_change": "Verhalten bei Änderungen von Hand im Auto-Modus",
-          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen"
+          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen",
+          "hide_trvs": "Thermostate verstecken"
         },
         "data_description": {
           "trvs": "Climate-Entitäten des Raums (ZHA / Zigbee2MQTT). Interne Zeitpläne der Geräte bitte deaktivieren.",
-          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot')."
+          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot').",
+          "hide_trvs": "Blendet die einzelnen TRV-Entitäten in Dashboards und bei Sprachassistenten aus; das Raumthermostat ersetzt sie. Sie werden wieder eingeblendet, wenn der Raum gelöscht oder diese Option ausgeschaltet wird."
         }
       }
     },
@@ -37,11 +39,13 @@
           "trvs": "Heizkörperthermostate",
           "frost_temperature": "Frostschutztemperatur (Modus Aus)",
           "hand_change": "Verhalten bei Änderungen von Hand im Auto-Modus",
-          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen"
+          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen",
+          "hide_trvs": "Thermostate verstecken"
         },
         "data_description": {
           "trvs": "Climate-Entitäten des Raums (ZHA / Zigbee2MQTT). Interne Zeitpläne der Geräte bitte deaktivieren.",
-          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot')."
+          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot').",
+          "hide_trvs": "Blendet die einzelnen TRV-Entitäten in Dashboards und bei Sprachassistenten aus; das Raumthermostat ersetzt sie. Sie werden wieder eingeblendet, wenn der Raum gelöscht oder diese Option ausgeschaltet wird."
         },
         "menu_options": {
           "add_variable": "Variable hinzufügen",

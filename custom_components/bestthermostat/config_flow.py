@@ -20,10 +20,12 @@ from .const import (
     CONF_ENTRY_TYPE,
     CONF_FROST_TEMPERATURE,
     CONF_HAND_CHANGE,
+    CONF_HIDE_TRVS,
     CONF_SYNC_TRVS,
     CONF_TRVS,
     DEFAULT_FROST_TEMPERATURE,
     DEFAULT_HAND_CHANGE,
+    DEFAULT_HIDE_TRVS,
     DEFAULT_SYNC_TRVS,
     DOMAIN,
     ENTRY_TYPE_GLOBAL,
@@ -33,6 +35,7 @@ from .const import (
     NAME,
 )
 from .hub import get_hub
+from .visibility import async_unhide_trvs
 
 TEMP_SELECTOR = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -68,6 +71,9 @@ def _room_schema(defaults: dict[str, Any], *, with_name: bool) -> vol.Schema:
     fields[
         vol.Required(CONF_SYNC_TRVS, default=defaults.get(CONF_SYNC_TRVS, DEFAULT_SYNC_TRVS))
     ] = selector.BooleanSelector()
+    fields[
+        vol.Required(CONF_HIDE_TRVS, default=defaults.get(CONF_HIDE_TRVS, DEFAULT_HIDE_TRVS))
+    ] = selector.BooleanSelector()
     return vol.Schema(fields)
 
 
@@ -87,6 +93,7 @@ def _options(user_input: dict[str, Any]) -> dict[str, Any]:
         CONF_FROST_TEMPERATURE: float(user_input[CONF_FROST_TEMPERATURE]),
         CONF_HAND_CHANGE: user_input[CONF_HAND_CHANGE],
         CONF_SYNC_TRVS: bool(user_input[CONF_SYNC_TRVS]),
+        CONF_HIDE_TRVS: bool(user_input.get(CONF_HIDE_TRVS, DEFAULT_HIDE_TRVS)),
     }
 
 
@@ -147,6 +154,10 @@ class RoomOptionsFlow(OptionsFlow):
             if error := _validate_trvs(self.hass, user_input[CONF_TRVS]):
                 errors[CONF_TRVS] = error
             else:
+                removed = set(self.config_entry.options.get(CONF_TRVS, [])) - set(
+                    user_input[CONF_TRVS]
+                )
+                async_unhide_trvs(self.hass, list(removed))
                 return self.async_create_entry(data=_options(user_input))
         defaults = {**self.config_entry.options, **(user_input or {})}
         return self.async_show_form(

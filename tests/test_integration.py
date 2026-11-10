@@ -392,3 +392,52 @@ async def test_options_flow(hass: HomeAssistant, room: RoomController) -> None:
     new: RoomController = hass.config_entries.async_get_entry(entry.entry_id).runtime_data  # type: ignore[union-attr]
     assert new.trvs == ["climate.trv1"]
     assert new.frost_temperature == 7.0
+
+
+async def test_hide_trvs(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """TRVs are hidden on request and shown again when the option is turned off."""
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    for name in ("trv1", "trv2"):
+        hass.states.async_remove(f"climate.{name}")
+        registry.async_get_or_create("climate", "test", name, suggested_object_id=name)
+        hass.states.async_set(f"climate.{name}", "heat", TRV_ATTRS)
+    registry.async_update_entity("climate.trv2", hidden_by=er.RegistryEntryHider.USER)
+    freezer.move_to(MONDAY_7)
+    entry = await create_room(hass, hide_trvs=True)
+    assert registry.async_get("climate.trv1").hidden_by is er.RegistryEntryHider.INTEGRATION  # type: ignore[union-attr]
+    assert registry.async_get("climate.trv2").hidden_by is er.RegistryEntryHider.USER  # type: ignore[union-attr]
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "trvs": ["climate.trv1", "climate.trv2"],
+            "frost_temperature": 5.0,
+            "hand_change": "manual",
+            "sync_trvs": True,
+            "hide_trvs": False,
+        },
+    )
+    await settle(hass)
+    assert registry.async_get("climate.trv1").hidden_by is None  # type: ignore[union-attr]
+    assert registry.async_get("climate.trv2").hidden_by is er.RegistryEntryHider.USER  # type: ignore[union-attr]
+
+    await hass.config_entries.options.async_configure(
+        (await hass.config_entries.options.async_init(entry.entry_id))["flow_id"],
+        {
+            "trvs": ["climate.trv1", "climate.trv2"],
+            "frost_temperature": 5.0,
+            "hand_change": "manual",
+            "sync_trvs": True,
+            "hide_trvs": True,
+        },
+    )
+    await settle(hass)
+    assert registry.async_get("climate.trv1").hidden_by is er.RegistryEntryHider.INTEGRATION  # type: ignore[union-attr]
+    await hass.config_entries.async_remove(entry.entry_id)
+    await settle(hass)
+    assert registry.async_get("climate.trv1").hidden_by is None  # type: ignore[union-attr]
