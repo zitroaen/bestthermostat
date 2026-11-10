@@ -7,7 +7,7 @@ unit-tested in isolation. All datetimes passed in must be timezone aware.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
 import itertools
 from typing import Any
@@ -265,6 +265,69 @@ class GlobalOverride:
 
 
 @dataclass
+class Period:
+    """A time-limited activation of a schedule and/or mode (priority above the room).
+
+    ``end`` None means "until cancelled". Among overlapping periods the most
+    recently created one wins.
+    """
+
+    id: str
+    start: datetime
+    end: datetime | None
+    created: datetime
+    schedule: str | None = None
+    mode: str | None = None
+    temperature: float | None = None
+    summary: str | None = None
+
+    def active_at(self, now: datetime) -> bool:
+        """Return True if the period is in effect at ``now``."""
+        return self.start <= now and (self.end is None or now < self.end)
+
+    def expired(self, now: datetime) -> bool:
+        """Return True if the period is over."""
+        return self.end is not None and self.end <= now
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize."""
+        return {
+            "id": self.id,
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat() if self.end else None,
+            "created": self.created.isoformat(),
+            "schedule": self.schedule,
+            "mode": self.mode,
+            "temperature": self.temperature,
+            "summary": self.summary,
+        }
+
+    @classmethod
+    def from_dict(cls, raw: Mapping[str, Any]) -> Period:
+        """Deserialize."""
+        return cls(
+            id=str(raw["id"]),
+            start=datetime.fromisoformat(raw["start"]),
+            end=datetime.fromisoformat(raw["end"]) if raw.get("end") else None,
+            created=datetime.fromisoformat(raw["created"]),
+            schedule=raw.get("schedule"),
+            mode=raw.get("mode"),
+            temperature=raw.get("temperature"),
+            summary=raw.get("summary"),
+        )
+
+
+@dataclass(frozen=True)
+class Effective:
+    """What currently controls a room after applying an active period."""
+
+    mode: str
+    schedule_id: str
+    manual_temperature: float
+    period: Period | None
+
+
+@dataclass
 class RoomState:
     """Persistent state of a room."""
 
@@ -274,19 +337,40 @@ class RoomState:
     manual_temperature: float = 20.0
     hand_temperature: float | None = None
     hand_until: datetime | None = None
+    periods: list[Period] = field(default_factory=list)
 
     @property
     def schedule(self) -> Schedule:
-        """Return the active schedule."""
+        """Return the base (non-period) active schedule."""
         return self.schedules[self.active_schedule]
+
+    def active_period(self, now: datetime) -> Period | None:
+        """Return the period in effect (the most recently created active one)."""
+        active = [p for p in self.periods if p.active_at(now)]
+        return max(active, key=lambda p: p.created) if active else None
+
+    def effective(self, now: datetime) -> Effective:
+        """Return mode/schedule/manual temperature after applying an active period."""
+        period = self.active_period(now)
+        mode, schedule_id, manual = self.mode, self.active_schedule, self.manual_temperature
+        if period is not None:
+            if period.mode is not None:
+                mode = period.mode
+            elif period.schedule is not None:
+                mode = MODE_AUTO
+            if period.schedule is not None and period.schedule in self.schedules:
+                schedule_id = period.schedule
+            if period.temperature is not None:
+                manual = period.temperature
+        return Effective(mode, schedule_id, manual, period)
 
     def hand_active(self, now: datetime) -> bool:
         """Return True if a temporary hand change is in effect."""
         return (
-            self.mode == MODE_AUTO
-            and self.hand_temperature is not None
+            self.hand_temperature is not None
             and self.hand_until is not None
             and self.hand_until > now
+            and self.effective(now).mode == MODE_AUTO
         )
 
     def variables(self) -> set[str]:
@@ -314,16 +398,20 @@ def compute_target(
     now: datetime,
     tz: tzinfo,
 ) -> Target:
-    """Compute the effective target temperature of a room."""
-    if override.applies_to(state.mode):
+    """Compute the effective target temperature of a room.
+
+    Priority: global override > active period > hand change > room mode/schedule.
+    """
+    eff = state.effective(now)
+    if override.applies_to(eff.mode):
         return Target(override.value(variables), SOURCE_OVERRIDE)
-    if state.mode == MODE_OFF:
+    if eff.mode == MODE_OFF:
         return Target(frost_temperature, SOURCE_OFF)
-    if state.mode == MODE_HEAT:
-        return Target(state.manual_temperature, SOURCE_MANUAL)
+    if eff.mode == MODE_HEAT:
+        return Target(eff.manual_temperature, SOURCE_MANUAL)
     if state.hand_active(now):
         return Target(state.hand_temperature, SOURCE_HAND)
-    slot = slot_at(state.schedule.week, now.astimezone(tz))
+    slot = slot_at(state.schedules[eff.schedule_id].week, now.astimezone(tz))
     return Target(resolve(slot, variables), SOURCE_SCHEDULE)
 
 

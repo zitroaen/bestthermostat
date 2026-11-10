@@ -205,6 +205,7 @@ export class BestThermostatCard extends LitElement {
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
+        ${this._renderPeriod(room)}
         ${this._renderScheduleSection(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${c.show_editor && !c.compact
@@ -223,6 +224,7 @@ export class BestThermostatCard extends LitElement {
     const sched = room.schedules.find((s) => s.id === room.active_schedule)?.name ?? "";
     const parts: string[] = [];
     if (room.override_active) parts.push(t.src_override);
+    else if (room.period && room.mode !== "auto") parts.push(room.period.title);
     else if (room.mode === "auto") {
       parts.push(sched);
       if (room.hand_until) parts.push(`${t.until} ${fmtTime(room.hand_until, this.hass!)}`);
@@ -232,6 +234,32 @@ export class BestThermostatCard extends LitElement {
     if (this._snap?.override.active && !room.override_active) parts.push(t.override_not_applied);
     if (room.hvac_action === "heating") parts.push(t.heating);
     return parts.filter(Boolean).join(" · ");
+  }
+
+  private _renderPeriod(room: RoomData) {
+    const t = strings(this.hass);
+    const active = room.period;
+    const next = active
+      ? undefined
+      : (room.periods ?? []).find((p) => new Date(p.start).getTime() > Date.now());
+    const period = active ?? next;
+    if (!period) return nothing;
+    const when = active
+      ? period.end
+        ? `${t.period_until} ${fmtTime(period.end, this.hass!)}`
+        : t.period_open
+      : `${t.period_from} ${fmtTime(period.start, this.hass!)}`;
+    return html`<div class="period ${active ? "active" : ""}">
+      <ha-icon icon=${active ? "mdi:calendar-star" : "mdi:calendar-clock-outline"}></ha-icon>
+      <div class="period-text">
+        <div class="period-title">${active ? "" : `${t.period_planned}: `}${period.title}</div>
+        <div class="muted period-when">${when}</div>
+      </div>
+      <button class="chip" @click=${() =>
+        this._call("period/cancel", { entry_id: room.entry_id, period_id: period.id })}>
+        ${active ? t.period_end : t.period_delete}
+      </button>
+    </div>`;
   }
 
   private _renderModes(room: RoomData) {
@@ -393,6 +421,39 @@ export class BestThermostatCard extends LitElement {
       }
       .row ha-icon {
         --mdc-icon-size: 18px;
+      }
+      .period {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 8px 8px 12px;
+        border-radius: 14px;
+        background: var(--bt-surface);
+      }
+      .period.active {
+        background: color-mix(in srgb, var(--bt-accent) 16%, transparent);
+      }
+      .period ha-icon {
+        --mdc-icon-size: 20px;
+        color: var(--bt-accent);
+      }
+      .period-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .period-title {
+        font-weight: 500;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .period-when {
+        font-size: 12px;
+      }
+      .period .chip {
+        background: var(--card-background-color, #fff);
+        min-height: 32px;
       }
       .sched-box {
         display: flex;

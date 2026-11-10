@@ -56,7 +56,7 @@ class RoomClimate(RoomEntity, ClimateEntity):
     @property
     def hvac_mode(self) -> HVACMode:
         """Current mode."""
-        return MODE_TO_HVAC[self.controller.state.mode]
+        return MODE_TO_HVAC[self.controller.mode]
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -91,7 +91,8 @@ class RoomClimate(RoomEntity, ClimateEntity):
         nxt = controller.next_change()
         return {
             "room_id": controller.entry_id,
-            "active_schedule": controller.state.schedule.name,
+            "active_schedule": controller.active_schedule.name,
+            "period": controller.period_dict(p) if (p := controller.active_period) else None,
             "target_source": target.source,
             "override_active": controller.override_active,
             "hand_until": controller.state.hand_until if controller.hand_active else None,

@@ -151,6 +151,11 @@
       "override_off": {
         "name": "Override auch für Aus"
       }
+    },
+    "calendar": {
+      "periods": {
+        "name": "Zeiträume"
+      }
     }
   },
   "services": {
@@ -263,6 +268,58 @@
         "include_off": {
           "name": "Auch Aus",
           "description": "Auch Räume im Modus Aus (Frostschutz) betreffen."
+        }
+      }
+    },
+    "add_period": {
+      "name": "Zeitraum planen",
+      "description": "Aktiviert einen Zeitplan und/oder Modus für einen Zeitraum (jetzt oder später, bis zu einem Ende oder bis zum Abbrechen). Danach läuft der Raum wie vorher weiter. Liefert die ID des Zeitraums.",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "schedule": {
+          "name": "Zeitplan",
+          "description": "Name oder ID des zu aktivierenden Zeitplans."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Modus während des Zeitraums (Manuell nutzt die Temperatur)."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Temperatur für den Modus Manuell."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Beginn (Standard: jetzt)."
+        },
+        "end": {
+          "name": "Ende",
+          "description": "Ende (Standard: bis auf Weiteres)."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Alternative zum Ende."
+        },
+        "summary": {
+          "name": "Titel",
+          "description": "Optionaler Titel für den Kalender."
+        }
+      }
+    },
+    "cancel_period": {
+      "name": "Zeitraum beenden",
+      "description": "Beendet bzw. löscht einen geplanten Zeitraum; ohne ID alle Zeiträume des Raums.",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "period_id": {
+          "name": "Zeitraum-ID",
+          "description": "Von add_period gelieferte ID."
         }
       }
     }

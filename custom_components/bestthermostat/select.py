@@ -35,7 +35,7 @@ class ScheduleSelect(RoomEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Active schedule name."""
-        return self.controller.state.schedule.name
+        return self.controller.active_schedule.name
 
     async def async_select_option(self, option: str) -> None:
         """Activate a schedule."""

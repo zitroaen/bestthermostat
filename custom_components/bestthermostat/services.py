@@ -8,6 +8,7 @@ from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import DOMAIN
@@ -25,6 +26,11 @@ ATTR_ALL_MODES = "all_modes"
 ATTR_INCLUDE_MANUAL = "include_manual"
 ATTR_INCLUDE_OFF = "include_off"
 ATTR_NAME = "name"
+ATTR_START = "start"
+ATTR_END = "end"
+ATTR_DURATION = "duration"
+ATTR_PERIOD_ID = "period_id"
+ATTR_SUMMARY = "summary"
 
 ROOM_SCHEMA: dict[Any, Any] = {vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids}
 
@@ -90,7 +96,55 @@ def async_register_services(hass: HomeAssistant) -> None:
             all_modes=call.data.get(ATTR_ALL_MODES),
         )
 
+    async def add_period(call: ServiceCall) -> ServiceResponse:
+        start = call.data.get(ATTR_START)
+        end = call.data.get(ATTR_END)
+        if (duration := call.data.get(ATTR_DURATION)) is not None:
+            if end is not None:
+                raise ServiceValidationError("Use either end or duration, not both")
+            end = (start or dt_util.now()) + duration
+        result: list[Any] = []
+        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+            period = room.add_period(
+                start=start,
+                end=end,
+                schedule=call.data.get(ATTR_SCHEDULE),
+                mode=call.data.get(ATTR_MODE),
+                temperature=call.data.get(ATTR_TEMPERATURE),
+                summary=call.data.get(ATTR_SUMMARY),
+            )
+            result.append({"room": room.climate_entity_id, **room.period_dict(period)})
+        return {"periods": result}
+
+    async def cancel_period(call: ServiceCall) -> None:
+        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+            room.cancel_period(call.data.get(ATTR_PERIOD_ID))
+
     temp = vol.All(vol.Coerce(float), vol.Range(min=4, max=35))
+    hass.services.async_register(
+        DOMAIN,
+        "add_period",
+        add_period,
+        vol.Schema(
+            {
+                **ROOM_SCHEMA,
+                vol.Optional(ATTR_SCHEDULE): cv.string,
+                vol.Optional(ATTR_MODE): vol.In(MODES),
+                vol.Optional(ATTR_TEMPERATURE): temp,
+                vol.Optional(ATTR_START): cv.datetime,
+                vol.Optional(ATTR_END): cv.datetime,
+                vol.Optional(ATTR_DURATION): cv.positive_time_period,
+                vol.Optional(ATTR_SUMMARY): cv.string,
+            }
+        ),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "cancel_period",
+        cancel_period,
+        vol.Schema({**ROOM_SCHEMA, vol.Optional(ATTR_PERIOD_ID): cv.string}),
+    )
     hass.services.async_register(
         DOMAIN,
         "set_active_schedule",
