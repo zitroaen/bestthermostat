@@ -44,9 +44,11 @@ array – higher layers never modify lower ones, so ending them restores the pre
 behaviour automatically:
 
 1. Global override, if active and it applies to the effective mode
-2. Active period (most recently created wins) → effective mode / schedule / temperature
-3. Room: off → frost protection, heat → manual temperature, hand change until the next
-   slot, otherwise the slot of the effective schedule (variables resolved)
+2. Hand change until the next slot (only while the effective mode is auto; capped at the
+   end of a running period)
+3. Active period (most recently created wins) → effective mode / schedule / temperature
+4. Room: off → frost protection, heat → manual temperature, otherwise the slot of the
+   effective schedule (variables resolved)
 
 The result is clamped per TRV to its min/max/step. Every change (timer, variable,
 override, mode, schedule, period, TRV becoming available) recomputes the target and sends

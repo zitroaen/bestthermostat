@@ -29,6 +29,7 @@ export interface CardConfig {
   show_timeline?: boolean;
   show_editor?: boolean;
   show_periods?: boolean;
+  show_priorities?: boolean;
 }
 
 export class BestThermostatCard extends LitElement {
@@ -73,6 +74,7 @@ export class BestThermostatCard extends LitElement {
       show_timeline: true,
       show_editor: true,
       show_periods: true,
+      show_priorities: false,
       ...config,
     };
   }
@@ -228,6 +230,7 @@ export class BestThermostatCard extends LitElement {
 
         ${c.show_modes ? this._renderModes(room) : nothing}
         ${this._renderPeriods(room)}
+        ${c.show_priorities ? this._renderPriorities(room) : nothing}
         ${this._renderScheduleSection(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${c.show_editor && !c.compact
@@ -256,6 +259,69 @@ export class BestThermostatCard extends LitElement {
     if (this._snap?.override.active && !room.override_active) parts.push(t.override_not_applied);
     if (room.hvac_action === "heating") parts.push(t.heating);
     return parts.filter(Boolean).join(" · ");
+  }
+
+  private _renderPriorities(room: RoomData) {
+    const t = strings(this.hass);
+    const h = this.hass!;
+    const ov = this._snap!.override;
+    const schedName = (id: string) => room.schedules.find((s) => s.id === id)?.name ?? id;
+    const winner = room.override_active
+      ? 1
+      : room.target_source === "hand"
+        ? 2
+        : room.period
+          ? 3
+          : 4;
+    const base =
+      room.base_mode === "off"
+        ? `${t.src_off} · ${fmtTemp(room.frost_temperature)}`
+        : room.base_mode === "heat"
+          ? `${t.heat} · ${fmtTemp(room.base_manual_temperature)}`
+          : `${t.auto} · ${schedName(room.base_schedule)}`;
+    const layers: { n: number; icon: string; name: string; value: string }[] = [
+      {
+        n: 1,
+        icon: "mdi:home-export-outline",
+        name: t.override,
+        value: !ov.active
+          ? t.prio_inactive
+          : room.override_active
+            ? fmtTemp(ov.value)
+            : `${fmtTemp(ov.value)} · ${t.override_not_applied}`,
+      },
+      {
+        n: 2,
+        icon: "mdi:hand-back-right",
+        name: t.prio_hand,
+        value:
+          room.target_source === "hand" && room.hand_until
+            ? `${fmtTemp(room.target_temperature)} · ${t.until} ${fmtTime(room.hand_until, h)}`
+            : t.prio_none,
+      },
+      {
+        n: 3,
+        icon: "mdi:calendar-star",
+        name: t.period,
+        value: room.period
+          ? `${room.period.title} · ${room.period.end ? `${t.period_until} ${fmtTime(room.period.end, h)}` : t.period_open}`
+          : t.prio_none,
+      },
+      { n: 4, icon: "mdi:radiator", name: t.prio_room, value: base },
+    ];
+    return html`<div class="prio">
+      <div class="sched-head">
+        <ha-icon icon="mdi:layers-triple-outline"></ha-icon><span>${t.prio_title}</span>
+      </div>
+      ${layers.map(
+        (l) => html`<div class="prio-row ${l.n === winner ? "win" : l.n < winner ? "idle" : "below"}">
+          <span class="prio-n">${l.n}</span>
+          <ha-icon icon=${l.icon}></ha-icon>
+          <span class="prio-name">${l.name}</span>
+          <span class="prio-val">${l.value}</span>
+        </div>`,
+      )}
+    </div>`;
   }
 
   private _renderPeriods(room: RoomData) {
@@ -470,6 +536,70 @@ export class BestThermostatCard extends LitElement {
       }
       .row ha-icon {
         --mdc-icon-size: 18px;
+      }
+      .prio {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--bt-surface);
+      }
+      .prio .sched-head {
+        margin-bottom: 4px;
+      }
+      .prio-row {
+        display: grid;
+        grid-template-columns: 20px 20px auto 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .prio-row ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--bt-muted);
+      }
+      .prio-n {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
+      }
+      .prio-name {
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .prio-val {
+        text-align: right;
+        color: var(--bt-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .prio-row.win {
+        background: var(--card-background-color, #fff);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+      .prio-row.win .prio-n {
+        background: var(--bt-accent);
+        color: var(--text-primary-color, #fff);
+      }
+      .prio-row.win ha-icon {
+        color: var(--bt-accent);
+      }
+      .prio-row.win .prio-val {
+        color: var(--primary-text-color);
+        font-weight: 500;
+      }
+      .prio-row.below {
+        opacity: 0.5;
       }
       .periods {
         display: flex;

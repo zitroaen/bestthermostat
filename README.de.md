@@ -89,15 +89,17 @@ sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 
 ## Priorität der Solltemperatur
 
-1. Globaler Override, wenn aktiv und der Raum betroffen ist: Räume im Modus Auto immer,
-   Räume in Manuell bzw. Aus nur, wenn der jeweilige Schalter an ist
-2. Modus Aus → Frostschutz
-3. Modus Manuell → manuelle Temperatur
-4. Änderung von Hand „bis zum nächsten Slot“
-5. Slot des aktiven Zeitplans (Variable aufgelöst)
+| Priorität | Ebene |
+|---|---|
+| 1 | Globaler Override (Räume im Modus Auto immer, Räume in Manuell bzw. Aus nur, wenn der jeweilige Schalter an ist) |
+| 2 | Änderung von Hand „bis zum nächsten Slot“ (endet spätestens mit dem nächsten Slot bzw. dem Zeitraum) |
+| 3 | Zeitraum (bei Überschneidung gilt der **zuletzt angelegte**) |
+| 4 | Raum: Aus → Frostschutz, Manuell → manuelle Temperatur, Auto → Slot des aktiven Zeitplans |
 
-Der Override verändert keine Raumzustände. Er liegt nur darüber. Deshalb ist nach dem
-Ausschalten automatisch alles wie vorher, auch über Neustarts hinweg.
+Override und Zeiträume verändern keine Raumzustände, sie liegen nur darüber (wie beim
+BACnet-Prioritäts-Array). Deshalb ist nach ihrem Ende automatisch alles wie vorher, auch
+über Neustarts hinweg. Die Raumkarte kann diese Ebenen anzeigen und markiert die, die
+gerade bestimmt (Kartenoption `show_priorities`).
 
 ## Zeiträume (z. B. Gästemodus)
 
@@ -106,12 +108,6 @@ z. B. „Arbeitszimmer: Zeitplan *Gast* von Fr 14:00 bis So 18:00“ oder „Bad
 Weiteres“. Danach läuft der Raum **genau wie vorher** weiter. Es wird nichts gemerkt und
 zurückgeschrieben: Der Zeitraum ist eine eigene Ebene über dem Raum (wie beim
 BACnet-Prioritäts-Array), beim Ende greift wieder die Ebene darunter.
-
-| Priorität | Ebene |
-|---|---|
-| 1 | Globaler Override |
-| 2 | Zeitraum (bei Überschneidung gilt der **zuletzt angelegte**) |
-| 3 | Raum: Modus, aktiver Zeitplan, Änderung von Hand |
 
 - **Start** optional (Standard: jetzt), **Ende** optional (Standard: bis auf Weiteres),
   alternativ eine **Dauer**.
@@ -178,6 +174,7 @@ show_schedules: true
 show_timeline: true
 show_editor: true
 show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
+show_priorities: false  # Prioritäten-Ebenen anzeigen und markieren, welche gerade bestimmt
 ```
 
 ```yaml
