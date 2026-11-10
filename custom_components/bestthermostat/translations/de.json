@@ -1,0 +1,255 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Raum anlegen",
+        "description": "Legt einen Raum mit einem Standard-Zeitplan an. Weitere Zeitpläne bearbeitest du in der Best-Thermostat-Karte.",
+        "data": {
+          "name": "Raumname",
+          "trvs": "Heizkörperthermostate",
+          "frost_temperature": "Frostschutztemperatur (Modus Aus)",
+          "hand_change": "Verhalten bei Änderungen von Hand im Auto-Modus",
+          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen"
+        },
+        "data_description": {
+          "trvs": "Climate-Entitäten des Raums (ZHA / Zigbee2MQTT). Interne Zeitpläne der Geräte bitte deaktivieren.",
+          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot')."
+        }
+      }
+    },
+    "error": {
+      "no_name": "Bitte einen Namen eingeben.",
+      "name_exists": "Ein Raum mit diesem Namen existiert bereits.",
+      "no_trvs": "Mindestens ein Thermostat auswählen.",
+      "own_entity": "Best-Thermostat-Räume können nicht als Thermostat verwendet werden.",
+      "variable_invalid": "Ungültiger Name/Wert oder Name existiert bereits.",
+      "variable_in_use": "Wird noch verwendet in: {usage}"
+    },
+    "abort": {
+      "already_configured": "Bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Raumeinstellungen",
+        "data": {
+          "trvs": "Heizkörperthermostate",
+          "frost_temperature": "Frostschutztemperatur (Modus Aus)",
+          "hand_change": "Verhalten bei Änderungen von Hand im Auto-Modus",
+          "sync_trvs": "Änderung an einem Thermostat auf die anderen übertragen"
+        },
+        "data_description": {
+          "trvs": "Climate-Entitäten des Raums (ZHA / Zigbee2MQTT). Interne Zeitpläne der Geräte bitte deaktivieren.",
+          "hand_change": "Gilt auch für Änderungen am Raumthermostat ('Ignorieren' wirkt dort wie 'Bis zum nächsten Slot')."
+        },
+        "menu_options": {
+          "add_variable": "Variable hinzufügen",
+          "edit_variable": "Variable bearbeiten",
+          "remove_variable": "Variable löschen"
+        }
+      },
+      "add_variable": {
+        "title": "Variable hinzufügen",
+        "data": {
+          "name": "Name",
+          "value": "Temperatur",
+          "variable": "Variable"
+        }
+      },
+      "edit_variable": {
+        "title": "Variable bearbeiten",
+        "data": {
+          "name": "Name",
+          "value": "Temperatur",
+          "variable": "Variable"
+        }
+      },
+      "edit_variable_values": {
+        "title": "Variable bearbeiten",
+        "data": {
+          "name": "Name",
+          "value": "Temperatur",
+          "variable": "Variable"
+        }
+      },
+      "remove_variable": {
+        "title": "Variable löschen",
+        "description": "Variablen, die in einem Zeitplan oder vom Override verwendet werden, können nicht gelöscht werden.",
+        "data": {
+          "name": "Name",
+          "value": "Temperatur",
+          "variable": "Variable"
+        }
+      }
+    },
+    "error": {
+      "no_name": "Bitte einen Namen eingeben.",
+      "name_exists": "Ein Raum mit diesem Namen existiert bereits.",
+      "no_trvs": "Mindestens ein Thermostat auswählen.",
+      "own_entity": "Best-Thermostat-Räume können nicht als Thermostat verwendet werden.",
+      "variable_invalid": "Ungültiger Name/Wert oder Name existiert bereits.",
+      "variable_in_use": "Wird noch verwendet in: {usage}"
+    }
+  },
+  "selector": {
+    "hand_change": {
+      "options": {
+        "manual": "Raum auf Manuell schalten",
+        "until_next_slot": "Bis zum nächsten Slot halten",
+        "ignore": "Ignorieren und Plan wiederherstellen"
+      }
+    },
+    "mode": {
+      "options": {
+        "auto": "Auto (Zeitplan)",
+        "heat": "Manuell",
+        "off": "Aus (Frostschutz)"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "schedule": {
+        "name": "Zeitplan"
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "name": "Nächster Wechsel",
+        "state_attributes": {
+          "next_temperature": {
+            "name": "Nächste Temperatur"
+          }
+        }
+      }
+    },
+    "binary_sensor": {
+      "paused": {
+        "name": "Zeitplan pausiert"
+      }
+    },
+    "number": {
+      "override_temperature": {
+        "name": "Override-Temperatur"
+      },
+      "variable": {
+        "name": "Variable"
+      }
+    },
+    "switch": {
+      "override": {
+        "name": "Globaler Override"
+      },
+      "override_all_modes": {
+        "name": "Override auch für Manuell/Aus"
+      }
+    }
+  },
+  "services": {
+    "set_active_schedule": {
+      "name": "Aktiven Zeitplan setzen",
+      "description": "Aktiviert einen Zeitplan eines oder mehrerer Räume.",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "schedule": {
+          "name": "Zeitplan",
+          "description": "Name oder ID des Zeitplans."
+        }
+      }
+    },
+    "set_mode": {
+      "name": "Modus setzen",
+      "description": "Setzt Auto, Manuell oder Aus.",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Betriebsmodus."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Temperatur für den Modus Manuell."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Zeitpläne abrufen",
+      "description": "Liefert Zustand, Zeitpläne und Wochenpläne von Räumen.",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "schedule": {
+          "name": "Zeitplan",
+          "description": "Nur dieser Zeitplan (optional)."
+        }
+      }
+    },
+    "set_schedule": {
+      "name": "Wochenplan setzen",
+      "description": "Ersetzt den Wochenplan eines Zeitplans (legt ihn bei Bedarf an).",
+      "fields": {
+        "entity_id": {
+          "name": "Raum",
+          "description": "Raumthermostat(e)."
+        },
+        "schedule": {
+          "name": "Zeitplan",
+          "description": "Name oder ID des Zeitplans."
+        },
+        "week": {
+          "name": "Woche",
+          "description": "Objekt mit den Schlüsseln mon..sun, jeweils eine Liste von Slots {start, temperature | variable}."
+        }
+      }
+    },
+    "set_variable": {
+      "name": "Variable setzen",
+      "description": "Ändert eine globale Temperatur-Variable.",
+      "fields": {
+        "variable": {
+          "name": "Variable",
+          "description": "ID oder Name."
+        },
+        "value": {
+          "name": "Wert",
+          "description": "Neue Temperatur."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Neuer Name (optional)."
+        }
+      }
+    },
+    "set_global_override": {
+      "name": "Globalen Override setzen",
+      "description": "Pausiert alle Zeitpläne und nutzt eine Temperatur.",
+      "fields": {
+        "active": {
+          "name": "Aktiv",
+          "description": "Override ein- oder ausschalten."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Feste Override-Temperatur."
+        },
+        "variable": {
+          "name": "Variable",
+          "description": "Variable als Override-Temperatur verwenden."
+        },
+        "all_modes": {
+          "name": "Alle Modi",
+          "description": "Auch Räume im Modus Manuell/Aus betreffen."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,104 @@
+set_active_schedule:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          integration: bestthermostat
+          domain: climate
+          multiple: true
+    schedule:
+      required: true
+      example: "Gast"
+      selector:
+        text:
+set_mode:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          integration: bestthermostat
+          domain: climate
+          multiple: true
+    mode:
+      required: true
+      selector:
+        select:
+          translation_key: mode
+          options:
+            - auto
+            - heat
+            - "off"
+    temperature:
+      selector:
+        number:
+          min: 4
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+get_schedule:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          integration: bestthermostat
+          domain: climate
+          multiple: true
+    schedule:
+      selector:
+        text:
+set_schedule:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          integration: bestthermostat
+          domain: climate
+          multiple: true
+    schedule:
+      required: true
+      selector:
+        text:
+    week:
+      required: true
+      example: '{"mon": [{"start": "00:00", "variable": "eco"}, {"start": "06:00", "temperature": 21}], "tue": [...]}'
+      selector:
+        object:
+set_variable:
+  fields:
+    variable:
+      required: true
+      example: "comfort"
+      selector:
+        text:
+    value:
+      selector:
+        number:
+          min: 4
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    name:
+      selector:
+        text:
+set_global_override:
+  fields:
+    active:
+      selector:
+        boolean:
+    temperature:
+      selector:
+        number:
+          min: 4
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    variable:
+      selector:
+        text:
+    all_modes:
+      selector:
+        boolean:
