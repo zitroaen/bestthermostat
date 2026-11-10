@@ -1,0 +1,255 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add room",
+        "description": "Creates a room with a default schedule. Further schedules are edited in the Best Thermostat card.",
+        "data": {
+          "name": "Room name",
+          "trvs": "Radiator thermostats",
+          "frost_temperature": "Frost protection temperature (mode off)",
+          "hand_change": "Behaviour on manual changes in auto mode",
+          "sync_trvs": "Sync changes on one thermostat to the others"
+        },
+        "data_description": {
+          "trvs": "Climate entities of the room (ZHA / Zigbee2MQTT). Disable internal schedules of the devices.",
+          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot')."
+        }
+      }
+    },
+    "error": {
+      "no_name": "Please enter a name.",
+      "name_exists": "A room with this name already exists.",
+      "no_trvs": "Select at least one thermostat.",
+      "own_entity": "Best Thermostat rooms cannot be used as thermostats.",
+      "variable_invalid": "Invalid name/value or name already exists.",
+      "variable_in_use": "Still used in: {usage}"
+    },
+    "abort": {
+      "already_configured": "Already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Room settings",
+        "data": {
+          "trvs": "Radiator thermostats",
+          "frost_temperature": "Frost protection temperature (mode off)",
+          "hand_change": "Behaviour on manual changes in auto mode",
+          "sync_trvs": "Sync changes on one thermostat to the others"
+        },
+        "data_description": {
+          "trvs": "Climate entities of the room (ZHA / Zigbee2MQTT). Disable internal schedules of the devices.",
+          "hand_change": "Also applies to changes on the room thermostat ('ignore' then acts like 'until next slot')."
+        },
+        "menu_options": {
+          "add_variable": "Add variable",
+          "edit_variable": "Edit variable",
+          "remove_variable": "Delete variable"
+        }
+      },
+      "add_variable": {
+        "title": "Add variable",
+        "data": {
+          "name": "Name",
+          "value": "Temperature",
+          "variable": "Variable"
+        }
+      },
+      "edit_variable": {
+        "title": "Edit variable",
+        "data": {
+          "name": "Name",
+          "value": "Temperature",
+          "variable": "Variable"
+        }
+      },
+      "edit_variable_values": {
+        "title": "Edit variable",
+        "data": {
+          "name": "Name",
+          "value": "Temperature",
+          "variable": "Variable"
+        }
+      },
+      "remove_variable": {
+        "title": "Delete variable",
+        "description": "Variables used in a schedule or by the override cannot be deleted.",
+        "data": {
+          "name": "Name",
+          "value": "Temperature",
+          "variable": "Variable"
+        }
+      }
+    },
+    "error": {
+      "no_name": "Please enter a name.",
+      "name_exists": "A room with this name already exists.",
+      "no_trvs": "Select at least one thermostat.",
+      "own_entity": "Best Thermostat rooms cannot be used as thermostats.",
+      "variable_invalid": "Invalid name/value or name already exists.",
+      "variable_in_use": "Still used in: {usage}"
+    }
+  },
+  "selector": {
+    "hand_change": {
+      "options": {
+        "manual": "Switch room to manual mode",
+        "until_next_slot": "Keep until the next slot",
+        "ignore": "Ignore and restore schedule"
+      }
+    },
+    "mode": {
+      "options": {
+        "auto": "Auto (schedule)",
+        "heat": "Manual",
+        "off": "Off (frost protection)"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "schedule": {
+        "name": "Schedule"
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "name": "Next change",
+        "state_attributes": {
+          "next_temperature": {
+            "name": "Next temperature"
+          }
+        }
+      }
+    },
+    "binary_sensor": {
+      "paused": {
+        "name": "Schedule paused"
+      }
+    },
+    "number": {
+      "override_temperature": {
+        "name": "Override temperature"
+      },
+      "variable": {
+        "name": "Variable"
+      }
+    },
+    "switch": {
+      "override": {
+        "name": "Global override"
+      },
+      "override_all_modes": {
+        "name": "Override also for manual/off"
+      }
+    }
+  },
+  "services": {
+    "set_active_schedule": {
+      "name": "Set active schedule",
+      "description": "Activates a schedule of one or more rooms.",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "schedule": {
+          "name": "Schedule",
+          "description": "Name or ID of the schedule."
+        }
+      }
+    },
+    "set_mode": {
+      "name": "Set mode",
+      "description": "Sets auto, manual or off.",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Operating mode."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Temperature for manual mode."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Get schedules",
+      "description": "Returns state, schedules and weekly plans of rooms.",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "schedule": {
+          "name": "Schedule",
+          "description": "Only this schedule (optional)."
+        }
+      }
+    },
+    "set_schedule": {
+      "name": "Set weekly plan",
+      "description": "Replaces the weekly plan of a schedule (creates it if missing).",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "schedule": {
+          "name": "Schedule",
+          "description": "Name or ID of the schedule."
+        },
+        "week": {
+          "name": "Week",
+          "description": "Object with keys mon..sun, each a list of slots {start, temperature | variable}."
+        }
+      }
+    },
+    "set_variable": {
+      "name": "Set variable",
+      "description": "Changes a global temperature variable.",
+      "fields": {
+        "variable": {
+          "name": "Variable",
+          "description": "ID or name."
+        },
+        "value": {
+          "name": "Value",
+          "description": "New temperature."
+        },
+        "name": {
+          "name": "Name",
+          "description": "New name (optional)."
+        }
+      }
+    },
+    "set_global_override": {
+      "name": "Set global override",
+      "description": "Pauses all schedules and uses one temperature.",
+      "fields": {
+        "active": {
+          "name": "Active",
+          "description": "Turn the override on or off."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Fixed override temperature."
+        },
+        "variable": {
+          "name": "Variable",
+          "description": "Use a variable as override temperature."
+        },
+        "all_modes": {
+          "name": "All modes",
+          "description": "Also affect rooms in manual/off mode."
+        }
+      }
+    }
+  }
+}
