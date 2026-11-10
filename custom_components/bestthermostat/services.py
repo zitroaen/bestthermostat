@@ -22,6 +22,8 @@ ATTR_VARIABLE = "variable"
 ATTR_VALUE = "value"
 ATTR_ACTIVE = "active"
 ATTR_ALL_MODES = "all_modes"
+ATTR_INCLUDE_MANUAL = "include_manual"
+ATTR_INCLUDE_OFF = "include_off"
 ATTR_NAME = "name"
 
 ROOM_SCHEMA: dict[Any, Any] = {vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids}
@@ -83,6 +85,8 @@ def async_register_services(hass: HomeAssistant) -> None:
             active=call.data.get(ATTR_ACTIVE),
             temperature=call.data.get(ATTR_TEMPERATURE),
             variable=call.data.get(ATTR_VARIABLE),
+            include_manual=call.data.get(ATTR_INCLUDE_MANUAL),
+            include_off=call.data.get(ATTR_INCLUDE_OFF),
             all_modes=call.data.get(ATTR_ALL_MODES),
         )
 
@@ -141,6 +145,8 @@ def async_register_services(hass: HomeAssistant) -> None:
                 vol.Optional(ATTR_ACTIVE): cv.boolean,
                 vol.Optional(ATTR_TEMPERATURE): temp,
                 vol.Optional(ATTR_VARIABLE): cv.string,
+                vol.Optional(ATTR_INCLUDE_MANUAL): cv.boolean,
+                vol.Optional(ATTR_INCLUDE_OFF): cv.boolean,
                 vol.Optional(ATTR_ALL_MODES): cv.boolean,
             }
         ),

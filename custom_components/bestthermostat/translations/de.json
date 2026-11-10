@@ -145,8 +145,11 @@
       "override": {
         "name": "Globaler Override"
       },
-      "override_all_modes": {
-        "name": "Override auch für Manuell/Aus"
+      "override_manual": {
+        "name": "Override auch für Manuell"
+      },
+      "override_off": {
+        "name": "Override auch für Aus"
       }
     }
   },
@@ -251,7 +254,15 @@
         },
         "all_modes": {
           "name": "Alle Modi",
-          "description": "Auch Räume im Modus Manuell/Aus betreffen."
+          "description": "Kurzform: setzt 'Auch Manuell' und 'Auch Aus' gemeinsam."
+        },
+        "include_manual": {
+          "name": "Auch Manuell",
+          "description": "Auch Räume im Modus Manuell betreffen."
+        },
+        "include_off": {
+          "name": "Auch Aus",
+          "description": "Auch Räume im Modus Aus (Frostschutz) betreffen."
         }
       }
     }

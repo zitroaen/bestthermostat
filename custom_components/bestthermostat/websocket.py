@@ -30,7 +30,8 @@ def _snapshot(hass: HomeAssistant) -> dict[str, Any]:
             "active": hub.override.active,
             "temperature": hub.override.temperature,
             "variable": hub.override.variable,
-            "all_modes": hub.override.all_modes,
+            "include_manual": hub.override.include_manual,
+            "include_off": hub.override.include_off,
             "value": hub.override_value(),
         },
     }
@@ -178,6 +179,8 @@ def async_register_websocket(hass: HomeAssistant) -> None:
                 vol.Optional("active"): bool,
                 vol.Optional("temperature"): vol.Coerce(float),
                 vol.Optional("variable"): str,
+                vol.Optional("include_manual"): bool,
+                vol.Optional("include_off"): bool,
                 vol.Optional("all_modes"): bool,
             },
             _ok(
@@ -185,6 +188,8 @@ def async_register_websocket(hass: HomeAssistant) -> None:
                     active=m.get("active"),
                     temperature=m.get("temperature"),
                     variable=m.get("variable"),
+                    include_manual=m.get("include_manual"),
+                    include_off=m.get("include_off"),
                     all_modes=m.get("all_modes"),
                 )
             ),

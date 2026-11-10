@@ -270,7 +270,7 @@ async def test_override_only_auto_rooms(hass: HomeAssistant, room: RoomControlle
     get_hub(hass).set_override(active=True, temperature=15.0)
     await settle(hass)
     assert temps(hass) == (19.0, 19.0)
-    get_hub(hass).set_override(all_modes=True)
+    get_hub(hass).set_override(include_manual=True)
     await settle(hass)
     assert temps(hass) == (15.0, 15.0)
     get_hub(hass).set_override(active=False)
@@ -441,3 +441,34 @@ async def test_hide_trvs(
     await hass.config_entries.async_remove(entry.entry_id)
     await settle(hass)
     assert registry.async_get("climate.trv1").hidden_by is None  # type: ignore[union-attr]
+
+
+async def test_override_manual_and_off_separately(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """'Also manual' and 'also off' are independent."""
+    hub = get_hub(hass)
+    hub.set_override(active=True, temperature=15.0, include_off=True)
+    room.set_mode("heat", 19.0)
+    await settle(hass)
+    assert temps(hass) == (19.0, 19.0)  # manual not affected
+    room.set_mode("off")
+    await settle(hass)
+    assert temps(hass) == (15.0, 15.0)  # off affected
+    await hass.services.async_call(
+        DOMAIN, "set_global_override", {"include_off": False, "include_manual": True}, blocking=True
+    )
+    await settle(hass)
+    assert temps(hass) == (5.0, 5.0)
+    room.set_mode("heat", 19.0)
+    await settle(hass)
+    assert temps(hass) == (15.0, 15.0)
+    assert hass.states.get("switch.best_thermostat_override_also_for_manual").state == "on"  # type: ignore[union-attr]
+    assert hass.states.get("switch.best_thermostat_override_also_for_off").state == "off"  # type: ignore[union-attr]
+    await hass.services.async_call(
+        "switch",
+        "turn_on",
+        {"entity_id": "switch.best_thermostat_override_also_for_off"},
+        blocking=True,
+    )
+    assert hub.override.include_off

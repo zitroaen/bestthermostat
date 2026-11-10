@@ -58,7 +58,8 @@ Das Integrations-Icon wird ab Home Assistant 2026.3 aus `brand/` angezeigt.
 | `number` | `number.best_thermostat_komfort` | Globale Variable (je Variable eine) |
 | `number` | `number.best_thermostat_override_temperatur` | Temperatur des globalen Overrides |
 | `switch` | `switch.best_thermostat_globaler_override` | Globaler Override an/aus |
-| `switch` | `switch.best_thermostat_override_auch_fur_manuell_aus` | Override auch für Räume im Modus Manuell/Aus |
+| `switch` | `switch.best_thermostat_override_auch_fur_manuell` | Override gilt auch für Räume im Modus Manuell |
+| `switch` | `switch.best_thermostat_override_auch_fur_aus` | Override gilt auch für Räume im Modus Aus (Frostschutz) |
 
 Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
 
@@ -85,7 +86,8 @@ sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 
 ## Priorität der Solltemperatur
 
-1. Globaler Override (wenn aktiv und der Raum betroffen ist)
+1. Globaler Override, wenn aktiv und der Raum betroffen ist: Räume im Modus Auto immer,
+   Räume in Manuell bzw. Aus nur, wenn der jeweilige Schalter an ist
 2. Modus Aus → Frostschutz
 3. Modus Manuell → manuelle Temperatur
 4. Änderung von Hand „bis zum nächsten Slot“
@@ -135,7 +137,7 @@ Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
 | `bestthermostat.get_schedule` | Liefert Zustand und Wochenpläne als Response |
 | `bestthermostat.set_schedule` | Wochenplan als JSON setzen (legt den Zeitplan bei Bedarf an) |
 | `bestthermostat.set_variable` | Variable ändern (`variable`: ID oder Name, `value`, `name`) |
-| `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `all_modes` |
+| `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `include_manual`, `include_off` (`all_modes` setzt beide) |
 
 Format eines Wochenplans:
 

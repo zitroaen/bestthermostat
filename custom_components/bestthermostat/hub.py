@@ -72,7 +72,8 @@ class Hub:
             active=bool(ov.get("active", False)),
             temperature=float(ov.get("temperature", 16.0)),
             variable=ov.get("variable"),
-            all_modes=bool(ov.get("all_modes", False)),
+            include_manual=bool(ov.get("include_manual", ov.get("all_modes", False))),
+            include_off=bool(ov.get("include_off", ov.get("all_modes", False))),
         )
         self.rooms_data = dict(data.get("rooms", {}))
 
@@ -85,7 +86,8 @@ class Hub:
                 "active": self.override.active,
                 "temperature": self.override.temperature,
                 "variable": self.override.variable,
-                "all_modes": self.override.all_modes,
+                "include_manual": self.override.include_manual,
+                "include_off": self.override.include_off,
             },
             "rooms": self.rooms_data,
         }
@@ -218,6 +220,8 @@ class Hub:
         active: bool | None = None,
         temperature: float | None = None,
         variable: str | None = None,
+        include_manual: bool | None = None,
+        include_off: bool | None = None,
         all_modes: bool | None = None,
     ) -> None:
         """Change the global override."""
@@ -228,7 +232,12 @@ class Hub:
             if variable is None:
                 self.override.variable = None
         if all_modes is not None:
-            self.override.all_modes = all_modes
+            self.override.include_manual = all_modes
+            self.override.include_off = all_modes
+        if include_manual is not None:
+            self.override.include_manual = include_manual
+        if include_off is not None:
+            self.override.include_off = include_off
         if active is not None:
             self.override.active = active
         self.save()
