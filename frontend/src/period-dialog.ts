@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import type { HomeAssistant, RoomData } from "./api";
+import type { HomeAssistant, PeriodData, RoomData } from "./api";
 import { ws } from "./api";
 import { shared } from "./styles";
 import { fmtTemp, strings } from "./utils";
@@ -23,6 +23,7 @@ export class BtPeriodDialog extends LitElement {
   static properties = {
     hass: { attribute: false },
     room: { attribute: false },
+    period: { attribute: false },
     _what: { state: true },
     _temp: { state: true },
     _startNow: { state: true },
@@ -36,6 +37,8 @@ export class BtPeriodDialog extends LitElement {
 
   hass?: HomeAssistant;
   room?: RoomData;
+  period?: PeriodData;
+  private _initialized = false;
   _what?: What;
   _temp = 21;
   _startNow = false;
@@ -65,6 +68,18 @@ export class BtPeriodDialog extends LitElement {
   };
 
   protected willUpdate() {
+    if (!this._initialized && this.room && this.period) {
+      this._initialized = true;
+      const p = this.period;
+      if (p.schedule) this._what = { kind: "schedule", id: p.schedule };
+      else this._what = { kind: "mode", mode: (p.mode ?? "off") as "auto" | "heat" | "off" };
+      if (p.temperature != null) this._temp = p.temperature;
+      this._startNow = false;
+      this._start = localInput(new Date(p.start));
+      this._openEnd = !p.end;
+      if (p.end) this._end = localInput(new Date(p.end));
+      this._title = p.summary ?? "";
+    }
     if (!this._what && this.room) {
       const other = this.room.schedules.find((s) => s.id !== this.room!.base_schedule);
       this._what = other ? { kind: "schedule", id: other.id } : { kind: "mode", mode: "off" };
@@ -95,13 +110,35 @@ export class BtPeriodDialog extends LitElement {
       data.mode = this._what.mode;
       if (this._what.mode === "heat") data.temperature = this._temp;
     }
+    const editing = !!this.period;
     if (!this._startNow) data.start = this._start;
+    else if (editing) data.start = localInput(new Date());
     if (!this._openEnd) data.end = this._end;
-    if (this._title.trim()) data.summary = this._title.trim();
+    else if (editing) data.open_end = true;
+    if (editing) {
+      data.period_id = this.period!.id;
+      data.summary = this._title.trim();
+    } else if (this._title.trim()) data.summary = this._title.trim();
     this._busy = true;
     this._error = undefined;
     try {
-      await ws(this.hass, "period/add", data);
+      await ws(this.hass, editing ? "period/update" : "period/add", data);
+      this._close();
+    } catch (err: any) {
+      this._error = err?.message ?? String(err);
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  private async _delete() {
+    if (!this.hass || !this.room || !this.period) return;
+    this._busy = true;
+    try {
+      await ws(this.hass, "period/cancel", {
+        entry_id: this.room.entry_id,
+        period_id: this.period.id,
+      });
       this._close();
     } catch (err: any) {
       this._error = err?.message ?? String(err);
@@ -130,7 +167,7 @@ export class BtPeriodDialog extends LitElement {
       <div class="dialog" role="dialog" aria-modal="true">
         <header>
           <div class="h-title">
-            <div class="h-name">${t.period_plan}</div>
+            <div class="h-name">${this.period ? t.period_edit : t.period_plan}</div>
             <div class="muted h-sub">${room.name}</div>
           </div>
           <button class="round small" @click=${this._close} aria-label=${t.close}>
@@ -204,9 +241,15 @@ export class BtPeriodDialog extends LitElement {
           ${invalid && !this._error ? html`<div class="muted small">${invalid}</div>` : nothing}
         </div>
         <footer>
+          ${this.period
+            ? html`<button class="text-btn danger" ?disabled=${this._busy} @click=${this._delete}>
+                <ha-icon icon="mdi:delete-outline"></ha-icon>${this.period && this.room?.period?.id === this.period.id ? t.period_end : t.period_delete}
+              </button>`
+            : nothing}
+          <span class="spacer"></span>
           <button class="text-btn" @click=${this._close}>${t.close}</button>
           <button class="primary-btn" ?disabled=${!!invalid || this._busy} @click=${this._save}>
-            ${t.period_plan}
+            ${this.period ? t.save : t.period_plan}
           </button>
         </footer>
       </div>
@@ -331,6 +374,18 @@ export class BtPeriodDialog extends LitElement {
       }
       .small {
         font-size: 13px;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .danger {
+        color: var(--error-color, #db4437);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .danger ha-icon {
+        --mdc-icon-size: 18px;
       }
     `,
   ];

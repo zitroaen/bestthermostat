@@ -125,8 +125,8 @@ continues **exactly as before**.
 
 **In the card:** "Plan period" in the room card opens a dialog: choose a schedule, manual
 (with temperature) or off, a start (now or a date/time), an end (until cancelled or a
-date/time) and an optional title. Active and planned periods are listed with a button to
-end or delete them.
+date/time) and an optional title. Active and planned periods are listed; tap one to edit
+it (all settings, or end/delete it). "+N more" expands the full list.
 
 **Calendar:** every room has a `calendar.<room>_periods` entity. It shows all periods and
 lets you create, change and delete them. The event title defines what happens: a schedule
@@ -211,6 +211,7 @@ Both cards have a visual editor. The weekly editor opens via "Edit weekly plan":
 | `bestthermostat.set_schedule` | Set a weekly plan as JSON (creates the schedule if needed) |
 | `bestthermostat.set_variable` | Change a variable (`variable`: ID or name, `value`, `name`) |
 | `bestthermostat.add_period` | Plan a period: `schedule` and/or `mode`/`temperature`, optional `start`, `end` or `duration`, `summary`. Returns the ID |
+| `bestthermostat.update_period` | Change a period in place (`period_id`; only given fields change, `open_end` removes the end). ID and priority are kept |
 | `bestthermostat.cancel_period` | End/delete a period (`period_id`; without ID: all periods of the room) |
 | `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `include_manual`, `include_off` (`all_modes` sets both) |
 

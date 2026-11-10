@@ -322,6 +322,52 @@
           "description": "ID returned by add_period."
         }
       }
+    },
+    "update_period": {
+      "name": "Update period",
+      "description": "Changes a planned or running period. Only the given fields change; choosing a schedule replaces a mode and vice versa.",
+      "fields": {
+        "period_id": {
+          "name": "Period ID",
+          "description": "ID of the period."
+        },
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "schedule": {
+          "name": "Schedule",
+          "description": "Name or ID of the schedule to activate."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Mode during the period (heat requires/uses temperature)."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Temperature for manual mode."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Start (default: now)."
+        },
+        "end": {
+          "name": "End",
+          "description": "End (default: until cancelled)."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Alternative to end."
+        },
+        "summary": {
+          "name": "Title",
+          "description": "Optional title shown in the calendar."
+        },
+        "open_end": {
+          "name": "Until cancelled",
+          "description": "Remove the end."
+        }
+      }
     }
   }
 }

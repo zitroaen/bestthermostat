@@ -148,5 +148,6 @@ class PeriodCalendar(RoomEntity, CalendarEntity):
     ) -> None:
         """Replace a period."""
         kwargs = self._period_kwargs(event)
-        self.controller.add_period(**kwargs)
-        self.controller.cancel_period(uid)
+        kwargs.setdefault("schedule", None)
+        kwargs.setdefault("mode", None)
+        self.controller.update_period(uid, open_end=kwargs["end"] is None, **kwargs)

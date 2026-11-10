@@ -262,3 +262,48 @@ async def test_websocket_add_period_local_time(
     assert msg["result"]["title"] == "Besuch"
     await tick(hass, freezer, at(8) + timedelta(seconds=1))
     assert temps(hass) == (23.0, 23.0)
+
+
+async def test_update_period(
+    hass: HomeAssistant, guest_room: RoomController, freezer: FrozenDateTimeFactory
+) -> None:
+    """A period can be changed in place; id and priority stay."""
+    period = guest_room.add_period(schedule="Gast", start=at(8), end=at(10))
+    updated = guest_room.update_period(period.id, mode="off", start=at(7, 30))
+    assert updated.id == period.id
+    assert updated.created == period.created
+    assert updated.schedule is None and updated.mode == "off"
+    assert updated.end == at(10)
+    await tick(hass, freezer, at(7, 30) + timedelta(seconds=1))
+    assert temps(hass) == (5.0, 5.0)
+    # change a running period: switch back to the schedule and remove the end
+    guest_room.update_period(period.id, schedule="Gast", open_end=True)
+    await settle(hass)
+    assert temps(hass) == (23.0, 23.0)
+    assert guest_room.find_period(period.id).end is None
+    with pytest.raises(HomeAssistantError):
+        guest_room.update_period(period.id, end=at(7))
+    with pytest.raises(HomeAssistantError):
+        guest_room.update_period("nope", mode="off")
+
+
+async def test_update_period_service_and_calendar(
+    hass: HomeAssistant, guest_room: RoomController
+) -> None:
+    """update_period service and calendar updates keep the id."""
+    period = guest_room.add_period(schedule="Gast", start=at(8), end=at(10))
+    await hass.services.async_call(
+        DOMAIN,
+        "update_period",
+        {"entity_id": "climate.arbeitszimmer", "period_id": period.id, "temperature": 22},
+        blocking=True,
+    )
+    changed = guest_room.find_period(period.id)
+    assert changed.mode == "heat" and changed.temperature == 22.0 and changed.schedule is None
+    entity = hass.data["calendar"].get_entity("calendar.arbeitszimmer_periods")
+    await entity.async_update_event(
+        period.id, {"summary": "Aus", "dtstart": at(9), "dtend": at(11)}
+    )
+    changed = guest_room.find_period(period.id)
+    assert changed.mode == "off" and changed.start == at(9) and changed.end == at(11)
+    assert len(guest_room.state.periods) == 1

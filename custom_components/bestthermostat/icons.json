@@ -67,6 +67,9 @@
     },
     "cancel_period": {
       "service": "mdi:calendar-remove"
+    },
+    "update_period": {
+      "service": "mdi:calendar-edit"
     }
   }
 }
