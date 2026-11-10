@@ -211,7 +211,7 @@
         },
         "week": {
           "name": "Woche",
-          "description": "Objekt mit den Schlüsseln mon..sun, jeweils eine Liste von Slots {start, temperature | variable}."
+          "description": "Objekt mit den Schlüsseln mon..sun, jeweils eine Liste von Slots mit start und entweder temperature oder variable."
         }
       }
     },
