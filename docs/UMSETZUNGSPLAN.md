@@ -1,5 +1,7 @@
 # Best Thermostat – Umsetzungsplan
 
+> Stand: M0–M8 umgesetzt (v0.1.0). Abweichungen: Der globale Override braucht keinen Snapshot – er ist eine Prioritätsebene über den unveränderten Raumzuständen, dadurch ist die Wiederherstellung automatisch exakt. Die Karte wird über `add_extra_js_url` geladen (funktioniert auch im YAML-Dashboard-Modus).
+
 Domain `bestthermostat` · Lizenz MIT · HA ≥ 2025.1 · codeowners `@zitroaen`
 
 ## 1. Festgelegte Entscheidungen
