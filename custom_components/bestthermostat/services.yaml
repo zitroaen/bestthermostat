@@ -99,6 +99,12 @@ set_global_override:
     variable:
       selector:
         text:
+    include_manual:
+      selector:
+        boolean:
+    include_off:
+      selector:
+        boolean:
     all_modes:
       selector:
         boolean:

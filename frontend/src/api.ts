@@ -62,7 +62,8 @@ export interface OverrideData {
   active: boolean;
   temperature: number;
   variable: string | null;
-  all_modes: boolean;
+  include_manual: boolean;
+  include_off: boolean;
   value: number | null;
 }
 

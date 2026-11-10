@@ -145,8 +145,11 @@
       "override": {
         "name": "Global override"
       },
-      "override_all_modes": {
-        "name": "Override also for manual/off"
+      "override_manual": {
+        "name": "Override also for manual"
+      },
+      "override_off": {
+        "name": "Override also for off"
       }
     }
   },
@@ -251,7 +254,15 @@
         },
         "all_modes": {
           "name": "All modes",
-          "description": "Also affect rooms in manual/off mode."
+          "description": "Shortcut: sets 'also manual' and 'also off' together."
+        },
+        "include_manual": {
+          "name": "Also manual",
+          "description": "Also affect rooms in manual mode."
+        },
+        "include_off": {
+          "name": "Also off",
+          "description": "Also affect rooms in off mode (frost protection)."
         }
       }
     }

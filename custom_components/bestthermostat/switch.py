@@ -8,8 +8,10 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .entity import GlobalEntity
 from .hub import Hub, get_hub
 
@@ -19,7 +21,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up switches."""
     hub = get_hub(hass)
-    async_add_entities([OverrideSwitch(hub), OverrideAllModesSwitch(hub)])
+    # Replaced by two separate switches in 0.1.7
+    registry = er.async_get(hass)
+    if old := registry.async_get_entity_id("switch", DOMAIN, "global_override_all_modes"):
+        registry.async_remove(old)
+    async_add_entities([OverrideSwitch(hub), OverrideManualSwitch(hub), OverrideOffSwitch(hub)])
 
 
 class OverrideSwitch(GlobalEntity, SwitchEntity):
@@ -42,7 +48,8 @@ class OverrideSwitch(GlobalEntity, SwitchEntity):
         return {
             "temperature": self.hub.override_value(),
             "variable": self.hub.override.variable,
-            "all_modes": self.hub.override.all_modes,
+            "include_manual": self.hub.override.include_manual,
+            "include_off": self.hub.override.include_off,
         }
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -54,25 +61,45 @@ class OverrideSwitch(GlobalEntity, SwitchEntity):
         self.hub.set_override(active=False)
 
 
-class OverrideAllModesSwitch(GlobalEntity, SwitchEntity):
-    """If on, the override also affects rooms in manual or off mode."""
+class _OverrideOptionSwitch(GlobalEntity, SwitchEntity):
+    """Base for the 'override also applies to …' switches."""
 
-    _attr_translation_key = "override_all_modes"
     _attr_entity_category = EntityCategory.CONFIG
+    _option: str
 
     def __init__(self, hub: Hub) -> None:
         """Initialize."""
-        super().__init__(hub, "override_all_modes")
+        super().__init__(hub, self._attr_translation_key)  # type: ignore[arg-type]
 
     @property
     def is_on(self) -> bool:
         """Enabled?"""
-        return self.hub.override.all_modes
+        return bool(getattr(self.hub.override, self._option))
+
+    def _set(self, value: bool) -> None:
+        if self._option == "include_manual":
+            self.hub.set_override(include_manual=value)
+        else:
+            self.hub.set_override(include_off=value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable."""
-        self.hub.set_override(all_modes=True)
+        self._set(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable."""
-        self.hub.set_override(all_modes=False)
+        self._set(False)
+
+
+class OverrideManualSwitch(_OverrideOptionSwitch):
+    """If on, the override also affects rooms in manual mode."""
+
+    _attr_translation_key = "override_manual"
+    _option = "include_manual"
+
+
+class OverrideOffSwitch(_OverrideOptionSwitch):
+    """If on, the override also affects rooms in off (frost protection) mode."""
+
+    _attr_translation_key = "override_off"
+    _option = "include_off"

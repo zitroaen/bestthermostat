@@ -243,11 +243,18 @@ class GlobalOverride:
     active: bool = False
     temperature: float = 16.0
     variable: str | None = None
-    all_modes: bool = False
+    include_manual: bool = False
+    include_off: bool = False
 
     def applies_to(self, mode: str) -> bool:
         """Return True if the override affects a room in ``mode``."""
-        return self.active and (mode == MODE_AUTO or self.all_modes)
+        if not self.active:
+            return False
+        if mode == MODE_HEAT:
+            return self.include_manual
+        if mode == MODE_OFF:
+            return self.include_off
+        return True
 
     def value(self, variables: Mapping[str, float]) -> float | None:
         """Return the override temperature."""

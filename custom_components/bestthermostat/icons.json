@@ -1,23 +1,61 @@
 {
   "entity": {
-    "select": {"schedule": {"default": "mdi:calendar-clock"}},
-    "sensor": {"next_change": {"default": "mdi:clock-start"}},
-    "binary_sensor": {"paused": {"default": "mdi:calendar-remove", "state": {"off": "mdi:calendar-check"}}},
+    "select": {
+      "schedule": {
+        "default": "mdi:calendar-clock"
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "default": "mdi:clock-start"
+      }
+    },
+    "binary_sensor": {
+      "paused": {
+        "default": "mdi:calendar-remove",
+        "state": {
+          "off": "mdi:calendar-check"
+        }
+      }
+    },
     "number": {
-      "variable": {"default": "mdi:thermometer"},
-      "override_temperature": {"default": "mdi:thermometer-alert"}
+      "variable": {
+        "default": "mdi:thermometer"
+      },
+      "override_temperature": {
+        "default": "mdi:thermometer-alert"
+      }
     },
     "switch": {
-      "override": {"default": "mdi:home-export-outline"},
-      "override_all_modes": {"default": "mdi:select-all"}
+      "override": {
+        "default": "mdi:home-export-outline"
+      },
+      "override_manual": {
+        "default": "mdi:hand-back-right"
+      },
+      "override_off": {
+        "default": "mdi:snowflake"
+      }
     }
   },
   "services": {
-    "set_active_schedule": {"service": "mdi:calendar-clock"},
-    "set_mode": {"service": "mdi:thermostat"},
-    "get_schedule": {"service": "mdi:calendar-export"},
-    "set_schedule": {"service": "mdi:calendar-import"},
-    "set_variable": {"service": "mdi:thermometer"},
-    "set_global_override": {"service": "mdi:home-export-outline"}
+    "set_active_schedule": {
+      "service": "mdi:calendar-clock"
+    },
+    "set_mode": {
+      "service": "mdi:thermostat"
+    },
+    "get_schedule": {
+      "service": "mdi:calendar-export"
+    },
+    "set_schedule": {
+      "service": "mdi:calendar-import"
+    },
+    "set_variable": {
+      "service": "mdi:thermometer"
+    },
+    "set_global_override": {
+      "service": "mdi:home-export-outline"
+    }
   }
 }

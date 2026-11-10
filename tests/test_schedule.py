@@ -232,9 +232,20 @@ def test_target_override() -> None:
     override = GlobalOverride(active=True, temperature=15.0)
     assert target(room(), now, override).temperature == 15.0
     assert target(room(mode=MODE_HEAT), now, override).temperature == 20.0
-    override.all_modes = True
+    override.include_off = True
     assert target(room(mode=MODE_OFF), now, override).temperature == 15.0
     override.variable = "eco"
     assert target(room(), now, override).temperature == 17.0
     assert target(room(), now, GlobalOverride(active=False)).source == "schedule"
     assert room().mode == MODE_AUTO
+
+
+def test_override_mode_flags() -> None:
+    override = GlobalOverride(active=True, include_manual=True)
+    assert override.applies_to(MODE_AUTO)
+    assert override.applies_to(MODE_HEAT)
+    assert not override.applies_to(MODE_OFF)
+    override = GlobalOverride(active=True, include_off=True)
+    assert not override.applies_to(MODE_HEAT)
+    assert override.applies_to(MODE_OFF)
+    assert not GlobalOverride(active=False, include_off=True).applies_to(MODE_OFF)
