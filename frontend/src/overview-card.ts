@@ -9,6 +9,7 @@ interface OverviewConfig {
   title?: string;
   show_override?: boolean;
   show_variables?: boolean;
+  show_periods?: boolean;
 }
 
 export class BestThermostatOverviewCard extends LitElement {
@@ -36,7 +37,7 @@ export class BestThermostatOverviewCard extends LitElement {
   }
 
   setConfig(config: OverviewConfig) {
-    this._config = { show_override: true, show_variables: true, ...config };
+    this._config = { show_override: true, show_variables: true, show_periods: true, ...config };
   }
 
   getCardSize() {
@@ -158,6 +159,18 @@ export class BestThermostatOverviewCard extends LitElement {
     </div>`;
   }
 
+  private _nextPeriod(room: RoomData) {
+    const t = strings(this.hass);
+    const next = (room.periods ?? [])
+      .filter((p) => new Date(p.start).getTime() > Date.now())
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
+    if (!next) return nothing;
+    return html`<span class="muted sub planned">
+      <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>
+      ${next.title} · ${t.period_from} ${fmtTime(next.start, this.hass!)}
+    </span>`;
+  }
+
   private _renderRoom(room: RoomData) {
     const t = strings(this.hass);
     const heating = room.hvac_action === "heating";
@@ -185,6 +198,7 @@ export class BestThermostatOverviewCard extends LitElement {
         <span class="grow left">
           <span class="name">${room.name}</span>
           <span class="muted sub">${status}</span>
+          ${this._config?.show_periods ? this._nextPeriod(room) : nothing}
         </span>
         <span class="temps">
           <span>${fmtTemp(room.current_temperature)}</span>
@@ -270,6 +284,14 @@ export class BestThermostatOverviewCard extends LitElement {
       }
       .chip.small ha-icon {
         --mdc-icon-size: 18px;
+      }
+      .planned {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .planned ha-icon {
+        --mdc-icon-size: 13px;
       }
       .chip.var {
         min-height: 30px;

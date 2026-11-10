@@ -15,6 +15,8 @@ import {
   todayKey,
 } from "./utils";
 import "./week-editor";
+import "./period-dialog";
+import type { BtPeriodDialog } from "./period-dialog";
 import type { BtWeekEditor } from "./week-editor";
 
 export interface CardConfig {
@@ -26,6 +28,7 @@ export interface CardConfig {
   show_schedules?: boolean;
   show_timeline?: boolean;
   show_editor?: boolean;
+  show_periods?: boolean;
 }
 
 export class BestThermostatCard extends LitElement {
@@ -35,6 +38,7 @@ export class BestThermostatCard extends LitElement {
     _snap: { state: true },
     _pending: { state: true },
     _editing: { state: true },
+    _planning: { state: true },
     _error: { state: true },
   };
 
@@ -43,6 +47,8 @@ export class BestThermostatCard extends LitElement {
   _snap?: Snapshot;
   _pending?: number;
   _editing = false;
+  _planning = false;
+  private _planner?: BtPeriodDialog;
   _error?: string;
   private _unsub?: () => void;
   private _debounce?: number;
@@ -66,6 +72,7 @@ export class BestThermostatCard extends LitElement {
       show_schedules: true,
       show_timeline: true,
       show_editor: true,
+      show_periods: true,
       ...config,
     };
   }
@@ -94,6 +101,9 @@ export class BestThermostatCard extends LitElement {
     this._editor?.remove();
     this._editor = undefined;
     this._editing = false;
+    this._planner?.remove();
+    this._planner = undefined;
+    this._planning = false;
   }
 
   protected willUpdate(changed: PropertyValues) {
@@ -115,6 +125,18 @@ export class BestThermostatCard extends LitElement {
     } else if (this._editor) {
       this._editor.remove();
       this._editor = undefined;
+    }
+    if (this._planning && room && this.hass) {
+      if (!this._planner) {
+        this._planner = document.createElement("bt-period-dialog") as BtPeriodDialog;
+        this._planner.addEventListener("close", () => (this._planning = false));
+        document.body.appendChild(this._planner);
+      }
+      this._planner.hass = this.hass;
+      this._planner.room = room;
+    } else if (this._planner) {
+      this._planner.remove();
+      this._planner = undefined;
     }
   }
 
@@ -205,7 +227,7 @@ export class BestThermostatCard extends LitElement {
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
-        ${this._renderPeriod(room)}
+        ${this._renderPeriods(room)}
         ${this._renderScheduleSection(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${c.show_editor && !c.compact
@@ -236,29 +258,56 @@ export class BestThermostatCard extends LitElement {
     return parts.filter(Boolean).join(" · ");
   }
 
-  private _renderPeriod(room: RoomData) {
+  private _renderPeriods(room: RoomData) {
+    const c = this._config!;
+    if (!c.show_periods) return nothing;
     const t = strings(this.hass);
+    const now = Date.now();
     const active = room.period;
-    const next = active
-      ? undefined
-      : (room.periods ?? []).find((p) => new Date(p.start).getTime() > Date.now());
-    const period = active ?? next;
-    if (!period) return nothing;
-    const when = active
-      ? period.end
-        ? `${t.period_until} ${fmtTime(period.end, this.hass!)}`
-        : t.period_open
-      : `${t.period_from} ${fmtTime(period.start, this.hass!)}`;
-    return html`<div class="period ${active ? "active" : ""}">
-      <ha-icon icon=${active ? "mdi:calendar-star" : "mdi:calendar-clock-outline"}></ha-icon>
-      <div class="period-text">
-        <div class="period-title">${active ? "" : `${t.period_planned}: `}${period.title}</div>
-        <div class="muted period-when">${when}</div>
-      </div>
-      <button class="chip" @click=${() =>
-        this._call("period/cancel", { entry_id: room.entry_id, period_id: period.id })}>
-        ${active ? t.period_end : t.period_delete}
-      </button>
+    const upcoming = (room.periods ?? [])
+      .filter((p) => new Date(p.start).getTime() > now)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    const shown = c.compact ? [] : upcoming.slice(0, 3);
+    if (!active && !shown.length && c.compact) return nothing;
+    const range = (p: { start: string; end: string | null }) =>
+      `${fmtTime(p.start, this.hass!)} – ${p.end ? fmtTime(p.end, this.hass!) : t.period_open}`;
+    return html`<div class="periods">
+      ${active
+        ? html`<div class="period active">
+            <ha-icon icon="mdi:calendar-star"></ha-icon>
+            <div class="period-text">
+              <div class="period-title">${active.title}</div>
+              <div class="muted period-when">
+                ${active.end ? `${t.period_until} ${fmtTime(active.end, this.hass!)}` : t.period_open}
+              </div>
+            </div>
+            <button class="chip" @click=${() =>
+              this._call("period/cancel", { entry_id: room.entry_id, period_id: active.id })}>
+              ${t.period_end}
+            </button>
+          </div>`
+        : nothing}
+      ${shown.map(
+        (p) => html`<div class="period">
+          <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>
+          <div class="period-text">
+            <div class="period-title">${p.title}</div>
+            <div class="muted period-when">${range(p)}</div>
+          </div>
+          <button class="round small" aria-label=${t.period_delete} @click=${() =>
+            this._call("period/cancel", { entry_id: room.entry_id, period_id: p.id })}>
+            <ha-icon icon="mdi:delete-outline"></ha-icon>
+          </button>
+        </div>`,
+      )}
+      ${upcoming.length > shown.length && !c.compact
+        ? html`<div class="muted more">+${upcoming.length - shown.length} ${t.period_more}</div>`
+        : nothing}
+      ${c.compact
+        ? nothing
+        : html`<button class="text-btn plan" @click=${() => (this._planning = true)}>
+            <ha-icon icon="mdi:calendar-plus"></ha-icon> ${t.period_plan}
+          </button>`}
     </div>`;
   }
 
@@ -420,6 +469,33 @@ export class BestThermostatCard extends LitElement {
         font-size: 12px;
       }
       .row ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .periods {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .periods .plan {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: -4px -8px;
+      }
+      .periods .plan ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .more {
+        font-size: 12px;
+        padding-left: 12px;
+      }
+      .round.small {
+        width: 32px;
+        height: 32px;
+        background: var(--card-background-color, #fff);
+      }
+      .round.small ha-icon {
         --mdc-icon-size: 18px;
       }
       .period {

@@ -123,6 +123,11 @@ BACnet-Prioritäts-Array), beim Ende greift wieder die Ebene darunter.
   Select), endet der laufende Zeitraum.
 - Ein Zeitplan, der von einem geplanten Zeitraum verwendet wird, lässt sich nicht löschen.
 
+**In der Karte:** „Zeitraum planen“ in der Raumkarte öffnet einen Dialog: Zeitplan, Manuell
+(mit Temperatur) oder Aus wählen, Beginn (jetzt oder Datum/Uhrzeit), Ende (bis auf
+Weiteres oder Datum/Uhrzeit) und optional einen Titel. Aktive und geplante Zeiträume
+werden mit einem Button zum Beenden bzw. Löschen aufgelistet.
+
 **Kalender:** Jeder Raum hat eine Entität `calendar.<raum>_zeitraume`. Dort siehst du alle
 Zeiträume und kannst sie anlegen, ändern und löschen. Der Titel bestimmt, was passiert:
 ein Zeitplan-Name („Gast“), „Aus“, „Auto“ oder eine Temperatur („Manuell 22“).
@@ -172,6 +177,7 @@ show_modes: true
 show_schedules: true
 show_timeline: true
 show_editor: true
+show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
 ```
 
 ```yaml
@@ -179,6 +185,7 @@ type: custom:bestthermostat-overview-card
 title: Heizung
 show_override: true
 show_variables: true
+show_periods: true    # nächsten geplanten Zeitraum je Raum anzeigen
 ```
 
 In der Übersichtskarte öffnet ein Tipp auf eine Variable einen Regler (− / +). Unter jedem

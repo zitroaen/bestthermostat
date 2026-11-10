@@ -233,3 +233,32 @@ def test_parse_summary(guest_room_sync: None = None) -> None:
     assert parse_summary(fake, "Auto") == {"mode": "auto"}
     with pytest.raises(HomeAssistantError):
         parse_summary(fake, "Party")
+
+
+async def test_websocket_add_period_local_time(
+    hass: HomeAssistant,
+    guest_room: RoomController,
+    hass_ws_client,
+    freezer: FrozenDateTimeFactory,  # type: ignore[no-untyped-def]
+) -> None:
+    """The card sends local times without time zone (datetime-local input)."""
+    client = await hass_ws_client(hass)
+    await client.send_json(
+        {
+            "id": 1,
+            "type": f"{DOMAIN}/period/add",
+            "entry_id": guest_room.entry_id,
+            "schedule_id": "gast",
+            "start": "2026-11-09T08:00",
+            "end": "2026-11-09T10:00",
+            "summary": "Besuch",
+        }
+    )
+    msg = await client.receive_json()
+    assert msg["success"], msg
+    period = guest_room.state.periods[0]
+    assert period.start == at(8)
+    assert period.end == at(10)
+    assert msg["result"]["title"] == "Besuch"
+    await tick(hass, freezer, at(8) + timedelta(seconds=1))
+    assert temps(hass) == (23.0, 23.0)
