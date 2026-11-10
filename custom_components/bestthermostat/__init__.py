@@ -29,7 +29,13 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-ROOM_PLATFORMS = [Platform.BINARY_SENSOR, Platform.CLIMATE, Platform.SELECT, Platform.SENSOR]
+ROOM_PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.CALENDAR,
+    Platform.CLIMATE,
+    Platform.SELECT,
+    Platform.SENSOR,
+]
 GLOBAL_PLATFORMS = [Platform.NUMBER, Platform.SWITCH]
 
 type RoomConfigEntry = ConfigEntry[RoomController]

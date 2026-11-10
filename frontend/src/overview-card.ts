@@ -2,7 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import type { HomeAssistant, RoomData, Snapshot } from "./api";
 import { subscribe, ws } from "./api";
 import { shared } from "./styles";
-import { fmtTemp, strings, tempColor } from "./utils";
+import { fmtTemp, fmtTime, strings, tempColor } from "./utils";
 
 interface OverviewConfig {
   type: string;
@@ -163,7 +163,9 @@ export class BestThermostatOverviewCard extends LitElement {
     const heating = room.hvac_action === "heating";
     const status = room.override_active
       ? t.src_override
-      : room.target_source === "hand"
+      : room.period
+        ? `${room.period.title}${room.period.end ? ` · ${t.period_until} ${fmtTime(room.period.end, this.hass!)}` : ""}`
+        : room.target_source === "hand"
         ? t.src_hand
         : room.mode === "auto"
           ? t.src_schedule

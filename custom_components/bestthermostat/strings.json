@@ -151,6 +151,11 @@
       "override_off": {
         "name": "Override also for off"
       }
+    },
+    "calendar": {
+      "periods": {
+        "name": "Periods"
+      }
     }
   },
   "services": {
@@ -263,6 +268,58 @@
         "include_off": {
           "name": "Also off",
           "description": "Also affect rooms in off mode (frost protection)."
+        }
+      }
+    },
+    "add_period": {
+      "name": "Add period",
+      "description": "Activates a schedule and/or mode for a period (now or later, until an end or cancelled). Afterwards the room continues as before. Returns the period id.",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "schedule": {
+          "name": "Schedule",
+          "description": "Name or ID of the schedule to activate."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Mode during the period (heat requires/uses temperature)."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Temperature for manual mode."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Start (default: now)."
+        },
+        "end": {
+          "name": "End",
+          "description": "End (default: until cancelled)."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Alternative to end."
+        },
+        "summary": {
+          "name": "Title",
+          "description": "Optional title shown in the calendar."
+        }
+      }
+    },
+    "cancel_period": {
+      "name": "Cancel period",
+      "description": "Ends or deletes a planned period; without id all periods of the room.",
+      "fields": {
+        "entity_id": {
+          "name": "Room",
+          "description": "Room thermostat(s)."
+        },
+        "period_id": {
+          "name": "Period ID",
+          "description": "ID returned by add_period."
         }
       }
     }

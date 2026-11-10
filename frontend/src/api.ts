@@ -30,6 +30,18 @@ export interface ScheduleData {
   week: WeekData;
 }
 
+export interface PeriodData {
+  id: string;
+  start: string;
+  end: string | null;
+  created: string;
+  schedule: string | null;
+  mode: "auto" | "heat" | "off" | null;
+  temperature: number | null;
+  summary: string | null;
+  title: string;
+}
+
 export interface RoomData {
   entry_id: string;
   name: string;
@@ -45,6 +57,10 @@ export interface RoomData {
   min_temp: number;
   max_temp: number;
   active_schedule: string;
+  base_schedule: string;
+  base_mode: "auto" | "heat" | "off";
+  period: PeriodData | null;
+  periods: PeriodData[];
   hand_until: string | null;
   override_active: boolean;
   next_change: string | null;

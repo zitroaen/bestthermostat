@@ -36,6 +36,11 @@
       "override_off": {
         "default": "mdi:snowflake"
       }
+    },
+    "calendar": {
+      "periods": {
+        "default": "mdi:calendar-range"
+      }
     }
   },
   "services": {
@@ -56,6 +61,12 @@
     },
     "set_global_override": {
       "service": "mdi:home-export-outline"
+    },
+    "add_period": {
+      "service": "mdi:calendar-plus"
+    },
+    "cancel_period": {
+      "service": "mdi:calendar-remove"
     }
   }
 }

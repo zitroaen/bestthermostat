@@ -54,6 +54,8 @@ from .schedule import (
     MODE_HEAT,
     MODE_OFF,
     MODES,
+    Effective,
+    Period,
     RoomState,
     Schedule,
     ScheduleError,
@@ -105,6 +107,12 @@ def state_from_dict(raw: dict[str, Any] | None) -> RoomState:
     if mode not in MODES:
         mode = MODE_AUTO
     hand_until = dt_util.parse_datetime(raw["hand_until"]) if raw.get("hand_until") else None
+    periods: list[Period] = []
+    for item in raw.get("periods", []):
+        try:
+            periods.append(Period.from_dict(item))
+        except (KeyError, TypeError, ValueError) as err:
+            _LOGGER.error("Dropping invalid stored period %s: %s", item, err)
     return RoomState(
         schedules=schedules,
         active_schedule=active,
@@ -112,6 +120,7 @@ def state_from_dict(raw: dict[str, Any] | None) -> RoomState:
         manual_temperature=_float(raw.get("manual_temperature")) or 20.0,
         hand_temperature=_float(raw.get("hand_temperature")),
         hand_until=hand_until,
+        periods=periods,
     )
 
 
@@ -124,6 +133,7 @@ def state_to_dict(state: RoomState) -> dict[str, Any]:
         "manual_temperature": state.manual_temperature,
         "hand_temperature": state.hand_temperature,
         "hand_until": state.hand_until.isoformat() if state.hand_until else None,
+        "periods": [p.to_dict() for p in state.periods],
     }
 
 
@@ -148,6 +158,7 @@ class RoomController:
         self._timer: Callable[[], None] | None = None
         self._settle: dict[str, Callable[[], None]] = {}
         self.climate_entity_id: str | None = None
+        self._last_period_id: str | None = None
 
     # ------------------------------------------------------------ lifecycle
 
@@ -168,6 +179,9 @@ class RoomController:
         now = dt_util.utcnow()
         if self.state.hand_until and not self.state.hand_active(now):
             self._clear_hand()
+        self._drop_expired_periods(now)
+        period = self.state.active_period(now)
+        self._last_period_id = period.id if period else None
         self._unsubs.append(
             async_track_state_change_event(self.hass, self.trvs, self._on_trv_event)
         )
@@ -221,10 +235,29 @@ class RoomController:
         """Return the effective target temperature."""
         return self.target().temperature
 
+    def effective(self) -> Effective:
+        """Return the effective mode/schedule after applying an active period."""
+        return self.state.effective(dt_util.utcnow())
+
+    @property
+    def mode(self) -> str:
+        """Effective operating mode."""
+        return self.effective().mode
+
+    @property
+    def active_schedule(self) -> Schedule:
+        """Effective active schedule."""
+        return self.state.schedules[self.effective().schedule_id]
+
+    @property
+    def active_period(self) -> Period | None:
+        """The period currently in effect."""
+        return self.state.active_period(dt_util.utcnow())
+
     @property
     def override_active(self) -> bool:
         """Return True if the global override currently controls this room."""
-        return self.hub.override.applies_to(self.state.mode)
+        return self.hub.override.applies_to(self.mode)
 
     @property
     def hand_active(self) -> bool:
@@ -239,7 +272,7 @@ class RoomController:
     def next_change(self) -> tuple[datetime, float | None] | None:
         """Return the next slot change of the active schedule and its temperature."""
         result = next_change(
-            self.state.schedule.week, dt_util.utcnow(), dt_util.get_default_time_zone()
+            self.active_schedule.week, dt_util.utcnow(), dt_util.get_default_time_zone()
         )
         if result is None:
             return None
@@ -266,7 +299,7 @@ class RoomController:
         actions = [s.attributes.get(ATTR_HVAC_ACTION) for s in self.trv_states()]
         if HVACAction.HEATING in actions:
             return HVACAction.HEATING
-        if self.state.mode == MODE_OFF and not self.override_active:
+        if self.mode == MODE_OFF and not self.override_active:
             return HVACAction.OFF
         if any(a is not None for a in actions):
             return HVACAction.IDLE
@@ -390,19 +423,32 @@ class RoomController:
         now = dt_util.utcnow()
         candidates: list[datetime] = []
         if (
-            result := next_change(self.state.schedule.week, now, dt_util.get_default_time_zone())
+            result := next_change(self.active_schedule.week, now, dt_util.get_default_time_zone())
         ) is not None:
             candidates.append(result[0])
         if self.state.hand_until and self.state.hand_until > now:
             candidates.append(self.state.hand_until)
+        for period in self.state.periods:
+            candidates.extend(t for t in (period.start, period.end) if t is not None and t > now)
         if candidates:
             self._timer = async_track_point_in_time(self.hass, self._on_timer, min(candidates))
 
     @callback
     def _on_timer(self, _now: datetime) -> None:
         self._timer = None
-        if self.state.hand_until and not self.state.hand_active(dt_util.utcnow()):
+        now = dt_util.utcnow()
+        changed = self._drop_expired_periods(now)
+        period = self.state.active_period(now)
+        if (period.id if period else None) != self._last_period_id:
+            # A period started or ended: a hand change from before no longer applies.
+            self._last_period_id = period.id if period else None
             self._clear_hand()
+            changed = True
+            _LOGGER.info("%s: period %s", self.name, f"{period.id} started" if period else "ended")
+        if self.state.hand_until and not self.state.hand_active(now):
+            self._clear_hand()
+            changed = True
+        if changed:
             self.hub.save()
         self.apply()
         self._schedule_timer()
@@ -422,6 +468,22 @@ class RoomController:
 
     def _set_temperature(self, temperature: float, *, from_trv: bool) -> None:
         state = self.state
+        now = dt_util.utcnow()
+        period = state.active_period(now)
+        if period is not None:
+            eff = state.effective(now)
+            if eff.mode in (MODE_HEAT, MODE_OFF):
+                # Adjust the period itself; it still ends as planned.
+                period.mode = MODE_HEAT
+                period.temperature = temperature
+                return
+            result = next_change(
+                state.schedules[eff.schedule_id].week, now, dt_util.get_default_time_zone()
+            )
+            until = [t for t in (result[0] if result else None, period.end) if t is not None]
+            state.hand_temperature = temperature
+            state.hand_until = min(until) if until else None
+            return
         if state.mode == MODE_HEAT:
             state.manual_temperature = temperature
         elif state.mode == MODE_OFF or self.hand_change == HAND_MANUAL:
@@ -444,15 +506,25 @@ class RoomController:
         self._set_temperature(temperature, from_trv=False)
         self._changed()
 
+    def _end_active_period(self) -> None:
+        """An explicit mode/schedule choice on the room ends a running period."""
+        if (period := self.active_period) is not None:
+            _LOGGER.info("%s: period %s ended by explicit change", self.name, period.id)
+            self.state.periods.remove(period)
+            self._last_period_id = None
+
     @callback
     def set_mode(self, mode: str, temperature: float | None = None) -> None:
-        """Set the operating mode."""
+        """Set the operating mode (ends a running period)."""
         if mode not in MODES:
             raise HomeAssistantError(f"Unknown mode {mode!r}")
+        current = self.target().temperature
+        current_mode = self.mode
+        self._end_active_period()
         if mode == MODE_HEAT:
             if temperature is not None:
                 self.state.manual_temperature = self._temp(temperature)
-            elif self.state.mode != MODE_HEAT and (current := self.target().temperature):
+            elif current_mode != MODE_HEAT and current:
                 self.state.manual_temperature = current
         self.state.mode = mode
         self._clear_hand()
@@ -471,8 +543,10 @@ class RoomController:
 
     @callback
     def set_active_schedule(self, key: str) -> None:
-        """Activate a schedule."""
-        self.state.active_schedule = self.find_schedule(key).id
+        """Activate a schedule (ends a running period)."""
+        sched = self.find_schedule(key)
+        self._end_active_period()
+        self.state.active_schedule = sched.id
         self._clear_hand()
         self._changed()
 
@@ -523,6 +597,8 @@ class RoomController:
         sched = self.find_schedule(key)
         if sched.id == self.state.active_schedule:
             raise HomeAssistantError("The active schedule cannot be deleted")
+        if any(p.schedule == sched.id for p in self.state.periods):
+            raise HomeAssistantError("The schedule is used by a planned period")
         del self.state.schedules[sched.id]
         self._changed()
 
@@ -541,6 +617,92 @@ class RoomController:
         sched.week = self._parse_week(raw_week)
         self._changed()
 
+    # -------------------------------------------------------------- periods
+
+    def _drop_expired_periods(self, now: datetime) -> bool:
+        before = len(self.state.periods)
+        self.state.periods = [p for p in self.state.periods if not p.expired(now)]
+        return len(self.state.periods) != before
+
+    @callback
+    def add_period(
+        self,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        schedule: str | None = None,
+        mode: str | None = None,
+        temperature: float | None = None,
+        summary: str | None = None,
+    ) -> Period:
+        """Plan a period that activates a schedule and/or mode."""
+        now = dt_util.utcnow()
+        start = dt_util.as_utc(start) if start else now
+        end = dt_util.as_utc(end) if end else None
+        if end is not None and end <= max(start, now):
+            raise HomeAssistantError("The end must be in the future and after the start")
+        if mode is not None and mode not in MODES:
+            raise HomeAssistantError(f"Unknown mode {mode!r}")
+        sched_id = self.find_schedule(schedule).id if schedule is not None else None
+        if temperature is not None:
+            temperature = self._temp(temperature)
+            if mode is None:
+                mode = MODE_HEAT
+        if schedule is None and mode is None:
+            raise HomeAssistantError("A period needs a schedule, a mode or a temperature")
+        if mode == MODE_HEAT and temperature is None:
+            temperature = self.target().temperature or self.state.manual_temperature
+        if sched_id is not None and mode in (MODE_HEAT, MODE_OFF):
+            raise HomeAssistantError("A schedule can only be combined with mode 'auto'")
+        period = Period(
+            id=uuid.uuid4().hex[:12],
+            start=start,
+            end=end,
+            created=now,
+            schedule=sched_id,
+            mode=mode,
+            temperature=temperature,
+            summary=summary.strip() if summary and summary.strip() else None,
+        )
+        self.state.periods.append(period)
+        self._drop_expired_periods(now)
+        self.hub.save()
+        self._on_timer(now)  # re-evaluate (period may start right now)
+        return period
+
+    @callback
+    def cancel_period(self, period_id: str | None = None) -> int:
+        """Cancel one period or, without id, all periods. Returns the number removed."""
+        before = len(self.state.periods)
+        if period_id is None:
+            self.state.periods = []
+        else:
+            if not any(p.id == period_id for p in self.state.periods):
+                raise HomeAssistantError(f"{self.name}: unknown period {period_id!r}")
+            self.state.periods = [p for p in self.state.periods if p.id != period_id]
+        self.hub.save()
+        self._on_timer(dt_util.utcnow())
+        return before - len(self.state.periods)
+
+    def period_summary(self, period: Period) -> str:
+        """Human readable description of a period."""
+        if period.summary:
+            return period.summary
+        parts: list[str] = []
+        if period.schedule and period.schedule in self.state.schedules:
+            parts.append(self.state.schedules[period.schedule].name)
+        if period.mode == MODE_HEAT:
+            parts.append(f"Manuell {period.temperature} °C")
+        elif period.mode == MODE_OFF:
+            parts.append("Aus")
+        elif period.mode == MODE_AUTO and not parts:
+            parts.append("Auto")
+        return " · ".join(parts) or "Zeitraum"
+
+    def period_dict(self, period: Period) -> dict[str, Any]:
+        """Period for the API."""
+        return {**period.to_dict(), "title": self.period_summary(period)}
+
     # ---------------------------------------------------------------- export
 
     def as_dict(self, *, with_weeks: bool = True) -> dict[str, Any]:
@@ -553,8 +715,9 @@ class RoomController:
             "name": self.name,
             "climate_entity_id": self.climate_entity_id,
             "trvs": self.trvs,
-            "mode": self.state.mode,
-            "manual_temperature": self.state.manual_temperature,
+            "mode": self.mode,
+            "base_mode": self.state.mode,
+            "manual_temperature": self.effective().manual_temperature,
             "frost_temperature": self.frost_temperature,
             "target_temperature": target.temperature,
             "target_source": target.source,
@@ -562,7 +725,12 @@ class RoomController:
             "hvac_action": self.hvac_action,
             "min_temp": low,
             "max_temp": high,
-            "active_schedule": self.state.active_schedule,
+            "active_schedule": self.active_schedule.id,
+            "base_schedule": self.state.active_schedule,
+            "period": self.period_dict(p) if (p := self.active_period) else None,
+            "periods": [
+                self.period_dict(p) for p in sorted(self.state.periods, key=lambda p: p.start)
+            ],
             "hand_until": (
                 self.state.hand_until.isoformat()
                 if self.hand_active and self.state.hand_until

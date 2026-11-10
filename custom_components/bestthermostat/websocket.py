@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import DOMAIN, SIGNAL_UPDATE, VERSION
@@ -35,6 +37,15 @@ def _snapshot(hass: HomeAssistant) -> dict[str, Any]:
             "value": hub.override_value(),
         },
     }
+
+
+def _dt(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    parsed = dt_util.parse_datetime(value)
+    if parsed is None:
+        raise HomeAssistantError(f"Invalid date/time {value!r}")
+    return parsed
 
 
 def _room(hass: HomeAssistant, entry_id: str) -> RoomController:
@@ -193,6 +204,36 @@ def async_register_websocket(hass: HomeAssistant) -> None:
                     all_modes=m.get("all_modes"),
                 )
             ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "period/add",
+                entry: str,
+                vol.Optional("schedule_id"): str,
+                vol.Optional("mode"): str,
+                vol.Optional("temperature"): vol.Coerce(float),
+                vol.Optional("start"): str,
+                vol.Optional("end"): str,
+                vol.Optional("summary"): str,
+            },
+            lambda h, m: _room(h, m["entry_id"]).period_dict(
+                _room(h, m["entry_id"]).add_period(
+                    start=_dt(m.get("start")),
+                    end=_dt(m.get("end")),
+                    schedule=m.get("schedule_id"),
+                    mode=m.get("mode"),
+                    temperature=m.get("temperature"),
+                    summary=m.get("summary"),
+                )
+            ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "period/cancel",
+                entry: str,
+                vol.Optional("period_id"): str,
+            },
+            lambda h, m: {"removed": _room(h, m["entry_id"]).cancel_period(m.get("period_id"))},
         ),
     ]
     websocket_api.async_register_command(hass, ws_subscribe)

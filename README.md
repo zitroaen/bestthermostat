@@ -53,6 +53,7 @@ Das Integrations-Icon wird ab Home Assistant 2026.3 aus `brand/` angezeigt.
 |---|---|---|
 | `climate` | `climate.arbeitszimmer` | Raumthermostat. Ist-Temperatur = Mittelwert, heizt, wenn ein TRV heizt |
 | `select` | `select.arbeitszimmer_zeitplan` | Aktiver Zeitplan |
+| `calendar` | `calendar.arbeitszimmer_zeitraume` | Geplante Zeiträume (anlegen, ändern, löschen) |
 | `sensor` | `sensor.arbeitszimmer_nachster_wechsel` | Nächster Slot-Wechsel (Attribut `next_temperature`) |
 | `binary_sensor` | `binary_sensor.arbeitszimmer_zeitplan_pausiert` | Zeitplan wirkt gerade nicht (Attribut `reason`) |
 | `number` | `number.best_thermostat_komfort` | Globale Variable (je Variable eine) |
@@ -96,6 +97,69 @@ sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 Der Override verändert keine Raumzustände. Er liegt nur darüber. Deshalb ist nach dem
 Ausschalten automatisch alles wie vorher, auch über Neustarts hinweg.
 
+## Zeiträume (z. B. Gästemodus)
+
+Ein **Zeitraum** aktiviert für eine bestimmte Zeit einen Zeitplan und/oder einen Modus,
+z. B. „Arbeitszimmer: Zeitplan *Gast* von Fr 14:00 bis So 18:00“ oder „Bad: Aus, bis auf
+Weiteres“. Danach läuft der Raum **genau wie vorher** weiter. Es wird nichts gemerkt und
+zurückgeschrieben: Der Zeitraum ist eine eigene Ebene über dem Raum (wie beim
+BACnet-Prioritäts-Array), beim Ende greift wieder die Ebene darunter.
+
+| Priorität | Ebene |
+|---|---|
+| 1 | Globaler Override |
+| 2 | Zeitraum (bei Überschneidung gilt der **zuletzt angelegte**) |
+| 3 | Raum: Modus, aktiver Zeitplan, Änderung von Hand |
+
+- **Start** optional (Standard: jetzt), **Ende** optional (Standard: bis auf Weiteres),
+  alternativ eine **Dauer**.
+- Zeiträume werden gespeichert und laufen über Neustarts weiter.
+- **Änderungen von Hand** während eines Zeitraums werden nach der Raum-Einstellung behandelt
+  und enden spätestens mit dem Zeitraum. Im Modus Manuell/Aus eines Zeitraums passt eine
+  Temperaturänderung die Temperatur des Zeitraums an.
+- Wählst du am Raum **ausdrücklich einen Modus oder Zeitplan** (Karte, Raumthermostat,
+  Select), endet der laufende Zeitraum.
+- Ein Zeitplan, der von einem geplanten Zeitraum verwendet wird, lässt sich nicht löschen.
+
+**Kalender:** Jeder Raum hat eine Entität `calendar.<raum>_zeitraume`. Dort siehst du alle
+Zeiträume und kannst sie anlegen, ändern und löschen. Der Titel bestimmt, was passiert:
+ein Zeitplan-Name („Gast“), „Aus“, „Auto“ oder eine Temperatur („Manuell 22“).
+
+**Services** (auch für Agenten wie Hermes über einen MCP-Server):
+
+```yaml
+# Gästemodus jetzt bis auf Weiteres
+action: bestthermostat.add_period
+data:
+  entity_id: climate.arbeitszimmer
+  schedule: Gast
+response_variable: result   # result.periods[0].id zum späteren Beenden
+
+# Gästemodus von Freitag 14:00 bis Sonntag 18:00
+action: bestthermostat.add_period
+data:
+  entity_id: climate.arbeitszimmer
+  schedule: Gast
+  start: "2026-11-13 14:00:00"
+  end: "2026-11-15 18:00:00"
+
+# Bad für 3 Stunden auf 23 °C
+action: bestthermostat.add_period
+data:
+  entity_id: climate.bad
+  temperature: 23
+  duration: {hours: 3}
+
+# Zeitraum beenden (ohne period_id: alle Zeiträume des Raums)
+action: bestthermostat.cancel_period
+data:
+  entity_id: climate.arbeitszimmer
+  period_id: 1a2b3c4d5e6f
+```
+
+`bestthermostat.get_schedule` liefert pro Raum auch `period` (aktiv) und `periods` (alle
+geplanten).
+
 ## Karten
 
 ```yaml
@@ -137,6 +201,8 @@ Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
 | `bestthermostat.get_schedule` | Liefert Zustand und Wochenpläne als Response |
 | `bestthermostat.set_schedule` | Wochenplan als JSON setzen (legt den Zeitplan bei Bedarf an) |
 | `bestthermostat.set_variable` | Variable ändern (`variable`: ID oder Name, `value`, `name`) |
+| `bestthermostat.add_period` | Zeitraum planen: `schedule` und/oder `mode`/`temperature`, optional `start`, `end` oder `duration`, `summary`. Liefert die ID |
+| `bestthermostat.cancel_period` | Zeitraum beenden/löschen (`period_id`, ohne ID: alle des Raums) |
 | `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `include_manual`, `include_off` (`all_modes` setzt beide) |
 
 Format eines Wochenplans:
