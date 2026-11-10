@@ -616,7 +616,7 @@ var et=globalThis,it=et.ShadowRoot&&(et.ShadyCSS===void 0||et.ShadyCSS.nativeSha
             style="left:${o.start/b*100}%;width:${h}%;background:${y(d)}">
             ${h>9?l`<span>${f(d,!1)}</span>`:c}
           </div>`})}
-        <div class="now" style="left:${r/b*100}%"></div>
+        <div class="now" style="left:${r/g*100}%"></div>
       </div>
       <div class="ticks muted"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
     </div>`}};U.properties={hass:{attribute:!1},_config:{state:!0},_snap:{state:!0},_pending:{state:!0},_editing:{state:!0},_error:{state:!0}},U.styles=[H,v`
