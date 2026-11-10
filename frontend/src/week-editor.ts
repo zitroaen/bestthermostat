@@ -388,6 +388,10 @@ export class BtWeekEditor extends LitElement {
         </div>
 
         <footer>
+          <button class="text-btn close-btn" @click=${this._close}>
+            <ha-icon icon="mdi:arrow-left"></ha-icon>${t.close}
+          </button>
+          <span class="spacer"></span>
           <button class="text-btn" ?disabled=${!this._dirty || this._busy} @click=${this._discard}>
             ${t.discard}
           </button>
@@ -569,6 +573,13 @@ export class BtWeekEditor extends LitElement {
       }
       header {
         border-bottom: 1px solid var(--divider-color);
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      header,
+      footer,
+      .content {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
       }
       footer {
         justify-content: flex-end;
