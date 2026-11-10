@@ -9,6 +9,7 @@ from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, NAME, SIGNAL_UPDATE, VERSION
 from .hub import Hub
+from .i18n import text
 from .room import RoomController
 
 
@@ -45,25 +46,22 @@ class RoomEntity(Entity):
             self.async_write_ha_state()
 
 
-GLOBAL_DEVICE = DeviceInfo(
-    identifiers={(DOMAIN, "global")},
-    name=NAME,
-    manufacturer=NAME,
-    model="Einstellungen",
-    sw_version=VERSION,
-)
-
-
 class GlobalEntity(Entity):
     """Entity on the global settings device."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
-    _attr_device_info = GLOBAL_DEVICE
 
     def __init__(self, hub: Hub, key: str) -> None:
         """Initialize."""
         self.hub = hub
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name=NAME,
+            manufacturer=NAME,
+            model=text(hub.hass, "model_settings"),
+            sw_version=VERSION,
+        )
         self._attr_unique_id = f"global_{key}"
 
     async def async_added_to_hass(self) -> None:

@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 
 from . import RoomConfigEntry
 from .entity import RoomEntity
+from .i18n import text
 from .room import RoomController
 from .schedule import MODE_AUTO, MODE_HEAT, MODE_OFF, Period
 
@@ -39,8 +40,8 @@ async def async_setup_entry(
 def parse_summary(controller: RoomController, summary: str) -> dict[str, Any]:
     """Translate an event title into period settings.
 
-    Accepted: a schedule name ("Gast"), "Aus"/"Off", "Auto", or a temperature
-    ("Manuell 22", "22,5 °C"). The title is kept as the period's summary.
+    Accepted (English or German): a schedule name ("Guest"), "Off"/"Aus",
+    "Auto", or a temperature ("Manual 22", "22.5 °C"). The title is kept as the period's summary.
     """
     text = summary.strip()
     folded = text.casefold()
@@ -59,7 +60,7 @@ def parse_summary(controller: RoomController, summary: str) -> dict[str, Any]:
     names = ", ".join(s.name for s in controller.state.schedules.values())
     raise HomeAssistantError(
         f"Unknown event title {summary!r}. Use a schedule name ({names}), "
-        "'Aus', 'Auto' or a temperature such as 'Manuell 22'"
+        "'Off', 'Auto' or a temperature such as 'Manual 22'"
     )
 
 
@@ -90,7 +91,7 @@ class PeriodCalendar(RoomEntity, CalendarEntity):
             start=start,
             end=end,
             summary=self.controller.period_summary(period),
-            description=None if period.end else "Bis auf Weiteres / until cancelled",
+            description=None if period.end else text(self.hass, "until_cancelled"),
             uid=period.id,
         )
 

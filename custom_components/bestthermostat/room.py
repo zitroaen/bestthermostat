@@ -38,7 +38,6 @@ from .const import (
     DEFAULT_FROST_TEMPERATURE,
     DEFAULT_HAND_CHANGE,
     DEFAULT_SCHEDULE_ID,
-    DEFAULT_SCHEDULE_NAME,
     DEFAULT_SYNC_TRVS,
     DOMAIN,
     HAND_IGNORE,
@@ -49,6 +48,7 @@ from .const import (
     VERSION,
 )
 from .hub import Hub
+from .i18n import text
 from .schedule import (
     MODE_AUTO,
     MODE_HEAT,
@@ -85,7 +85,9 @@ def _float(value: Any) -> float | None:
         return None
 
 
-def state_from_dict(raw: dict[str, Any] | None) -> RoomState:
+def state_from_dict(
+    raw: dict[str, Any] | None, default_schedule_name: str = "Default"
+) -> RoomState:
     """Restore a room state, falling back to defaults for anything broken."""
     schedules: dict[str, Schedule] = {}
     for item in (raw or {}).get("schedules", []):
@@ -97,7 +99,7 @@ def state_from_dict(raw: dict[str, Any] | None) -> RoomState:
         schedules[sched.id] = sched
     if not schedules:
         schedules[DEFAULT_SCHEDULE_ID] = Schedule(
-            DEFAULT_SCHEDULE_ID, DEFAULT_SCHEDULE_NAME, default_week()
+            DEFAULT_SCHEDULE_ID, default_schedule_name, default_week()
         )
     raw = raw or {}
     active = raw.get("active_schedule")
@@ -153,7 +155,9 @@ class RoomController:
         )
         self.hand_change: str = options.get(CONF_HAND_CHANGE, DEFAULT_HAND_CHANGE)
         self.sync_trvs: bool = options.get(CONF_SYNC_TRVS, DEFAULT_SYNC_TRVS)
-        self.state = state_from_dict(hub.rooms_data.get(entry.entry_id))
+        self.state = state_from_dict(
+            hub.rooms_data.get(entry.entry_id), text(hass, "default_schedule")
+        )
         self._unsubs: list[Callable[[], None]] = []
         self._timer: Callable[[], None] | None = None
         self._settle: dict[str, Callable[[], None]] = {}
@@ -169,7 +173,7 @@ class RoomController:
             identifiers={(DOMAIN, self.entry_id)},
             name=self.name,
             manufacturer=NAME,
-            model="Raum",
+            model=text(self.hass, "model_room"),
             sw_version=VERSION,
         )
 
@@ -692,12 +696,12 @@ class RoomController:
         if period.schedule and period.schedule in self.state.schedules:
             parts.append(self.state.schedules[period.schedule].name)
         if period.mode == MODE_HEAT:
-            parts.append(f"Manuell {period.temperature} °C")
+            parts.append(f"{text(self.hass, 'manual')} {period.temperature} °C")
         elif period.mode == MODE_OFF:
-            parts.append("Aus")
+            parts.append(text(self.hass, "off"))
         elif period.mode == MODE_AUTO and not parts:
-            parts.append("Auto")
-        return " · ".join(parts) or "Zeitraum"
+            parts.append(text(self.hass, "auto"))
+        return " · ".join(parts) or text(self.hass, "period")
 
     def period_dict(self, period: Period) -> dict[str, Any]:
         """Period for the API."""
