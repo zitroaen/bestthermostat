@@ -35,7 +35,12 @@ durch eine Integration.
    dann einen Raum anlegen. Der Eintrag „Best Thermostat“ für die globalen Einstellungen
    wird automatisch erzeugt.
 
-Die Karte wird automatisch geladen. Eine manuelle Ressource ist **nicht** nötig.
+Die Karte wird automatisch als Dashboard-Ressource eingetragen
+(*Einstellungen → Dashboards → Ressourcen*). Eine manuelle Ressource ist **nicht** nötig.
+Eine bereits von Hand angelegte Ressource für die Karte wird übernommen und bei Updates
+automatisch auf die neue Version gesetzt. Bei Ressourcen im YAML-Modus wird die Karte
+stattdessen als zusätzliches Frontend-Modul geladen. Die Integration lädt nur, wenn
+mindestens ein Raum angelegt ist.
 Das Integrations-Icon wird ab Home Assistant 2026.3 aus `brand/` angezeigt.
 
 > **Wichtig:** Deaktiviere interne Zeitpläne, Fenster-offen-Logik und Ähnliches direkt an

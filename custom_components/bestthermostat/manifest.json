@@ -2,7 +2,8 @@
   "domain": "bestthermostat",
   "name": "Best Thermostat",
   "after_dependencies": [
-    "frontend"
+    "frontend",
+    "lovelace"
   ],
   "codeowners": [
     "@zitroaen"
@@ -17,5 +18,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/zitroaen/bestthermostat/issues",
   "requirements": [],
-  "version": "0.1.1"
+  "version": "0.1.2"
 }

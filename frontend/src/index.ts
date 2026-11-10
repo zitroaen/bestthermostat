@@ -2,7 +2,7 @@ import { BestThermostatCard } from "./card";
 import "./config-editor";
 import { BestThermostatOverviewCard } from "./overview-card";
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 
 if (!customElements.get("bestthermostat-card")) {
   customElements.define("bestthermostat-card", BestThermostatCard);
@@ -13,7 +13,7 @@ if (!customElements.get("bestthermostat-overview-card")) {
 
 const w = window as unknown as { customCards?: unknown[] };
 w.customCards = w.customCards || [];
-w.customCards.push(
+const cards: { type: string; [key: string]: unknown }[] = [
   {
     type: "bestthermostat-card",
     name: "Best Thermostat",
@@ -27,6 +27,9 @@ w.customCards.push(
     description: "Alle Räume, globaler Override und Variablen",
     preview: true,
   },
-);
+];
+for (const card of cards) {
+  if (!w.customCards.some((c: any) => c?.type === card.type)) w.customCards.push(card);
+}
 
 console.info(`%c BEST-THERMOSTAT %c ${VERSION} `, "background:#ff8100;color:#fff", "");

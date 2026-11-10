@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
-from homeassistant.components import frontend
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant
@@ -14,16 +11,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    CARD_FILENAME,
     CONF_ENTRY_TYPE,
     CONF_HIDE_TRVS,
     CONF_TRVS,
     DEFAULT_HIDE_TRVS,
     DOMAIN,
     ENTRY_TYPE_GLOBAL,
-    FRONTEND_URL_BASE,
-    VERSION,
 )
+from .frontend_loader import async_register_card
 from .hub import Hub, get_hub
 from .room import RoomController
 from .services import async_register_services
@@ -54,21 +49,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async_register_services(hass)
     async_register_websocket(hass)
-    await _async_register_frontend(hass)
+    await async_register_card(hass)
     return True
-
-
-async def _async_register_frontend(hass: HomeAssistant) -> None:
-    """Serve the Lovelace card and load it on every dashboard."""
-    path = Path(__file__).parent / "frontend" / CARD_FILENAME
-    if not path.exists() or "frontend" not in hass.config.components:
-        _LOGGER.debug("Card not available, skipping frontend registration")
-        return
-    url = f"{FRONTEND_URL_BASE}/{CARD_FILENAME}"
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(url, str(path), cache_headers=False)]
-    )
-    frontend.add_extra_js_url(hass, f"{url}?v={VERSION}")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
