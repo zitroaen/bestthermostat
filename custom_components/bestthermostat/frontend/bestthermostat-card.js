@@ -163,6 +163,10 @@ var et=globalThis,st=et.ShadowRoot&&(et.ShadyCSS===void 0||et.ShadyCSS.nativeSha
         </div>
 
         <footer>
+          <button class="text-btn close-btn" @click=${this._close}>
+            <ha-icon icon="mdi:arrow-left"></ha-icon>${t.close}
+          </button>
+          <span class="spacer"></span>
           <button class="text-btn" ?disabled=${!this._dirty||this._busy} @click=${this._discard}>
             ${t.discard}
           </button>
@@ -290,6 +294,13 @@ var et=globalThis,st=et.ShadowRoot&&(et.ShadyCSS===void 0||et.ShadyCSS.nativeSha
       }
       header {
         border-bottom: 1px solid var(--divider-color);
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      header,
+      footer,
+      .content {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
       }
       footer {
         justify-content: flex-end;
@@ -866,4 +877,4 @@ var et=globalThis,st=et.ShadowRoot&&(et.ShadyCSS===void 0||et.ShadyCSS.nativeSha
       .sub {
         font-size: 12px;
       }
-    `];var pe="0.1.2";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",U);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",L);var ot=window;ot.customCards=ot.customCards||[];var ue=[{type:"bestthermostat-card",name:"Best Thermostat",description:"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:"Best Thermostat \xDCbersicht",description:"Alle R\xE4ume, globaler Override und Variablen",preview:!0}];for(let n of ue)ot.customCards.some(e=>e?.type===n.type)||ot.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${pe} `,"background:#ff8100;color:#fff","");
+    `];var pe="0.1.3";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",U);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",L);var ot=window;ot.customCards=ot.customCards||[];var ue=[{type:"bestthermostat-card",name:"Best Thermostat",description:"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:"Best Thermostat \xDCbersicht",description:"Alle R\xE4ume, globaler Override und Variablen",preview:!0}];for(let n of ue)ot.customCards.some(e=>e?.type===n.type)||ot.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${pe} `,"background:#ff8100;color:#fff","");
