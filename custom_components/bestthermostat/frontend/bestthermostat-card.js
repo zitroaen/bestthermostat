@@ -804,8 +804,8 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
         </div>
 
         ${s.show_modes?this._renderModes(t):c}
-        ${s.show_schedules&&t.schedules.length>1?this._renderScheduleChoice(t):c}
         ${s.show_timeline&&!s.compact?this._renderTimeline(t):c}
+        ${s.show_schedules&&t.schedules.length>1?this._renderScheduleChoice(t):c}
         ${s.compact?c:this._renderList(t)}
         ${this._error?d`<div class="error">${this._error}</div>`:c}
       </ha-card>
@@ -1658,4 +1658,4 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
         min-height: 30px;
         font-size: 13px;
       }
-    `];var yt="0.3.3";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",U);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",I);var ue=window;ue.customCards=ue.customCards||[];var ze=(document.documentElement.lang||navigator.language||"").startsWith("de"),wt=[{type:"bestthermostat-card",name:"Best Thermostat",description:ze?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:ze?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:ze?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let n of wt)ue.customCards.some(i=>i?.type===n.type)||ue.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${yt} `,"background:#ff8100;color:#fff","");
+    `];var yt="0.3.4";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",U);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",I);var ue=window;ue.customCards=ue.customCards||[];var ze=(document.documentElement.lang||navigator.language||"").startsWith("de"),wt=[{type:"bestthermostat-card",name:"Best Thermostat",description:ze?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:ze?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:ze?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let n of wt)ue.customCards.some(i=>i?.type===n.type)||ue.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${yt} `,"background:#ff8100;color:#fff","");
