@@ -115,8 +115,8 @@ class Hub:
         """Re-evaluate all rooms after a global change."""
         for controller in self.controllers.values():
             controller.apply()
-            controller.notify()
-        self.notify(None)
+            controller.notify_entities()
+        self.notify(None)  # one update for the cards instead of one per room
 
     # ------------------------------------------------------------- variables
 

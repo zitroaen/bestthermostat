@@ -153,6 +153,31 @@ export class BestThermostatOverviewCard extends LitElement {
   }
 
   private _collapsed = this._loadCollapsed();
+  /** Values shown immediately while −/+ is pressed; sent after a short pause. */
+  private _pending = new Map<string, number>();
+  private _timers = new Map<string, number>();
+
+  private _stepPending(key: string, value: number, send: (value: number) => Promise<void>) {
+    const next = Math.min(30, Math.max(5, Math.round(value * 2) / 2));
+    this._pending.set(key, next);
+    this.requestUpdate();
+    window.clearTimeout(this._timers.get(key));
+    this._timers.set(
+      key,
+      window.setTimeout(async () => {
+        await send(next);
+        this._pending.delete(key);
+        this.requestUpdate();
+      }, 600),
+    );
+  }
+
+  private _varStep(id: string, value: number, delta: number) {
+    const key = `var:${id}`;
+    this._stepPending(key, (this._pending.get(key) ?? value) + delta, (v) =>
+      this._call("variable/update", { variable_id: id, value: v }),
+    );
+  }
 
   private _loadCollapsed(): Set<string> {
     try {
@@ -282,8 +307,11 @@ export class BestThermostatOverviewCard extends LitElement {
     const t = strings(this.hass);
     const ov = this._snap!.override;
     const open = this._ovOpen;
+    const shown = this._pending.get("override") ?? ov.value;
     const step = (d: number) =>
-      this._call("override/set", { temperature: Math.min(30, Math.max(5, (ov.value ?? 16) + d)) });
+      this._stepPending("override", (shown ?? 16) + d, (value) =>
+        this._call("override/set", { temperature: value }),
+      );
     return html`<div class="box ${ov.active ? "on" : ""}">
       <div class="box-head">
         <span class="box-label">
@@ -292,7 +320,7 @@ export class BestThermostatOverviewCard extends LitElement {
         </span>
         <button class="value-btn ${open ? "open" : ""}" @click=${() => (this._ovOpen = !this._ovOpen)}
           aria-expanded=${open}>
-          ${fmtTemp(ov.value)}
+          ${fmtTemp(shown)}
           <ha-icon icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
         </button>
         <button class="switch ${ov.active ? "on" : ""}" role="switch" aria-checked=${ov.active}
@@ -304,7 +332,7 @@ export class BestThermostatOverviewCard extends LitElement {
         ? html`<div class="box-body">
             <div class="stepper">
               <button class="round small" @click=${() => step(-0.5)}>−</button>
-              <span class="val">${fmtTemp(ov.value)}</span>
+              <span class="val">${fmtTemp(shown)}</span>
               <button class="round small" @click=${() => step(0.5)}>+</button>
             </div>
             <div class="also">
@@ -344,10 +372,9 @@ export class BestThermostatOverviewCard extends LitElement {
                 <span class="dot" style="background:${tempColor(v.value)}"></span>
                 <span class="grow">${v.name}</span>
                 <button class="round small" @click=${() =>
-                  this._call("variable/update", { variable_id: v.id, value: Math.max(5, v.value - 0.5) })}>−</button>
-                <span class="val">${fmtTemp(v.value)}</span>
-                <button class="round small" @click=${() =>
-                  this._call("variable/update", { variable_id: v.id, value: Math.min(30, v.value + 0.5) })}>+</button>
+                  this._varStep(v.id, v.value, -0.5)}>−</button>
+                <span class="val">${fmtTemp(this._pending.get(`var:${v.id}`) ?? v.value)}</span>
+                <button class="round small" @click=${() => this._varStep(v.id, v.value, 0.5)}>+</button>
               </div>`,
             )}
             <div class="muted hint">${t.variables_note}</div>

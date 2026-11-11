@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -658,3 +659,26 @@ async def test_copy_schedule_to_rooms(
         "created": [],
         "replaced": ["Bad"],
     }
+
+
+async def test_global_change_sends_one_snapshot(
+    hass: HomeAssistant, room: RoomController, freezer: FrozenDateTimeFactory
+) -> None:
+    """A global change produces one coalesced card update, not one per room."""
+    from unittest.mock import MagicMock
+
+    from custom_components.bestthermostat import websocket as ws_module
+
+    connection = MagicMock()
+    connection.subscriptions = {}
+    ws_module.ws_subscribe(hass, connection, {"id": 5, "type": "x"})
+    connection.send_message.reset_mock()
+    hub = get_hub(hass)
+    for value in (15.0, 15.5, 16.0):
+        hub.set_override(active=True, temperature=value)
+    assert connection.send_message.call_count == 0  # coalesced, not yet sent
+    freezer.tick(0.5)  # the frozen clock also drives the event loop timers
+    for _ in range(5):
+        await asyncio.sleep(0)
+    assert connection.send_message.call_count == 1
+    connection.subscriptions[5]()

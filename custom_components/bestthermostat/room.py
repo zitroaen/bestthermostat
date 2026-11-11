@@ -321,8 +321,13 @@ class RoomController:
     @callback
     def notify(self) -> None:
         """Inform entities and the card."""
-        async_dispatcher_send(self.hass, f"{SIGNAL_UPDATE}_{self.entry_id}")
+        self.notify_entities()
         self.hub.notify(self.entry_id)
+
+    @callback
+    def notify_entities(self) -> None:
+        """Inform only this room's entities (the card is informed separately)."""
+        async_dispatcher_send(self.hass, f"{SIGNAL_UPDATE}_{self.entry_id}")
 
     def _changed(self) -> None:
         self.hub.save()
