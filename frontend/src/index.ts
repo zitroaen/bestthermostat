@@ -1,15 +1,12 @@
 import { BestThermostatCard } from "./card";
 import "./config-editor";
 import { BestThermostatOverviewCard } from "./overview-card";
+import { define } from "./utils";
 
-const VERSION = "0.6.1";
+const VERSION = "0.6.2";
 
-if (!customElements.get("bestthermostat-card")) {
-  customElements.define("bestthermostat-card", BestThermostatCard);
-}
-if (!customElements.get("bestthermostat-overview-card")) {
-  customElements.define("bestthermostat-overview-card", BestThermostatOverviewCard);
-}
+define("bestthermostat-card", BestThermostatCard);
+define("bestthermostat-overview-card", BestThermostatOverviewCard);
 
 const w = window as unknown as { customCards?: unknown[] };
 w.customCards = w.customCards || [];

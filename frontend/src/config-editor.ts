@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from "lit";
 import type { HomeAssistant } from "./api";
 import type { CardConfig } from "./card";
+import { define } from "./utils";
 
 const LABELS: Record<string, { de: string; en: string }> = {
   entity: { de: "Raum", en: "Room" },
@@ -181,5 +182,5 @@ export class BestThermostatOverviewEditor extends BaseEditor {
   };
 }
 
-customElements.define("bestthermostat-card-editor", BestThermostatCardEditor);
-customElements.define("bestthermostat-overview-card-editor", BestThermostatOverviewEditor);
+define("bestthermostat-card-editor", BestThermostatCardEditor);
+define("bestthermostat-overview-card-editor", BestThermostatOverviewEditor);

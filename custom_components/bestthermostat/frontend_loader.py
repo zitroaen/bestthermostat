@@ -71,12 +71,21 @@ async def _async_register_resource(hass: HomeAssistant, url: str) -> bool:
     if not getattr(resources, "loaded", True):
         await resources.async_load()
         resources.loaded = True
-    for item in resources.async_items():
-        if str(item.get("url", "")).split("?")[0] == CARD_URL:
-            if item.get("url") != url or item.get("type") != "module":
-                await resources.async_update_item(item["id"], {"res_type": "module", "url": url})
-                _LOGGER.info("Updated dashboard resource for the card to %s", url)
-            return True
+    matches = [
+        item
+        for item in resources.async_items()
+        if str(item.get("url", "")).split("?")[0] == CARD_URL
+    ]
+    if matches:
+        first, *duplicates = matches
+        if first.get("url") != url or first.get("type") != "module":
+            await resources.async_update_item(first["id"], {"res_type": "module", "url": url})
+            _LOGGER.info("Updated dashboard resource for the card to %s", url)
+        for item in duplicates:
+            # Two entries would load two versions of the card.
+            await resources.async_delete_item(item["id"])
+            _LOGGER.info("Removed duplicate dashboard resource %s", item.get("url"))
+        return True
     await resources.async_create_item({"res_type": "module", "url": url})
     _LOGGER.info("Registered dashboard resource %s", url)
     return True
