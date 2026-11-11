@@ -243,7 +243,9 @@ wie Platz ist – ideal als Hauptansicht.
 **Stockwerke:** Die Räume werden nach den in Home Assistant angelegten Stockwerken
 gruppiert, sortiert nach der Ebene. Ein Tipp auf die Stockwerkszeile klappt es ein (wird
 pro Gerät gemerkt). Haben mehrere Räume eines Stockwerks denselben nächsten Wechsel, steht
-er einmal in der Stockwerkszeile. Räume zeigen das Icon ihres HA-Bereichs; das Soll
+er einmal in der Stockwerkszeile. Waagerechtes Wischen auf
+der Temperatur eines Raums (oder auf der Override-Temperatur) ändert sie. Räume zeigen
+das Icon ihres HA-Bereichs; das Soll
 erscheint nur, wenn es um mindestens 0,5° von der Ist-Temperatur abweicht. Verwendet wird der Bereich des Best-Thermostat-
 Raumgeräts, sonst der Bereich seiner Thermostate. Neue Raumgeräte bekommen diesen
 Bereich automatisch vorgeschlagen. Räume ohne Stockwerk stehen unter „Weitere“.
