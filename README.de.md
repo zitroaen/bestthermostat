@@ -235,14 +235,18 @@ gruppiert, sortiert nach der Ebene. Verwendet wird der Bereich des Best-Thermost
 Raumgeräts, sonst der Bereich seiner Thermostate. Neue Raumgeräte bekommen diesen
 Bereich automatisch vorgeschlagen. Räume ohne Stockwerk stehen unter „Weitere“.
 
-Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über den Stift an der Zeitleiste (bzw. oben im
-Kopf, wenn die Zeitleiste ausgeblendet ist):
+Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über den Stift an
+der Zeitleiste (bzw. oben im Kopf, wenn die Zeitleiste ausgeblendet ist):
 
-- Abschnitt antippen, um ihn zu bearbeiten (Temperatur, Variable, teilen, löschen)
-- Grenzen ziehen, um sie zu verschieben (15-Minuten-Raster)
-- Einen Tag auf andere Tage kopieren
-- Zeitpläne anlegen, umbenennen, duplizieren und löschen (nicht den aktiven)
-- Änderungen werden erst mit **Speichern** übernommen
+- Oben zwischen Zeitplänen wechseln (der gültige hat einen grünen Punkt, „+“ legt einen
+  an); ein nicht aktiver Zeitplan lässt sich direkt dort aktivieren
+- Abschnitt antippen und im Sheet bearbeiten: Von/Bis mit −/+ (15-Minuten-Raster), feste
+  Temperatur oder Variable, teilen, Tag kopieren (Mo–Fr / Wochenende / alle), löschen
+- Grenzen ziehen, um sie zu verschieben (die Uhrzeit wird dabei angezeigt)
+- Die Legende erklärt die Farben; „Bearbeiten“ öffnet die Variablen
+- ⋮-Menü: umbenennen, duplizieren, Variablen verwalten, Zeitplan löschen
+- Änderungen werden erst mit **Speichern** übernommen – die Leiste erscheint, sobald
+  etwas geändert wurde
 
 ## Services
 
