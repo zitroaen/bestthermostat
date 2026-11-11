@@ -48,6 +48,29 @@ def _dt(value: str | None) -> datetime | None:
     return parsed
 
 
+def _copy_to_rooms(
+    hass: HomeAssistant, entry_id: str, schedule_id: str, targets: list[str]
+) -> dict[str, Any]:
+    """Copy a schedule to other rooms (same name: replaced, otherwise created)."""
+    source = _room(hass, entry_id)
+    sched = source.find_schedule(schedule_id)
+    week = sched.week.to_dict()
+    created, replaced = [], []
+    for target_id in targets:
+        if target_id == entry_id:
+            continue
+        target = _room(hass, target_id)
+        try:
+            existing = target.find_schedule(sched.name)
+        except HomeAssistantError:
+            target.create_schedule(sched.name, week=week)
+            created.append(target.name)
+        else:
+            target.save_week(existing.id, week)
+            replaced.append(target.name)
+    return {"created": created, "replaced": replaced}
+
+
 def _room(hass: HomeAssistant, entry_id: str) -> RoomController:
     controller = get_hub(hass).controllers.get(entry_id)
     if controller is None:
@@ -226,6 +249,15 @@ def async_register_websocket(hass: HomeAssistant) -> None:
                     summary=m.get("summary"),
                 )
             ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "schedule/copy_to_rooms",
+                entry: str,
+                sched: str,
+                vol.Required("targets"): [str],
+            },
+            lambda h, m: _copy_to_rooms(h, m["entry_id"], m["schedule_id"], m["targets"]),
         ),
         _handler(
             {

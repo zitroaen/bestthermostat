@@ -255,7 +255,8 @@ timeline (or in the header when the timeline is hidden):
   temperature or a variable, split, copy the day (Mon–Fri / weekend / all), delete
 - Drag the borders to move them (the time is shown while dragging)
 - The legend explains the colours; "Edit" opens the variables
-- ⋮ menu: rename, duplicate, manage variables, delete schedule
+- ⋮ menu: rename, duplicate, **copy to other rooms** (an existing schedule with the same
+  name is replaced, otherwise it is created), manage variables, delete schedule
 - Changes are only applied with **Save** – the bar appears as soon as something changed
 
 ## Services

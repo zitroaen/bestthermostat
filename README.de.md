@@ -254,7 +254,8 @@ der Zeitleiste (bzw. oben im Kopf, wenn die Zeitleiste ausgeblendet ist):
   Temperatur oder Variable, teilen, Tag kopieren (Mo–Fr / Wochenende / alle), löschen
 - Grenzen ziehen, um sie zu verschieben (die Uhrzeit wird dabei angezeigt)
 - Die Legende erklärt die Farben; „Bearbeiten“ öffnet die Variablen
-- ⋮-Menü: umbenennen, duplizieren, Variablen verwalten, Zeitplan löschen
+- ⋮-Menü: umbenennen, duplizieren, **in andere Räume kopieren** (ein gleichnamiger
+  Zeitplan wird ersetzt, sonst neu angelegt), Variablen verwalten, Zeitplan löschen
 - Änderungen werden erst mit **Speichern** übernommen – die Leiste erscheint, sobald
   etwas geändert wurde
 
