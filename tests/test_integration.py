@@ -572,3 +572,12 @@ async def test_simple_modes(hass: HomeAssistant, room: RoomController) -> None:
     room.set_mode("heat", 19.0)
     await settle(hass)
     assert hass.states.get("climate.arbeitszimmer").state == "heat"  # type: ignore[union-attr]
+
+
+async def test_target_variable(hass: HomeAssistant, room: RoomController) -> None:
+    """The name of the variable behind the current target is reported."""
+    data = room.as_dict()
+    assert data["target_source"] == "schedule"
+    assert data["target_variable"] == "Comfort"
+    room.set_mode("heat", 19.0)
+    assert room.as_dict()["target_variable"] is None

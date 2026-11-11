@@ -73,6 +73,7 @@ from .schedule import (
     default_week,
     next_change,
     resolve,
+    slot_at,
     validate_temperature,
 )
 
@@ -324,6 +325,22 @@ class RoomController:
             return None
         when, slot = result
         return when, resolve(slot, self.hub.variable_values())
+
+    def target_variable(self, source: str) -> str | None:
+        """Name of the variable that defines the current target, if any."""
+        variable_id: str | None = None
+        if source == "override":
+            variable_id = self.hub.override.variable
+        elif source == "schedule":
+            slot = slot_at(
+                self.active_schedule.week,
+                dt_util.now().astimezone(dt_util.get_default_time_zone()),
+            )
+            variable_id = slot.variable
+        if variable_id is None:
+            return None
+        var = self.hub.variables.get(variable_id)
+        return var.name if var else variable_id
 
     def trv_states(self) -> list[State]:
         """Return the states of all available TRVs."""
@@ -850,6 +867,7 @@ class RoomController:
             "frost_temperature": self.frost_temperature,
             "target_temperature": target.temperature,
             "target_source": target.source,
+            "target_variable": self.target_variable(target.source),
             "current_temperature": self.current_temperature,
             "hvac_action": self.hvac_action,
             "min_temp": low,

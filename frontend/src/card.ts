@@ -14,11 +14,13 @@ import {
   tempColor,
   todayKey,
 } from "./utils";
-import { priorities, roomIcon, roomStatus, scheduleName, upcomingPeriods } from "./room-view";
+import { priorities, roomIcon, roomStatus, upcomingPeriods } from "./room-view";
 import "./week-editor";
 import "./period-dialog";
 import type { BtPeriodDialog } from "./period-dialog";
 import type { BtWeekEditor } from "./week-editor";
+
+const SWIPE_STEP = 24;
 
 export interface CardConfig {
   type: string;
@@ -44,6 +46,7 @@ export class BestThermostatCard extends LitElement {
     _editPeriod: { state: true },
     _allPeriods: { state: true },
     _section: { state: true },
+    _swipe: { state: true },
     _error: { state: true },
   };
 
@@ -56,6 +59,7 @@ export class BestThermostatCard extends LitElement {
   _editPeriod?: PeriodData;
   _allPeriods = false;
   _section?: "schedule" | "periods" | "prio";
+  _swipe?: { x: number; start: number; moved: boolean; id: number };
   private _planner?: BtPeriodDialog;
   _error?: string;
   private _unsub?: () => void;
@@ -172,9 +176,53 @@ export class BestThermostatCard extends LitElement {
     }
   }
 
+  private _clampTemp(room: RoomData, value: number): number {
+    return Math.min(room.max_temp, Math.max(room.min_temp, Math.round(value * 2) / 2));
+  }
+
+  /** Horizontal swipe on the target temperature: 0.5 °C per SWIPE_STEP px. */
+  private _swipeStart(ev: PointerEvent, room: RoomData) {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    this._swipe = {
+      x: ev.clientX,
+      start: this._pending ?? room.target_temperature ?? 20,
+      moved: false,
+      id: ev.pointerId,
+    };
+  }
+
+  private _swipeMove(ev: PointerEvent, room: RoomData) {
+    const sw = this._swipe;
+    if (!sw || sw.id !== ev.pointerId) return;
+    const dx = ev.clientX - sw.x;
+    if (!sw.moved) {
+      if (Math.abs(dx) < 10) return;
+      sw.moved = true;
+      (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+      this.requestUpdate();
+    }
+    const value = this._clampTemp(room, sw.start + Math.round(dx / SWIPE_STEP) * 0.5);
+    if (value !== this._pending) {
+      this._pending = value;
+      window.clearTimeout(this._debounce);
+      navigator.vibrate?.(5);
+    }
+  }
+
+  private _swipeEnd(ev: PointerEvent, room: RoomData) {
+    const sw = this._swipe;
+    this._swipe = undefined;
+    if (!sw || !sw.moved || sw.id !== ev.pointerId) return;
+    if (this._pending !== undefined && this._pending !== room.target_temperature) {
+      this._step(room, 0);
+    } else {
+      this._pending = undefined;
+    }
+  }
+
   private _step(room: RoomData, delta: number) {
     const base = this._pending ?? room.target_temperature ?? 20;
-    const value = Math.min(room.max_temp, Math.max(room.min_temp, Math.round((base + delta) * 2) / 2));
+    const value = this._clampTemp(room, base + delta);
     this._pending = value;
     window.clearTimeout(this._debounce);
     this._debounce = window.setTimeout(async () => {
@@ -244,16 +292,25 @@ export class BestThermostatCard extends LitElement {
           </div>
           <div class="ctl">
             <button class="round" @click=${() => this._step(room, -0.5)} aria-label="-0.5">−</button>
-            <div class="target">
+            <div class="target ${this._swipe?.moved ? "swiping" : ""}" title=${t.swipe_hint}
+              @pointerdown=${(e: PointerEvent) => this._swipeStart(e, room)}
+              @pointermove=${(e: PointerEvent) => this._swipeMove(e, room)}
+              @pointerup=${(e: PointerEvent) => this._swipeEnd(e, room)}
+              @pointercancel=${() => (this._swipe = undefined)}>
               <div class="tv" style="--c:${tempColor(target ?? undefined)}">${fmtTemp(target, false)}°</div>
-              <div class="muted src">${t[`src_${room.target_source}` as keyof typeof t] as string}</div>
+              <div class="muted src">${[
+                room.target_variable,
+                t[`src_${room.target_source}` as keyof typeof t] as string,
+              ]
+                .filter(Boolean)
+                .join(" · ")}</div>
             </div>
             <button class="round" @click=${() => this._step(room, 0.5)} aria-label="+0.5">+</button>
           </div>
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
-        ${c.compact && c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
+        ${c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
         ${c.show_timeline && !c.compact ? this._renderTimeline(room) : nothing}
         ${c.compact ? nothing : this._renderList(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
@@ -333,14 +390,6 @@ export class BestThermostatCard extends LitElement {
     const prio = priorities(room, this._snap!, t, h);
     const winner = prio.layers.find((l) => l.n === prio.winner)!;
     return html`<div class="list">
-      ${c.show_schedules
-        ? html`${this._row("mdi:calendar-clock", t.schedule, scheduleName(room, room.active_schedule),
-            room.schedules.length > 1 ? "schedule" : undefined)}
-          ${this._section === "schedule" ? html`<div class="detail">${this._renderScheduleChoice(room)}</div>` : nothing}`
-        : nothing}
-      ${room.next_change
-        ? this._row("mdi:clock-outline", t.next, `${fmtTime(room.next_change, h)} → ${fmtTemp(room.next_temperature)}`)
-        : nothing}
       ${c.show_periods
         ? html`${this._row("mdi:calendar-star", t.period_plural, periodValue, "periods")}
           ${this._section === "periods" ? html`<div class="detail">${this._renderPeriods(room)}</div>` : nothing}`
@@ -485,7 +534,20 @@ export class BestThermostatCard extends LitElement {
       }
       .target {
         text-align: center;
-        min-width: 64px;
+        min-width: 72px;
+        padding: 4px 6px;
+        border-radius: 12px;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: ew-resize;
+        transition: background 0.15s;
+      }
+      .target.swiping {
+        background: var(--bt-surface);
+      }
+      .target.swiping .tv {
+        color: var(--bt-accent);
       }
       .tv {
         font-size: 24px;

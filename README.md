@@ -209,8 +209,10 @@ group_by_floor: true  # group rooms by Home Assistant floors
 ```
 
 **Room card:** icon, name and status at the top; current temperature large with the
-target and −/+ next to it; mode selector; a thin timeline for today; below that calm rows
-– schedule, next change, periods, priority, weekly editor – that expand when tapped.
+target next to it (−/+ or **swipe horizontally** on the target; below it the variable and
+source in effect, e.g. "Comfort · Schedule"); mode and schedule selectors; a thin
+timeline for today; below that calm rows – periods, priority, weekly editor – that expand
+when tapped.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
 as a single switch (details expand when it is on or tapped), the variables as one line
