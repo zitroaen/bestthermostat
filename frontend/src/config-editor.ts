@@ -12,6 +12,7 @@ const LABELS: Record<string, { de: string; en: string }> = {
   show_editor: { de: "Stift für Wocheneditor", en: "Pencil for weekly editor" },
   show_periods: { de: "Zeiträume anzeigen und planen", en: "Show and plan periods" },
   show_priorities: { de: "Prioritäten anzeigen", en: "Show priorities" },
+  show_battery: { de: "Batteriestand anzeigen", en: "Show battery levels" },
   title: { de: "Titel", en: "Title" },
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
   show_variables: { de: "Variablen anzeigen", en: "Show variables" },
@@ -40,6 +41,7 @@ const ROOM_SCHEMA = [
       { name: "show_editor", selector: { boolean: {} } },
       { name: "show_periods", selector: { boolean: {} } },
       { name: "show_priorities", selector: { boolean: {} } },
+      { name: "show_battery", selector: { boolean: {} } },
     ],
   },
 ];
@@ -50,6 +52,7 @@ const ROOM_OPTIONS = [
   { name: "show_timeline", selector: { boolean: {} } },
   { name: "show_periods", selector: { boolean: {} } },
   { name: "show_priorities", selector: { boolean: {} } },
+  { name: "show_battery", selector: { boolean: {} } },
   { name: "show_editor", selector: { boolean: {} } },
   { name: "compact", selector: { boolean: {} } },
 ];
@@ -149,6 +152,7 @@ export class BestThermostatCardEditor extends BaseEditor {
     show_editor: true,
     show_periods: true,
     show_priorities: true,
+    show_battery: true,
   };
 }
 
@@ -170,6 +174,7 @@ export class BestThermostatOverviewEditor extends BaseEditor {
       show_timeline: true,
       show_periods: true,
       show_priorities: true,
+      show_battery: true,
       show_editor: true,
       compact: false,
     },

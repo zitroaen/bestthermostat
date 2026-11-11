@@ -87,6 +87,13 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
 bearbeiten und löschen. Eine Variable, die noch in einem Zeitplan verwendet wird, lässt
 sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 
+## Batteriestände
+
+Die Integration findet die Batterie-Entitäten der Thermostate automatisch (Batteriesensor
+in % oder „Batterie schwach“-Sensor am selben Gerät). Die Raumkarte zeigt den niedrigsten
+Stand des Raums (antippen für jedes Thermostat, unter 20 % rot); die Übersicht markiert
+Räume mit schwacher Batterie. Option `show_battery`.
+
 ## Apple Home, Google Home (Matter / HomeKit)
 
 Matter und HomeKit kennen für Thermostate nur Aus, Heizen, Kühlen und Auto (= Heizen/
@@ -195,6 +202,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
 show_priorities: true   # Zeile, welche Prioritäts-Ebene gerade bestimmt (aufklappbar)
+show_battery: true      # Batterie der Thermostate (automatisch ermittelt, < 20 % rot)
 ```
 
 ```yaml
@@ -212,6 +220,7 @@ room:                  # gilt für alle Räume – dieselben Optionen wie die Ra
   show_timeline: true
   show_periods: true
   show_priorities: true
+  show_battery: true
   show_editor: true
   compact: false
 ```

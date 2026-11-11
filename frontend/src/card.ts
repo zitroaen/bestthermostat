@@ -14,7 +14,14 @@ import {
   tempColor,
   todayKey,
 } from "./utils";
-import { priorities, roomIcon, roomStatus, upcomingPeriods } from "./room-view";
+import {
+  batteryIcon,
+  lowestBattery,
+  priorities,
+  roomIcon,
+  roomStatus,
+  upcomingPeriods,
+} from "./room-view";
 import "./week-editor";
 import "./period-dialog";
 import type { BtPeriodDialog } from "./period-dialog";
@@ -33,6 +40,7 @@ export interface CardConfig {
   show_editor?: boolean;
   show_periods?: boolean;
   show_priorities?: boolean;
+  show_battery?: boolean;
   /** Used inside the overview card: no card frame, optional header. */
   embedded?: boolean;
   show_header?: boolean;
@@ -62,7 +70,7 @@ export class BestThermostatCard extends LitElement {
   _planning = false;
   _editPeriod?: PeriodData;
   _allPeriods = false;
-  _section?: "schedule" | "periods" | "prio";
+  _section?: "schedule" | "periods" | "prio" | "battery";
   _swipe?: { x: number; start: number; moved: boolean; id: number };
   private _planner?: BtPeriodDialog;
   _error?: string;
@@ -90,6 +98,7 @@ export class BestThermostatCard extends LitElement {
       show_editor: true,
       show_periods: true,
       show_priorities: true,
+      show_battery: true,
       show_header: true,
       ...config,
     };
@@ -265,7 +274,7 @@ export class BestThermostatCard extends LitElement {
     this._planning = true;
   }
 
-  private _toggle(section: "schedule" | "periods" | "prio") {
+  private _toggle(section: "schedule" | "periods" | "prio" | "battery") {
     this._section = this._section === section ? undefined : section;
   }
 
@@ -394,7 +403,7 @@ export class BestThermostatCard extends LitElement {
     </div>`;
   }
 
-  private _row(icon: string, label: string, value: unknown, section?: "schedule" | "periods" | "prio", onClick?: () => void) {
+  private _row(icon: string, label: string, value: unknown, section?: "schedule" | "periods" | "prio" | "battery", onClick?: () => void) {
     const open = section !== undefined && this._section === section;
     const clickable = section !== undefined || onClick !== undefined;
     return html`<button class="row ${open ? "open" : ""}" ?disabled=${!clickable}
@@ -427,7 +436,31 @@ export class BestThermostatCard extends LitElement {
         ? html`${this._row("mdi:layers-triple-outline", t.prio_short, winner.name, "prio")}
           ${this._section === "prio" ? html`<div class="detail">${this._renderPriorities(prio)}</div>` : nothing}`
         : nothing}
+      ${c.show_battery ? this._renderBatteryRow(room) : nothing}
     </div>`;
+  }
+
+  private _renderBatteryRow(room: RoomData) {
+    const t = strings(this.hass);
+    const lowest = lowestBattery(room);
+    if (!lowest) return nothing;
+    const value = html`<span class=${lowest.low ? "low" : ""}>${lowest.level != null
+      ? `${Math.round(lowest.level)} %`
+      : lowest.low
+        ? t.battery_low
+        : t.battery_ok}</span>`;
+    return html`${this._row(batteryIcon(lowest.level, lowest.low), t.battery, value, "battery")}
+      ${this._section === "battery"
+        ? html`<div class="detail batteries">
+            ${(room.batteries ?? []).map(
+              (b) => html`<div class="bat ${b.low ? "low" : ""}">
+                <ha-icon icon=${batteryIcon(b.level, b.low)}></ha-icon>
+                <span class="grow">${b.name}</span>
+                <span>${b.level != null ? `${Math.round(b.level)} %` : b.low ? t.battery_low : t.battery_ok}</span>
+              </div>`,
+            )}
+          </div>`
+        : nothing}`;
   }
 
   private _renderPriorities(prio: ReturnType<typeof priorities>) {
@@ -735,6 +768,33 @@ export class BestThermostatCard extends LitElement {
       }
       .detail {
         padding: 2px 4px 12px 36px;
+      }
+      .low {
+        color: var(--error-color, #db4437);
+        font-weight: 500;
+      }
+      .batteries {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .bat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .bat ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--bt-muted);
+      }
+      .bat.low,
+      .bat.low ha-icon {
+        color: var(--error-color, #db4437);
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
       }
       .prio {
         display: flex;

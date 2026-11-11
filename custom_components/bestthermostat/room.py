@@ -80,6 +80,7 @@ from .schedule import (
 _LOGGER = logging.getLogger(__name__)
 
 TOLERANCE = 0.05
+BATTERY_LOW = 20
 
 
 def _available(state: State | None) -> bool:
@@ -208,6 +209,47 @@ class RoomController:
         area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
         return area.name if area else None
 
+    def _battery_entities(self) -> dict[str, list[str]]:
+        """Battery entities (sensor %, binary_sensor low) on each TRV's device."""
+        ent_reg = er.async_get(self.hass)
+        result: dict[str, list[str]] = {}
+        for trv in self.trvs:
+            entry = ent_reg.async_get(trv)
+            if entry is None or entry.device_id is None:
+                continue
+            found = [
+                e.entity_id
+                for e in er.async_entries_for_device(ent_reg, entry.device_id)
+                if e.domain in ("sensor", "binary_sensor")
+                and (e.device_class or e.original_device_class) == "battery"
+                and not e.disabled
+            ]
+            if found:
+                result[trv] = sorted(found, key=lambda e: not e.startswith("sensor."))
+        return result
+
+    def batteries(self) -> list[dict[str, Any]]:
+        """Battery state of every TRV that reports one."""
+        result = []
+        for trv, entities in self._battery_entities().items():
+            level: float | None = None
+            low: bool | None = None
+            for entity_id in entities:
+                state = self.hass.states.get(entity_id)
+                if not _available(state):
+                    continue
+                assert state is not None
+                if entity_id.startswith("sensor."):
+                    level = _float(state.state) if level is None else level
+                else:
+                    low = state.state == "on"
+            if level is not None and low is None:
+                low = level <= BATTERY_LOW
+            trv_state = self.hass.states.get(trv)
+            name = trv_state.name if trv_state else trv
+            result.append({"entity_id": trv, "name": name, "level": level, "low": low})
+        return result
+
     def area_and_floor(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
         """Area of the room device (fallback: of its TRVs) and the area's floor."""
         device = dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, self.entry_id)})
@@ -232,6 +274,12 @@ class RoomController:
         self._unsubs.append(
             async_track_state_change_event(self.hass, self.trvs, self._on_trv_event)
         )
+        if battery_entities := [e for ids in self._battery_entities().values() for e in ids]:
+            self._unsubs.append(
+                async_track_state_change_event(
+                    self.hass, battery_entities, lambda _event: self.notify()
+                )
+            )
         self.apply()
         self._schedule_timer()
 
@@ -855,6 +903,7 @@ class RoomController:
         area, floor = self.area_and_floor()
         return {
             "area": area,
+            "batteries": self.batteries(),
             "floor": floor,
             "entry_id": self.entry_id,
             "name": self.name,

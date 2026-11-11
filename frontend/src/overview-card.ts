@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import type { FloorData, HomeAssistant, RoomData, Snapshot } from "./api";
 import { subscribe, ws } from "./api";
-import { roomIcon, roomStatus, upcomingPeriods } from "./room-view";
+import { lowestBattery, roomIcon, roomStatus, upcomingPeriods } from "./room-view";
 import { shared } from "./styles";
 import { fmtTemp, fmtTime, strings, tempColor } from "./utils";
 
@@ -13,6 +13,7 @@ export interface RoomOptions {
   show_periods?: boolean;
   show_priorities?: boolean;
   show_editor?: boolean;
+  show_battery?: boolean;
   compact?: boolean;
 }
 
@@ -36,6 +37,7 @@ const ROOM_DEFAULTS: RoomOptions = {
   show_periods: true,
   show_priorities: true,
   show_editor: true,
+  show_battery: true,
   compact: false,
 };
 
@@ -319,7 +321,10 @@ export class BestThermostatOverviewCard extends LitElement {
       <button class="room" @click=${() => (this._open = open ? undefined : room.entry_id)}>
         <span class="icon ${heating ? "heating" : ""}"><ha-icon icon=${roomIcon(room)}></ha-icon></span>
         <span class="grow left">
-          <span class="name">${room.name}</span>
+          <span class="name">${room.name}${this._config?.room?.show_battery && lowestBattery(room)?.low
+            ? html`<ha-icon class="bat-low" icon="mdi:battery-alert-variant-outline"
+                title=${t.battery_low}></ha-icon>`
+            : nothing}</span>
           <span class="muted sub">${roomStatus(room, t, h)}</span>
           ${next
             ? html`<span class="muted sub planned">
@@ -669,6 +674,12 @@ export class BestThermostatOverviewCard extends LitElement {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .bat-low {
+        --mdc-icon-size: 16px;
+        color: var(--error-color, #db4437);
+        margin-left: 4px;
+        vertical-align: -2px;
       }
       .planned {
         display: inline-flex;

@@ -581,3 +581,41 @@ async def test_target_variable(hass: HomeAssistant, room: RoomController) -> Non
     assert data["target_variable"] == "Comfort"
     room.set_mode("heat", 19.0)
     assert room.as_dict()["target_variable"] is None
+
+
+async def test_batteries(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """Battery entities on the TRV devices are found automatically."""
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    source = MockConfigEntry(domain="test")
+    source.add_to_hass(hass)
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    for i, (name, level) in enumerate((("trv1", "45"), ("trv2", "12")), start=1):
+        device = dev_reg.async_get_or_create(
+            config_entry_id=source.entry_id, identifiers={("test", name)}, name=f"TRV {i}"
+        )
+        hass.states.async_remove(f"climate.{name}")
+        ent_reg.async_get_or_create(
+            "climate", "test", name, suggested_object_id=name, device_id=device.id
+        )
+        hass.states.async_set(f"climate.{name}", "heat", TRV_ATTRS)
+        ent_reg.async_get_or_create(
+            "sensor",
+            "test",
+            f"{name}_bat",
+            suggested_object_id=f"{name}_battery",
+            device_id=device.id,
+            original_device_class="battery",
+        )
+        hass.states.async_set(f"sensor.{name}_battery", level, {"unit_of_measurement": "%"})
+    freezer.move_to(MONDAY_7)
+    entry = await create_room(hass)
+    controller: RoomController = entry.runtime_data
+    batteries = {b["entity_id"]: b for b in controller.as_dict()["batteries"]}
+    assert batteries["climate.trv1"]["level"] == 45.0
+    assert batteries["climate.trv1"]["low"] is False
+    assert batteries["climate.trv2"]["low"] is True

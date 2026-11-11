@@ -91,6 +91,13 @@ language of Home Assistant.
 variable that is still used in a schedule cannot be deleted. Variables can also be
 managed in the card.
 
+## Battery levels
+
+The integration finds the battery entities of the thermostats automatically (a battery
+sensor in % or a "battery low" binary sensor on the same device). The room card shows the
+lowest level of the room (tap to see every thermostat, below 20 % in red); the overview
+marks rooms with a weak battery. Option `show_battery`.
+
 ## Apple Home, Google Home (Matter / HomeKit)
 
 Matter and HomeKit only know the thermostat modes off, heat, cool and auto (= heat/cool).
@@ -197,6 +204,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # list active/planned periods and the "Plan period" button
 show_priorities: true   # row showing which priority layer is in control (expandable)
+show_battery: true      # battery of the thermostats (found automatically, < 20 % in red)
 ```
 
 ```yaml
@@ -214,6 +222,7 @@ room:                  # applies to all rooms – same options as the room card
   show_timeline: true
   show_periods: true
   show_priorities: true
+  show_battery: true
   show_editor: true
   compact: false
 ```
