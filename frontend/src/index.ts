@@ -2,7 +2,7 @@ import { BestThermostatCard } from "./card";
 import "./config-editor";
 import { BestThermostatOverviewCard } from "./overview-card";
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 if (!customElements.get("bestthermostat-card")) {
   customElements.define("bestthermostat-card", BestThermostatCard);

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,10 @@ async def async_register_card(hass: HomeAssistant) -> None:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(CARD_URL, str(path), cache_headers=False)]
     )
-    url = f"{CARD_URL}?v={VERSION}"
+    # Version plus a fingerprint of the file: browsers reload the card whenever
+    # the file changes, even without a version bump.
+    digest = await hass.async_add_executor_job(_fingerprint, path)
+    url = f"{CARD_URL}?v={VERSION}-{digest}"
     try:
         if await _async_register_resource(hass, url):
             return
@@ -44,6 +48,10 @@ async def async_register_card(hass: HomeAssistant) -> None:
 
         add_extra_js_url(hass, url)
         _LOGGER.debug("Card loaded as extra module (YAML resource mode)")
+
+
+def _fingerprint(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:8]
 
 
 def _resources(hass: HomeAssistant) -> Any:

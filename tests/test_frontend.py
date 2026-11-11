@@ -19,7 +19,8 @@ async def test_resource_created(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     items = _resources(hass).async_items()
-    assert [i["url"] for i in items] == [f"{CARD_URL}?v={VERSION}"]
+    assert len(items) == 1
+    assert items[0]["url"].startswith(f"{CARD_URL}?v={VERSION}-")
     assert items[0]["type"] == "module"
 
 
@@ -34,7 +35,9 @@ async def test_manual_resource_is_reused(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     urls = sorted(i["url"] for i in resources.async_items())
-    assert urls == sorted(["/local/other.js", f"{CARD_URL}?v={VERSION}"])
+    assert len(urls) == 2
+    assert "/local/other.js" in urls
+    assert any(u.startswith(f"{CARD_URL}?v={VERSION}-") for u in urls)
 
 
 async def test_card_is_served(hass: HomeAssistant, hass_client) -> None:  # type: ignore[no-untyped-def]
