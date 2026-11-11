@@ -293,6 +293,12 @@ Weekly plan format:
 Every day needs a slot starting at `00:00`. A slot is valid until the next slot starts,
 also across midnight. Times must be on the 15-minute grid, temperatures in 0.5 °C steps.
 
+## Updating
+
+After an update via HACS restart Home Assistant. Open dashboards show a hint
+"A new version of the card is available – Reload"; a reload is enough, clearing the
+frontend cache is not necessary.
+
 ## Development
 
 ```bash
@@ -303,7 +309,8 @@ cd frontend && npm ci && npm run build   # builds custom_components/bestthermost
 ```
 
 The built card is committed so that installing through HACS works without a build step.
-A release is created by a tag `vX.Y.Z`, which must match `version` in `manifest.json`.
+A release is created by a tag `vX.Y.Z`, which must match `version` in `manifest.json`
+(and `CARD_VERSION` in `frontend/src/version.ts`; a test checks this).
 
 Translations live in `custom_components/bestthermostat/translations/` (`en.json` is the
 reference, `strings.json` is identical) and, for the cards, in `frontend/src/utils.ts`.

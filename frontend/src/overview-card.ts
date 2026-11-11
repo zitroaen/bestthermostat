@@ -10,7 +10,9 @@ import {
   upcomingPeriods,
 } from "./room-view";
 import { shared } from "./styles";
-import { fmtTemp, fmtTime, strings, tempColor } from "./utils";
+import { startSwipe } from "./swipe";
+import { CARD_VERSION } from "./version";
+import { fmtTemp, fmtTime, strings, tempColor, updateBanner } from "./utils";
 
 /** Options applied to every room (same as the room card's options). */
 export interface RoomOptions {
@@ -38,7 +40,6 @@ interface OverviewConfig {
 }
 
 const COLLAPSED_KEY = "bestthermostat.collapsedFloors";
-const SWIPE_STEP = 24;
 
 const ROOM_DEFAULTS: RoomOptions = {
   show_modes: true,
@@ -175,73 +176,54 @@ export class BestThermostatOverviewCard extends LitElement {
 
   // ---------------------------------------------------------------- swipe
 
-  _swipe?: { key: string; x: number; start: number; min: number; max: number; moved: boolean; id: number; commit: (v: number) => Promise<void> };
+  _swipe?: { key: string; moved: boolean };
   private _swipeConsumed = false;
 
-  /** Horizontal swipe on a temperature: 0.5 °C per SWIPE_STEP px, sent on release. */
+  /** Horizontal swipe on a temperature (0.5 °C per step), sent on release. */
   private _swipeStart(
-    ev: PointerEvent,
+    ev: PointerEvent | TouchEvent,
     key: string,
     start: number,
     min: number,
     max: number,
     commit: (v: number) => Promise<void>,
   ) {
-    if (ev.pointerType === "mouse" && ev.button !== 0) return;
-    this._swipe = { key, x: ev.clientX, start: this._pending.get(key) ?? start, min, max, moved: false, id: ev.pointerId, commit };
-    window.addEventListener("pointermove", this._onSwipeMove);
-    window.addEventListener("pointerup", this._onSwipeEnd);
-    window.addEventListener("pointercancel", this._onSwipeCancel);
+    const from = this._pending.get(key) ?? start;
+    startSwipe(ev, {
+      onStep: (steps) => {
+        this._swipe = { key, moved: true };
+        const value = Math.min(max, Math.max(min, Math.round((from + steps * 0.5) * 2) / 2));
+        if (value !== this._pending.get(key)) {
+          this._pending.set(key, value);
+          window.clearTimeout(this._timers.get(key));
+          navigator.vibrate?.(5);
+        }
+        this.requestUpdate();
+      },
+      onEnd: async (moved) => {
+        this._swipe = undefined;
+        if (!moved) return;
+        // Swallow only the click that directly follows this swipe.
+        this._swipeConsumed = true;
+        window.setTimeout(() => (this._swipeConsumed = false), 0);
+        const value = this._pending.get(key);
+        this.requestUpdate();
+        if (value === undefined) return;
+        await commit(value);
+        this._pending.delete(key);
+        this.requestUpdate();
+      },
+    });
   }
 
-  private _swipeOverride(ev: PointerEvent, shown: number | null) {
+  private _swipeRoom(ev: PointerEvent | TouchEvent, room: RoomData) {
+    this._swipeStart(ev, `room:${room.entry_id}`, room.target_temperature ?? 20, room.min_temp, room.max_temp, (v) =>
+      this._call("room/temperature", { entry_id: room.entry_id, temperature: v }),
+    );
+  }
+
+  private _swipeOverride(ev: PointerEvent | TouchEvent, shown: number | null) {
     this._swipeStart(ev, "override", shown ?? 16, 5, 30, (v) => this._call("override/set", { temperature: v }));
-  }
-
-  private _onSwipeMove = (ev: PointerEvent) => {
-    const sw = this._swipe;
-    if (!sw || sw.id !== ev.pointerId) return;
-    const dx = ev.clientX - sw.x;
-    if (!sw.moved) {
-      if (Math.abs(dx) < 10) return;
-      sw.moved = true;
-    }
-    ev.preventDefault();
-    const value = Math.min(sw.max, Math.max(sw.min, Math.round((sw.start + Math.round(dx / SWIPE_STEP) * 0.5) * 2) / 2));
-    if (value !== this._pending.get(sw.key)) {
-      this._pending.set(sw.key, value);
-      window.clearTimeout(this._timers.get(sw.key));
-      navigator.vibrate?.(5);
-    }
-    this.requestUpdate();
-  };
-
-  private _onSwipeEnd = async (ev: PointerEvent) => {
-    const sw = this._swipe;
-    this._removeSwipeListeners();
-    this._swipe = undefined;
-    if (!sw || sw.id !== ev.pointerId || !sw.moved) return;
-    // Swallow only the click that directly follows this swipe.
-    this._swipeConsumed = true;
-    window.setTimeout(() => (this._swipeConsumed = false), 0);
-    const value = this._pending.get(sw.key);
-    if (value === undefined) return;
-    await sw.commit(value);
-    this._pending.delete(sw.key);
-    this.requestUpdate();
-  };
-
-  private _onSwipeCancel = () => {
-    if (this._swipe) this._pending.delete(this._swipe.key);
-    this._swipe = undefined;
-    this._removeSwipeListeners();
-    this.requestUpdate();
-  };
-
-  private _removeSwipeListeners() {
-    window.removeEventListener("pointermove", this._onSwipeMove);
-    window.removeEventListener("pointerup", this._onSwipeEnd);
-    window.removeEventListener("pointercancel", this._onSwipeCancel);
   }
 
   /** True once after a swipe, so the click that follows does not toggle anything. */
@@ -314,6 +296,14 @@ export class BestThermostatOverviewCard extends LitElement {
     });
   }
 
+  private _renderUpdate() {
+    const b = updateBanner(this._snap?.version, CARD_VERSION, strings(this.hass));
+    return b
+      ? html`<div class="update"><span>${b.text}</span>
+          <button class="text-btn" @click=${() => location.reload()}>${b.action}</button></div>`
+      : nothing;
+  }
+
   protected render() {
     if (!this._config || !this.hass) return nothing;
     const t = strings(this.hass);
@@ -332,6 +322,7 @@ export class BestThermostatOverviewCard extends LitElement {
     const title = this._config.title ?? t.rooms;
     return html`<ha-card>
       <div class="pad col">
+        ${this._renderUpdate()}
         ${title || this._config.show_summary
           ? html`<div>
               ${title ? html`<div class="title">${title}</div>` : nothing}
@@ -400,6 +391,7 @@ export class BestThermostatOverviewCard extends LitElement {
         <button class="value-btn swipeable ${open ? "open" : ""} ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
           title=${t.swipe_hint}
           @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}
+          @touchstart=${(e: TouchEvent) => this._swipeOverride(e, shown)}
           @click=${() => {
             if (this._consumeSwipe()) return;
             this._ovOpen = !this._ovOpen;
@@ -419,7 +411,8 @@ export class BestThermostatOverviewCard extends LitElement {
               <button class="round small" @click=${() => step(-0.5)}>−</button>
               <span class="val swipeable ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
                 title=${t.swipe_hint}
-                @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}>${fmtTemp(shown)}</span>
+                @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}
+                @touchstart=${(e: TouchEvent) => this._swipeOverride(e, shown)}>${fmtTemp(shown)}</span>
               <button class="round small" @click=${() => step(0.5)}>+</button>
             </div>
             <div class="also">
@@ -499,9 +492,8 @@ export class BestThermostatOverviewCard extends LitElement {
         </span>
         <span class="temps swipeable ${this._swipe?.key === `room:${room.entry_id}` && this._swipe.moved ? "swiping" : ""}"
           title=${t.swipe_hint}
-          @pointerdown=${(e: PointerEvent) =>
-            this._swipeStart(e, `room:${room.entry_id}`, room.target_temperature ?? 20, room.min_temp, room.max_temp,
-              (v) => this._call("room/temperature", { entry_id: room.entry_id, temperature: v }))}>
+          @pointerdown=${(e: PointerEvent) => this._swipeRoom(e, room)}
+          @touchstart=${(e: TouchEvent) => this._swipeRoom(e, room)}>
           <span class="cur">${fmtTemp(room.current_temperature, false)}°</span>
           ${this._pending.has(`room:${room.entry_id}`)
             ? html`<span class="tgt live">→ ${fmtTemp(this._pending.get(`room:${room.entry_id}`), false)}°</span>`
@@ -523,6 +515,18 @@ export class BestThermostatOverviewCard extends LitElement {
   static styles = [
     shared,
     css`
+      .update {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 6px 6px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        background: color-mix(in srgb, var(--bt-accent) 14%, transparent);
+      }
+      .update span {
+        flex: 1;
+      }
       .pad {
         padding: 16px;
         container-type: inline-size;

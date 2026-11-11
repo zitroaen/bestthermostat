@@ -3,7 +3,7 @@ import "./config-editor";
 import { BestThermostatOverviewCard } from "./overview-card";
 import { define } from "./utils";
 
-const VERSION = "0.7.3";
+import { CARD_VERSION as VERSION } from "./version";
 
 define("bestthermostat-card", BestThermostatCard);
 define("bestthermostat-overview-card", BestThermostatOverviewCard);
