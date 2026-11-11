@@ -236,14 +236,17 @@ floor level. The area of the Best Thermostat room device is used; if it has none
 area of its thermostats. New room devices get that area suggested automatically. Rooms
 without a floor are listed under "Other".
 
-Both cards have a visual editor. The weekly editor opens via the pencil next to the timeline (or in the header when the
-timeline is hidden):
+Both cards have a visual editor. The weekly editor opens via the pencil next to the
+timeline (or in the header when the timeline is hidden):
 
-- Tap a block to edit it (temperature, variable, split, delete)
-- Drag the borders to move them (15-minute grid, the time is shown while dragging)
-- Copy a day to other days
-- Create, rename, duplicate and delete schedules (not the active one)
-- Changes are only applied with **Save**
+- Switch between schedules at the top (the one in effect has a green dot, "+" adds one);
+  a schedule that is not active can be activated right there
+- Tap a block to edit it in a sheet: start/end with −/+ (15-minute grid), fixed
+  temperature or a variable, split, copy the day (Mon–Fri / weekend / all), delete
+- Drag the borders to move them (the time is shown while dragging)
+- The legend explains the colours; "Edit" opens the variables
+- ⋮ menu: rename, duplicate, manage variables, delete schedule
+- Changes are only applied with **Save** – the bar appears as soon as something changed
 
 ## Services
 

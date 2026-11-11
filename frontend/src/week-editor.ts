@@ -4,6 +4,8 @@ import { DAYS, ws } from "./api";
 import { shared } from "./styles";
 import {
   DAY_MIN,
+  nowMinutes,
+  todayKey,
   GRID,
   cloneWeek,
   fmtTemp,
@@ -39,6 +41,7 @@ export class BtWeekEditor extends LitElement {
     _nameAction: { state: true },
     _busy: { state: true },
     _drag: { state: true },
+    _menu: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -49,6 +52,7 @@ export class BtWeekEditor extends LitElement {
   _sel?: Sel;
   _copy?: Set<number>;
   _vars = false;
+  _menu = false;
   _error?: string;
   _nameAction?: NameAction;
   _busy = false;
@@ -132,6 +136,9 @@ export class BtWeekEditor extends LitElement {
 
   private _startName(action: NameAction) {
     const current = this.room?.schedules.find((s) => s.id === this._sid)?.name ?? "";
+    this._sel = undefined;
+    this._vars = false;
+    this._error = undefined;
     this._nameAction = action;
     this._nameValue = action === "rename" ? current : action === "duplicate" ? `${current} 2` : "";
   }
@@ -324,6 +331,30 @@ export class BtWeekEditor extends LitElement {
     this._call("variable/delete", { variable_id: id });
   }
 
+  // ----------------------------------------------------------- slot times
+
+  /** Move the start (or end) of the selected block by ``delta`` minutes. */
+  private _shift(which: "start" | "end", delta: number) {
+    const sel = this._sel;
+    if (!sel || !this._draft) return;
+    const day = this._draft[DAYS[sel.day]];
+    const idx = which === "start" ? sel.idx : sel.idx + 1;
+    if (idx <= 0 || idx >= day.length) return;
+    const low = toMin(day[idx - 1].start) + GRID;
+    const high = (idx + 1 < day.length ? toMin(day[idx + 1].start) : DAY_MIN) - GRID;
+    const value = Math.min(high, Math.max(low, toMin(day[idx].start) + delta));
+    if (toHHMM(value) === day[idx].start) return;
+    this._mutate((w) => {
+      w[DAYS[sel.day]][idx] = { ...w[DAYS[sel.day]][idx], start: toHHMM(value) };
+    });
+  }
+
+  private _select(day: number, idx: number) {
+    this._sel = { day, idx };
+    this._copy = undefined;
+    this._menu = false;
+  }
+
   // -------------------------------------------------------------- render
 
   protected render() {
@@ -331,210 +362,285 @@ export class BtWeekEditor extends LitElement {
     const t = this._t;
     const room = this.room;
     const current = room.schedules.find((s) => s.id === this._sid);
+    const inEffect = current?.id === room.active_schedule;
+    const sheetOpen = !!this._sel || this._vars || !!this._nameAction;
     return html`
       <div class="backdrop" @click=${this._close}></div>
       <div class="dialog" role="dialog" aria-modal="true">
         <header>
-          <button class="round small" @click=${this._close} aria-label=${t.close}>
-            <ha-icon icon="mdi:close"></ha-icon>
+          <button class="icon-btn" @click=${this._close} aria-label=${t.close}>
+            <ha-icon icon="mdi:chevron-left"></ha-icon>
           </button>
           <div class="h-title">
-            <div class="h-name">${room.name}</div>
-            <div class="muted h-sub">${t.schedules}</div>
+            <div class="h-name">${t.week_plan}</div>
+            <div class="muted h-sub">${room.name}</div>
           </div>
-          <button class="chip" aria-pressed=${this._vars} @click=${() => (this._vars = !this._vars)}>
-            <ha-icon icon="mdi:variable"></ha-icon>${t.variables}
+          <button class="icon-btn" aria-label=${t.more} @click=${() => (this._menu = !this._menu)}>
+            <ha-icon icon="mdi:dots-vertical"></ha-icon>
           </button>
+          ${this._menu ? this._renderMenu(room) : nothing}
         </header>
 
-        <div class="content">
-          <div class="chips scroll">
+        <div class="content ${sheetOpen ? "sheet-open" : ""} ${this._dirty ? "dirty" : ""}"
+          @click=${() => (this._menu = false)}>
+          <div class="seg" role="tablist">
             ${room.schedules.map(
-              (s) => html`<button class="chip" aria-pressed=${s.id === this._sid}
+              (s) => html`<button role="tab" aria-selected=${s.id === this._sid}
                 @click=${() => this._selectSchedule(s.id)}>
-                ${s.id === room.active_schedule ? html`<ha-icon icon="mdi:check-circle"></ha-icon>` : nothing}
-                ${s.name}
+                ${s.name}${s.id === room.active_schedule ? html`<i class="active-dot"></i>` : nothing}
               </button>`,
             )}
-            <button class="chip" @click=${() => this._startName("new")} aria-label=${t.new_schedule}>
+            <button class="plus" aria-label=${t.new_schedule} @click=${() => this._startName("new")}>
               <ha-icon icon="mdi:plus"></ha-icon>
             </button>
           </div>
 
-          <div class="chips actions">
-            ${current?.id !== room.active_schedule
-              ? html`<button class="text-btn" @click=${this._activate}>${t.activate}</button>`
-              : html`<span class="badge">${t.active}</span>`}
-            <button class="text-btn" @click=${() => this._startName("rename")}>${t.rename}</button>
-            <button class="text-btn" @click=${() => this._startName("duplicate")}>${t.duplicate}</button>
-            <button class="text-btn" ?disabled=${current?.id === room.active_schedule}
-              @click=${this._delete}>${t.delete}</button>
-          </div>
-
-          ${this._nameAction ? this._renderNameInput() : nothing}
-          ${this._vars ? this._renderVariables() : nothing}
+          ${current && !inEffect
+            ? html`<div class="notice">
+                <span>${t.not_active}</span>
+                <button class="text-btn" @click=${this._activate}>${t.activate}</button>
+              </div>`
+            : nothing}
 
           <div class="week">
             <div class="ruler muted">
               <span></span>
-              <div>${[0, 3, 6, 9, 12, 15, 18, 21, 24].map(
-                (h) => html`<span style="left:${(h / 24) * 100}%">${h}</span>`,
-              )}</div>
+              <div>${[0, 6, 12, 18, 24].map((h) => html`<span style="left:${(h / 24) * 100}%">${h}</span>`)}</div>
             </div>
             ${DAYS.map((key, d) => this._renderDay(key, d))}
           </div>
+          ${this._renderLegend()}
           <div class="muted hint">${t.tap_hint}</div>
-          ${this._sel ? this._renderSlotPanel(this._sel) : nothing}
           ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         </div>
 
-        <footer>
-          <button class="text-btn close-btn" @click=${this._close}>
-            <ha-icon icon="mdi:arrow-left"></ha-icon>${t.close}
-          </button>
-          <span class="spacer"></span>
-          <button class="text-btn" ?disabled=${!this._dirty || this._busy} @click=${this._discard}>
-            ${t.discard}
-          </button>
-          <button class="primary-btn" ?disabled=${!this._dirty || this._busy} @click=${this._save}>
-            ${t.save}
-          </button>
-        </footer>
+        ${this._sel ? this._renderSlotSheet(this._sel) : nothing}
+        ${this._vars ? this._renderVariablesSheet() : nothing}
+        ${this._nameAction ? this._renderNameSheet() : nothing}
+
+        ${this._dirty && !sheetOpen
+          ? html`<div class="savebar">
+              <span class="grow">${t.unsaved_short}</span>
+              <button class="text-btn light" ?disabled=${this._busy} @click=${this._discard}>
+                ${t.discard}
+              </button>
+              <button class="primary-btn" ?disabled=${this._busy} @click=${this._save}>${t.save}</button>
+            </div>`
+          : nothing}
       </div>
     `;
   }
 
-  private _renderNameInput() {
+  private _renderMenu(room: RoomData) {
     const t = this._t;
-    const label =
-      this._nameAction === "rename" ? t.rename : this._nameAction === "duplicate" ? t.duplicate : t.new_schedule;
-    return html`<div class="panel name-panel">
-      <input type="text" .value=${this._nameValue} placeholder=${label} aria-label=${label}
-        @input=${(e: Event) => (this._nameValue = (e.target as HTMLInputElement).value)}
-        @keydown=${(e: KeyboardEvent) => e.key === "Enter" && this._submitName()} />
-      <button class="text-btn" @click=${() => (this._nameAction = undefined)}>${t.close}</button>
-      <button class="primary-btn" @click=${this._submitName}>${label}</button>
+    const canDelete = this._sid !== room.base_schedule && room.schedules.length > 1;
+    const item = (icon: string, label: string, fn: () => void, cls = "", disabled = false) =>
+      html`<button class="menu-item ${cls}" ?disabled=${disabled} @click=${() => {
+        this._menu = false;
+        fn();
+      }}><ha-icon icon=${icon}></ha-icon>${label}</button>`;
+    return html`<div class="menu" role="menu">
+      ${item("mdi:pencil-outline", t.rename, () => this._startName("rename"))}
+      ${item("mdi:content-copy", t.duplicate, () => this._startName("duplicate"))}
+      ${item("mdi:thermometer-lines", t.manage_variables, () => {
+        this._sel = undefined;
+        this._vars = true;
+      })}
+      <div class="menu-sep"></div>
+      ${item("mdi:delete-outline", t.delete_schedule, () => this._delete(), "danger", !canDelete)}
     </div>`;
   }
 
-  private _renderVariables() {
+  private _renderLegend() {
     const t = this._t;
     const vars = this.snap?.variables ?? [];
-    return html`<div class="panel vars">
-      <div class="muted small-text">${t.variables_note}</div>
-      ${vars.map(
-        (v) => html`<div class="var-row">
-          <span class="swatch" style="background:${tempColor(v.value)}"></span>
-          <span class="var-name">${v.name}</span>
-          <button class="round small" @click=${() => this._varStep(v.id, v.value, -0.5)}>−</button>
-          <span class="var-val">${fmtTemp(v.value)}</span>
-          <button class="round small" @click=${() => this._varStep(v.id, v.value, 0.5)}>+</button>
-          <button class="round small" @click=${() => this._deleteVar(v.id)} aria-label=${t.delete}>
-            <ha-icon icon="mdi:delete-outline"></ha-icon>
-          </button>
-        </div>`,
+    const used = new Set<string>();
+    for (const day of Object.values(this._draft ?? {}))
+      for (const slot of day) if (slot.variable) used.add(slot.variable);
+    const shown = vars.filter((v) => used.has(v.id));
+    return html`<div class="legend">
+      ${(shown.length ? shown : vars).map(
+        (v) => html`<span><i class="sw" style="background:${tempColor(v.value)}"></i>${v.name}
+          <b>${fmtTemp(v.value, false)}°</b></span>`,
       )}
-      <div class="var-row">
-        <input type="text" placeholder=${t.name} .value=${this._newVarName}
-          @input=${(e: Event) => (this._newVarName = (e.target as HTMLInputElement).value)} />
-        <input type="number" class="num" min="5" max="30" step="0.5" .value=${String(this._newVarValue)}
-          @input=${(e: Event) => (this._newVarValue = Number((e.target as HTMLInputElement).value))} />
-        <button class="primary-btn" @click=${this._addVar}>${t.add_variable}</button>
-      </div>
+      <button class="text-btn small" @click=${() => {
+        this._sel = undefined;
+        this._vars = true;
+      }}>${t.edit_short}</button>
     </div>`;
   }
 
   private _renderDay(key: string, d: number) {
     const vars = this.snap?.variables ?? [];
     const segs = segments(this._draft![key]);
-    const copying = this._copy !== undefined;
+    const today = key === todayKey();
     return html`<div class="day ${this._sel?.day === d ? "active" : ""}">
-      <span class="day-label">${this._t.days[d]}</span>
+      <span class="day-label ${today ? "today" : ""}">${this._t.days[d]}</span>
       <div class="bar" @pointermove=${this._dragMove} @pointerup=${this._dragEnd}
         @pointercancel=${this._dragEnd}>
         ${segs.map((s, i) => {
           const temp = resolveSlot(s.slot, vars);
           const w = ((s.end - s.start) / DAY_MIN) * 100;
           const selected = this._sel?.day === d && this._sel.idx === i;
-          return html`<button class="seg ${selected ? "selected" : ""} ${s.slot.variable ? "var" : ""}"
+          return html`<button class="seg-b ${selected ? "selected" : ""} ${s.slot.variable ? "var" : ""}"
             style="left:${(s.start / DAY_MIN) * 100}%;width:${w}%;background:${tempColor(temp)}"
             title="${toHHMM(s.start)}–${toHHMM(s.end % DAY_MIN)} · ${slotLabel(s.slot, vars)}"
-            @click=${() => {
-              this._sel = { day: d, idx: i };
-              if (!copying) this._copy = undefined;
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this._select(d, i);
             }}>
-            ${w > 7 ? html`<span>${s.slot.variable ? slotLabel(s.slot, vars) : fmtTemp(temp, false)}</span>` : nothing}
+            ${w > 8 ? html`<span>${s.slot.variable ? slotLabel(s.slot, vars) : `${fmtTemp(temp, false)}°`}</span>` : nothing}
           </button>`;
         })}
-        ${segs.slice(1).map(
-          (s, i) => {
-            const dragging = this._drag?.day === d && this._drag.idx === i + 1;
-            return html`<div class="handle ${dragging ? "dragging" : ""}"
-              style="left:${(s.start / DAY_MIN) * 100}%"
-              @pointerdown=${(e: PointerEvent) => this._dragStart(e, d, i + 1)}>
-              <span></span>
-              ${dragging ? html`<div class="time-tip">${toHHMM(s.start)}</div>` : nothing}
-            </div>`;
-          },
-        )}
+        <div class="hours"></div>
+        ${today ? html`<div class="now" style="left:${(nowMinutes() / DAY_MIN) * 100}%"></div>` : nothing}
+        ${segs.slice(1).map((s, i) => {
+          const dragging = this._drag?.day === d && this._drag.idx === i + 1;
+          return html`<div class="handle ${dragging ? "dragging" : ""}"
+            style="left:${(s.start / DAY_MIN) * 100}%"
+            @pointerdown=${(e: PointerEvent) => this._dragStart(e, d, i + 1)}>
+            <span></span>
+            ${dragging ? html`<div class="time-tip">${toHHMM(s.start)}</div>` : nothing}
+          </div>`;
+        })}
       </div>
     </div>`;
   }
 
-  private _renderSlotPanel(sel: Sel) {
+  private _sheet(title: string, body: unknown, onClose: () => void) {
+    return html`<div class="scrim" @click=${onClose}></div>
+      <div class="sheet" role="dialog">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <span class="sheet-title">${title}</span>
+          <button class="icon-btn small" aria-label=${this._t.close} @click=${onClose}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </div>
+        ${body}
+      </div>`;
+  }
+
+  private _renderSlotSheet(sel: Sel) {
     const t = this._t;
     const vars = this.snap?.variables ?? [];
     const slot = this._slot(sel);
     if (!slot) return nothing;
-    const seg = segments(this._draft![DAYS[sel.day]])[sel.idx];
+    const day = this._draft![DAYS[sel.day]];
+    const seg = segments(day)[sel.idx];
     const temp = resolveSlot(slot, vars);
-    const dayLen = this._draft![DAYS[sel.day]].length;
-    return html`<div class="panel">
-      <div class="panel-head">
-        <span class="swatch" style="background:${tempColor(temp)}"></span>
-        <strong>${t.days[sel.day]} ${toHHMM(seg.start)}–${toHHMM(seg.end === DAY_MIN ? 0 : seg.end)}</strong>
-        <span class="spacer"></span>
-        <button class="round small" @click=${() => (this._sel = undefined)} aria-label=${t.close}>
-          <ha-icon icon="mdi:close"></ha-icon>
-        </button>
-      </div>
-      <div class="temp-row">
-        <button class="round" @click=${() => this._setTemp(-0.5)}>−</button>
-        <span class="temp-val">${fmtTemp(temp)}</span>
-        <button class="round" @click=${() => this._setTemp(0.5)}>+</button>
+    const time = (label: string, value: string, which: "start" | "end", enabled: boolean) =>
+      html`<div class="time ${enabled ? "" : "fixed"}">
+        <div><small>${label}</small><b>${value}</b></div>
+        ${enabled
+          ? html`<div class="st">
+              <button class="round tiny" @click=${() => this._shift(which, -GRID)}>−</button>
+              <button class="round tiny" @click=${() => this._shift(which, GRID)}>+</button>
+            </div>`
+          : nothing}
+      </div>`;
+    const body = html`
+      <div class="times">
+        ${time(t.from, toHHMM(seg.start), "start", sel.idx > 0)}
+        ${time(t.to, seg.end === DAY_MIN ? "24:00" : toHHMM(seg.end), "end", sel.idx + 1 < day.length)}
       </div>
       <div class="chips">
         <button class="chip" aria-pressed=${slot.variable === undefined}
           @click=${() => this._setVariable(undefined)}>${t.fixed}</button>
         ${vars.map(
           (v) => html`<button class="chip" aria-pressed=${slot.variable === v.id}
-            @click=${() => this._setVariable(v.id)}>${v.name} · ${fmtTemp(v.value)}</button>`,
+            @click=${() => this._setVariable(v.id)}>
+            <i class="sw" style="background:${tempColor(v.value)}"></i>${v.name}
+          </button>`,
         )}
       </div>
-      <div class="chips actions">
-        <button class="text-btn" ?disabled=${seg.end - seg.start < 2 * GRID} @click=${this._split}>
-          <ha-icon icon="mdi:call-split"></ha-icon>${t.split}
-        </button>
-        <button class="text-btn" ?disabled=${dayLen < 2} @click=${this._remove}>
-          <ha-icon icon="mdi:delete-outline"></ha-icon>${t.delete}
-        </button>
-        <button class="text-btn" @click=${() => (this._copy = this._copy ? undefined : new Set())}>
-          <ha-icon icon="mdi:content-copy"></ha-icon>${t.copy_day}
-        </button>
+      <div class="temp-row">
+        <button class="round" @click=${() => this._setTemp(-0.5)}>−</button>
+        <span class="temp-val">${fmtTemp(temp)}</span>
+        <button class="round" @click=${() => this._setTemp(0.5)}>+</button>
       </div>
       ${this._copy
-        ? html`<div class="chips">
-            ${t.days.map(
-              (label, d) => html`<button class="chip" ?disabled=${d === sel.day}
-                aria-pressed=${this._copy!.has(d)} @click=${() => this._toggleCopy(d)}>${label}</button>`,
-            )}
-            <button class="chip" @click=${() => (this._copy = new Set([0, 1, 2, 3, 4]))}>${t.workdays}</button>
-            <button class="chip" @click=${() => (this._copy = new Set([0, 1, 2, 3, 4, 5, 6]))}>${t.all_days}</button>
-            <button class="primary-btn" ?disabled=${![...this._copy].some((d) => d !== sel.day)}
-              @click=${this._applyCopy}>${t.copy}</button>
+        ? html`<div class="copy">
+            <div class="muted small-text">${t.copy_day}</div>
+            <div class="chips">
+              ${t.days.map(
+                (label, d) => html`<button class="chip" ?disabled=${d === sel.day}
+                  aria-pressed=${this._copy!.has(d)} @click=${() => this._toggleCopy(d)}>${label}</button>`,
+              )}
+            </div>
+            <div class="chips">
+              <button class="chip" @click=${() => (this._copy = new Set([0, 1, 2, 3, 4]))}>${t.workdays}</button>
+              <button class="chip" @click=${() => (this._copy = new Set([5, 6]))}>${t.weekend}</button>
+              <button class="chip" @click=${() => (this._copy = new Set([0, 1, 2, 3, 4, 5, 6]))}>${t.all_days}</button>
+              <span class="grow"></span>
+              <button class="primary-btn" ?disabled=${![...this._copy].some((d) => d !== sel.day)}
+                @click=${this._applyCopy}>${t.copy}</button>
+            </div>
           </div>`
         : nothing}
-    </div>`;
+      <div class="acts">
+        <button ?disabled=${seg.end - seg.start < 2 * GRID} @click=${this._split}>
+          <ha-icon icon="mdi:call-split"></ha-icon>${t.split}
+        </button>
+        <button aria-pressed=${!!this._copy} @click=${() => (this._copy = this._copy ? undefined : new Set())}>
+          <ha-icon icon="mdi:content-copy"></ha-icon>${t.copy_day_short}
+        </button>
+        <button ?disabled=${day.length < 2} @click=${this._remove}>
+          <ha-icon icon="mdi:delete-outline"></ha-icon>${t.delete}
+        </button>
+      </div>`;
+    return this._sheet(t.days_long[sel.day], body, () => {
+      this._sel = undefined;
+      this._copy = undefined;
+    });
+  }
+
+  private _renderVariablesSheet() {
+    const t = this._t;
+    const vars = this.snap?.variables ?? [];
+    const body = html`
+      <div class="var-list">
+        ${vars.map(
+          (v) => html`<div class="var-row">
+            <i class="sw" style="background:${tempColor(v.value)}"></i>
+            <span class="grow">${v.name}</span>
+            <button class="round tiny" @click=${() => this._varStep(v.id, v.value, -0.5)}>−</button>
+            <span class="var-val">${fmtTemp(v.value)}</span>
+            <button class="round tiny" @click=${() => this._varStep(v.id, v.value, 0.5)}>+</button>
+            <button class="icon-btn small" aria-label=${t.delete} @click=${() => this._deleteVar(v.id)}>
+              <ha-icon icon="mdi:delete-outline"></ha-icon>
+            </button>
+          </div>`,
+        )}
+      </div>
+      <div class="var-add">
+        <input type="text" placeholder=${t.name} .value=${this._newVarName}
+          @input=${(e: Event) => (this._newVarName = (e.target as HTMLInputElement).value)} />
+        <input type="number" class="num" min="5" max="30" step="0.5" .value=${String(this._newVarValue)}
+          @input=${(e: Event) => (this._newVarValue = Number((e.target as HTMLInputElement).value))} />
+        <button class="primary-btn" @click=${this._addVar}>${t.add}</button>
+      </div>
+      <div class="muted small-text">${t.variables_note}</div>
+      ${this._error ? html`<div class="error">${this._error}</div>` : nothing}`;
+    return this._sheet(t.variables, body, () => (this._vars = false));
+  }
+
+  private _renderNameSheet() {
+    const t = this._t;
+    const label =
+      this._nameAction === "rename" ? t.rename : this._nameAction === "duplicate" ? t.duplicate : t.new_schedule;
+    const body = html`
+      <input type="text" .value=${this._nameValue} placeholder=${t.name} aria-label=${label}
+        @input=${(e: Event) => (this._nameValue = (e.target as HTMLInputElement).value)}
+        @keydown=${(e: KeyboardEvent) => e.key === "Enter" && this._submitName()} />
+      ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
+      <div class="sheet-actions">
+        <button class="text-btn" @click=${() => (this._nameAction = undefined)}>${t.cancel}</button>
+        <button class="primary-btn" ?disabled=${!this._nameValue.trim() || this._busy} @click=${this._submitName}>
+          ${t.ok}
+        </button>
+      </div>`;
+    return this._sheet(label, body, () => (this._nameAction = undefined));
   }
 
   static styles = [
@@ -558,10 +664,10 @@ export class BtWeekEditor extends LitElement {
         position: relative;
         display: flex;
         flex-direction: column;
-        width: min(900px, 100vw);
-        height: min(820px, 100dvh);
+        width: min(760px, 100vw);
+        height: min(860px, 100dvh);
         background: var(--card-background-color, var(--primary-background-color));
-        border-radius: var(--bt-radius);
+        border-radius: 24px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         overflow: hidden;
       }
@@ -572,27 +678,37 @@ export class BtWeekEditor extends LitElement {
           border-radius: 0;
         }
       }
-      header,
-      footer {
+      header {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
+        gap: 4px;
+        padding: 10px 8px 6px;
+        padding-top: max(10px, env(safe-area-inset-top));
+        padding-left: max(8px, env(safe-area-inset-left));
+        padding-right: max(8px, env(safe-area-inset-right));
       }
-      header {
-        border-bottom: 1px solid var(--divider-color);
-        padding-top: max(12px, env(safe-area-inset-top));
+      .icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
       }
-      header,
-      footer,
-      .content {
-        padding-left: max(16px, env(safe-area-inset-left));
-        padding-right: max(16px, env(safe-area-inset-right));
+      .icon-btn:hover {
+        background: var(--bt-surface);
       }
-      footer {
-        justify-content: flex-end;
-        border-top: 1px solid var(--divider-color);
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      .icon-btn ha-icon {
+        --mdc-icon-size: 24px;
+      }
+      .icon-btn.small {
+        width: 32px;
+        height: 32px;
+      }
+      .icon-btn.small ha-icon {
+        --mdc-icon-size: 20px;
       }
       .h-title {
         flex: 1;
@@ -600,46 +716,121 @@ export class BtWeekEditor extends LitElement {
       }
       .h-name {
         font-weight: 600;
-        font-size: 17px;
+        font-size: 18px;
       }
       .h-sub {
         font-size: 13px;
       }
+      .menu {
+        position: absolute;
+        right: 12px;
+        top: calc(100% - 4px);
+        z-index: 5;
+        min-width: 220px;
+        padding: 6px 0;
+        border-radius: 14px;
+        background: var(--card-background-color, #fff);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+      }
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 15px;
+      }
+      .menu-item:hover {
+        background: var(--bt-surface);
+      }
+      .menu-item ha-icon {
+        --mdc-icon-size: 20px;
+        color: var(--bt-muted);
+      }
+      .menu-item:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .menu-item.danger,
+      .menu-item.danger ha-icon {
+        color: var(--error-color, #db4437);
+      }
+      .menu-sep {
+        height: 1px;
+        margin: 4px 0;
+        background: var(--divider-color);
+      }
       .content {
         flex: 1;
         overflow-y: auto;
-        padding: 16px;
+        padding: 8px 16px 24px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
+      }
+      .content.dirty {
+        padding-bottom: 96px;
+      }
+      .content.sheet-open {
+        padding-bottom: 380px;
       }
       .content > * {
         flex-shrink: 0;
       }
-      .round.small {
-        width: 36px;
-        height: 36px;
-        font-size: 20px;
+      .seg {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--bt-surface);
+        overflow-x: auto;
+        scrollbar-width: none;
       }
-      .round ha-icon,
-      .chip ha-icon,
-      .text-btn ha-icon {
-        --mdc-icon-size: 18px;
-      }
-      .text-btn {
+      .seg button {
+        flex: 1 0 auto;
+        min-height: 36px;
+        padding: 0 14px;
+        border-radius: 9px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--bt-muted);
+        white-space: nowrap;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        justify-content: center;
       }
-      .actions {
-        gap: 0;
-        margin: -8px -8px 0;
+      .seg button[aria-selected="true"] {
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+      }
+      .seg .plus {
+        flex: 0 0 40px;
+        padding: 0;
+      }
+      .seg .plus ha-icon {
+        --mdc-icon-size: 20px;
+      }
+      .active-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success-color, #3bb273);
+        margin-left: 6px;
+      }
+      .notice {
+        display: flex;
         align-items: center;
-      }
-      .badge {
-        padding: 0 14px;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 4px 4px 12px;
+        border-radius: 12px;
         font-size: 13px;
-        color: var(--bt-muted);
+        background: color-mix(in srgb, var(--warning-color, #ffa600) 14%, transparent);
       }
       .week {
         display: flex;
@@ -651,8 +842,7 @@ export class BtWeekEditor extends LitElement {
       .ruler,
       .day {
         display: grid;
-        grid-template-columns: 34px 1fr;
-        gap: 8px;
+        grid-template-columns: 30px 1fr;
         align-items: center;
       }
       .ruler > div {
@@ -675,17 +865,21 @@ export class BtWeekEditor extends LitElement {
         font-weight: 500;
         color: var(--bt-muted);
       }
-      .day.active .day-label {
+      .day-label.today {
         color: var(--bt-accent);
+        font-weight: 700;
+      }
+      .day.active .day-label {
+        color: var(--primary-text-color);
       }
       .bar {
         position: relative;
-        height: 44px;
+        height: 38px;
         border-radius: 10px;
         background: var(--bt-surface);
         touch-action: pan-y;
       }
-      .seg {
+      .seg-b {
         position: absolute;
         top: 0;
         bottom: 0;
@@ -694,31 +888,51 @@ export class BtWeekEditor extends LitElement {
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.72);
-        border-right: 1px solid var(--card-background-color, #fff);
+        color: rgba(0, 0, 0, 0.66);
+        border-right: 2px solid var(--card-background-color, #fff);
         box-sizing: border-box;
       }
-      .seg:first-of-type {
+      .seg-b:first-of-type {
         border-radius: 10px 0 0 10px;
       }
-      .seg:last-of-type {
+      .seg-b:last-of-type {
         border-radius: 0 10px 10px 0;
         border-right: none;
       }
-      .seg span {
+      .seg-b span {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         padding: 0 4px;
       }
-      .seg.var span {
-        font-style: italic;
-      }
-      .seg.selected {
-        box-shadow: inset 0 0 0 3px var(--primary-text-color);
+      .seg-b.selected {
+        box-shadow: inset 0 0 0 2.5px var(--primary-text-color);
+        border-radius: 8px;
         z-index: 1;
+      }
+      .hours {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          to right,
+          transparent 0,
+          transparent calc(25% - 1px),
+          color-mix(in srgb, var(--card-background-color, #fff) 45%, transparent) calc(25% - 1px),
+          color-mix(in srgb, var(--card-background-color, #fff) 45%, transparent) 25%
+        );
+      }
+      .now {
+        position: absolute;
+        top: -3px;
+        bottom: -3px;
+        width: 2px;
+        margin-left: -1px;
+        background: var(--primary-text-color);
+        pointer-events: none;
+        z-index: 2;
       }
       .handle {
         position: absolute;
@@ -726,21 +940,20 @@ export class BtWeekEditor extends LitElement {
         bottom: -4px;
         width: 28px;
         margin-left: -14px;
-        z-index: 2;
+        z-index: 3;
         cursor: ew-resize;
         touch-action: none;
         display: flex;
         justify-content: center;
       }
       .handle span {
-        width: 4px;
+        width: 3px;
         height: 100%;
         border-radius: 2px;
         background: var(--primary-text-color);
-        opacity: 0.55;
+        opacity: 0.35;
       }
       .handle:hover span,
-      .handle:active span,
       .handle.dragging span {
         opacity: 1;
       }
@@ -759,51 +972,128 @@ export class BtWeekEditor extends LitElement {
         white-space: nowrap;
         pointer-events: none;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-        z-index: 3;
       }
-      .time-tip::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border: 5px solid transparent;
-        border-top-color: var(--primary-text-color);
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 14px;
+        padding-left: 30px;
+        font-size: 13px;
+        color: var(--bt-muted);
+      }
+      .legend b {
+        color: var(--primary-text-color);
+        font-weight: 500;
+      }
+      .sw {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: -1px;
+        flex: none;
+      }
+      .text-btn.small {
+        min-height: 28px;
+        padding: 0 6px;
+        font-size: 13px;
       }
       .hint,
       .small-text {
         font-size: 12px;
       }
-      .panel {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 14px;
-        border-radius: var(--bt-radius);
-        background: var(--bt-surface);
-      }
-      .panel .chip {
-        background: var(--card-background-color, #fff);
-      }
-      .panel .chip[aria-pressed="true"] {
-        background: var(--bt-accent);
-      }
-      .panel .round {
-        background: var(--card-background-color, #fff);
-      }
-      .panel-head {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .spacer {
+      .grow {
         flex: 1;
       }
-      .swatch {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        flex: none;
+      /* bottom sheet */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.18);
+        z-index: 6;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 7;
+        max-height: 80%;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 8px 16px max(18px, env(safe-area-inset-bottom));
+        border-radius: 22px 22px 0 0;
+        background: var(--card-background-color, #fff);
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+        animation: up 0.18s ease-out;
+      }
+      @keyframes up {
+        from {
+          transform: translateY(30px);
+          opacity: 0;
+        }
+      }
+      .grab {
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        margin: 0 auto;
+        background: var(--divider-color);
+      }
+      .sheet-head {
+        display: flex;
+        align-items: center;
+      }
+      .sheet-title {
+        flex: 1;
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .times {
+        display: flex;
+        gap: 10px;
+      }
+      .time {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 8px 8px 12px;
+        border-radius: 12px;
+        background: var(--bt-surface);
+      }
+      .time small {
+        display: block;
+        font-size: 11px;
+        color: var(--bt-muted);
+      }
+      .time b {
+        font-size: 18px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .time.fixed b {
+        color: var(--bt-muted);
+      }
+      .st {
+        display: flex;
+        gap: 4px;
+      }
+      .round.tiny {
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+        background: var(--card-background-color, #fff);
+      }
+      .chips .chip {
+        min-height: 34px;
+      }
+      .chip .sw {
+        margin-right: 0;
       }
       .temp-row {
         display: flex;
@@ -812,40 +1102,105 @@ export class BtWeekEditor extends LitElement {
         gap: 24px;
       }
       .temp-val {
-        font-size: 28px;
+        font-size: 26px;
+        font-weight: 500;
         min-width: 110px;
         text-align: center;
       }
-      .name-panel {
-        flex-direction: row;
-        align-items: center;
-        flex-wrap: wrap;
+      .copy {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 14px;
+        background: var(--bt-surface);
       }
-      .name-panel input {
-        flex: 1;
-        min-width: 160px;
+      .copy .chip {
+        background: var(--card-background-color, #fff);
+      }
+      .copy .chip[aria-pressed="true"] {
+        background: var(--bt-accent);
+      }
+      .acts {
+        display: flex;
+        justify-content: space-around;
+        padding-top: 8px;
+        border-top: 1px solid var(--divider-color);
+      }
+      .acts button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        color: var(--bt-muted);
+      }
+      .acts button ha-icon {
+        --mdc-icon-size: 22px;
+        color: var(--primary-text-color);
+      }
+      .acts button[aria-pressed="true"] {
+        background: var(--bt-surface);
+      }
+      .acts button:disabled {
+        opacity: 0.35;
+      }
+      .var-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
       .var-row {
         display: flex;
         align-items: center;
         gap: 8px;
-        flex-wrap: wrap;
-      }
-      .var-name {
-        flex: 1;
-        min-width: 80px;
-        font-weight: 500;
+        padding: 6px 4px 6px 10px;
+        border-radius: 12px;
+        background: var(--bt-surface);
+        font-size: 15px;
       }
       .var-val {
         min-width: 64px;
         text-align: center;
       }
-      .var-row input[type="text"] {
-        flex: 1;
-        min-width: 120px;
+      .var-add {
+        display: flex;
+        gap: 8px;
+        align-items: center;
       }
-      .var-row input.num {
-        width: 90px;
+      .var-add input[type="text"] {
+        flex: 1;
+      }
+      .var-add input.num {
+        width: 80px;
+      }
+      .sheet-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      /* unsaved changes */
+      .savebar {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 8px 8px 16px;
+        border-radius: 16px;
+        background: #1f2328;
+        color: #fff;
+        font-size: 14px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        animation: up 0.18s ease-out;
+      }
+      .text-btn.light {
+        color: #c8ccd4;
       }
     `,
   ];
