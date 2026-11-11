@@ -621,3 +621,40 @@ async def test_batteries(
     assert batteries["climate.trv2"]["low"] is True
     assert batteries["climate.trv1"]["name"] == "TRV 1"
     assert batteries["climate.trv1"]["device_id"]
+
+
+async def test_copy_schedule_to_rooms(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """A schedule can be copied to other rooms."""
+    from custom_components.bestthermostat.websocket import _copy_to_rooms
+
+    freezer.move_to(MONDAY_7)
+    first = (await create_room(hass)).runtime_data
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "name": "Bad",
+            "trvs": ["climate.trv2"],
+            "frost_temperature": 5.0,
+            "hand_change": "until_next_slot",
+            "sync_trvs": True,
+            "hide_trvs": False,
+        },
+    )
+    second = hass.config_entries.async_get_entry(result["result"].entry_id).runtime_data  # type: ignore[union-attr]
+    week = {
+        d: [{"start": "00:00", "temperature": 23}]
+        for d in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+    }
+    first.create_schedule("Gast", week=week)
+    assert _copy_to_rooms(hass, first.entry_id, "gast", [second.entry_id]) == {
+        "created": ["Bad"],
+        "replaced": [],
+    }
+    assert second.find_schedule("Gast").week.to_dict() == first.find_schedule("Gast").week.to_dict()
+    assert _copy_to_rooms(hass, first.entry_id, "gast", [second.entry_id, first.entry_id]) == {
+        "created": [],
+        "replaced": ["Bad"],
+    }

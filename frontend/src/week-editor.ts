@@ -43,6 +43,8 @@ export class BtWeekEditor extends LitElement {
     _busy: { state: true },
     _drag: { state: true },
     _menu: { state: true },
+    _copyRooms: { state: true },
+    _info: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -54,6 +56,8 @@ export class BtWeekEditor extends LitElement {
   _copy?: Set<number>;
   _vars = false;
   _menu = false;
+  _copyRooms?: Set<string>;
+  _info?: string;
   _error?: string;
   _nameAction?: NameAction;
   _busy = false;
@@ -288,9 +292,32 @@ export class BtWeekEditor extends LitElement {
     ev.preventDefault();
     ev.stopPropagation();
     const handle = ev.currentTarget as HTMLElement;
-    handle.setPointerCapture(ev.pointerId);
+    try {
+      handle.setPointerCapture(ev.pointerId);
+    } catch {
+      // not supported everywhere – window listeners below still work
+    }
     this._drag = { day, idx, bar: handle.parentElement as HTMLElement };
+    // Track the pointer on the whole window so the drag never gets lost when
+    // the pointer leaves the bar (mouse/trackpad, Safari, Firefox).
+    window.addEventListener("pointermove", this._onWindowMove);
+    window.addEventListener("pointerup", this._onWindowUp);
+    window.addEventListener("pointercancel", this._onWindowUp);
   }
+
+  private _onWindowMove = (ev: PointerEvent) => {
+    if (this._drag) {
+      ev.preventDefault();
+      this._dragMove(ev);
+    }
+  };
+
+  private _onWindowUp = () => {
+    this._dragEnd();
+    window.removeEventListener("pointermove", this._onWindowMove);
+    window.removeEventListener("pointerup", this._onWindowUp);
+    window.removeEventListener("pointercancel", this._onWindowUp);
+  };
 
   private _dragMove(ev: PointerEvent) {
     const drag = this._drag;
@@ -364,7 +391,7 @@ export class BtWeekEditor extends LitElement {
     const room = this.room;
     const current = room.schedules.find((s) => s.id === this._sid);
     const inEffect = current?.id === room.active_schedule;
-    const sheetOpen = !!this._sel || this._vars || !!this._nameAction;
+    const sheetOpen = !!this._sel || this._vars || !!this._nameAction || !!this._copyRooms;
     return html`
       <div class="backdrop" @click=${this._close}></div>
       <div class="dialog" role="dialog" aria-modal="true">
@@ -418,6 +445,7 @@ export class BtWeekEditor extends LitElement {
         ${this._sel ? this._renderSlotSheet(this._sel) : nothing}
         ${this._vars ? this._renderVariablesSheet() : nothing}
         ${this._nameAction ? this._renderNameSheet() : nothing}
+        ${this._copyRooms ? this._renderCopyRoomsSheet() : nothing}
 
         ${this._dirty && !sheetOpen
           ? html`<div class="savebar">
@@ -443,6 +471,12 @@ export class BtWeekEditor extends LitElement {
     return html`<div class="menu" role="menu">
       ${item("mdi:pencil-outline", t.rename, () => this._startName("rename"))}
       ${item("mdi:content-copy", t.duplicate, () => this._startName("duplicate"))}
+      ${item("mdi:home-export-outline", t.copy_to_rooms, () => {
+        this._sel = undefined;
+        this._vars = false;
+        this._info = undefined;
+        this._copyRooms = new Set();
+      }, "", (this.snap?.rooms.length ?? 0) < 2)}
       ${item("mdi:thermometer-lines", t.manage_variables, () => {
         this._sel = undefined;
         this._vars = true;
@@ -477,8 +511,7 @@ export class BtWeekEditor extends LitElement {
     const today = key === todayKey();
     return html`<div class="day ${this._sel?.day === d ? "active" : ""}">
       <span class="day-label ${today ? "today" : ""}">${this._t.days[d]}</span>
-      <div class="bar" @pointermove=${this._dragMove} @pointerup=${this._dragEnd}
-        @pointercancel=${this._dragEnd}>
+      <div class="bar">
         ${segs.map((s, i) => {
           const temp = resolveSlot(s.slot, vars);
           const w = ((s.end - s.start) / DAY_MIN) * 100;
@@ -500,7 +533,7 @@ export class BtWeekEditor extends LitElement {
           return html`<div class="handle ${dragging ? "dragging" : ""}"
             style="left:${(s.start / DAY_MIN) * 100}%"
             @pointerdown=${(e: PointerEvent) => this._dragStart(e, d, i + 1)}>
-            <span></span>
+            <span></span><i class="knob"></i>
             ${dragging ? html`<div class="time-tip">${toHHMM(s.start)}</div>` : nothing}
           </div>`;
         })}
@@ -624,6 +657,61 @@ export class BtWeekEditor extends LitElement {
       <div class="muted small-text">${t.variables_note}</div>
       ${this._error ? html`<div class="error">${this._error}</div>` : nothing}`;
     return this._sheet(t.variables, body, () => (this._vars = false));
+  }
+
+  private async _copyToRooms() {
+    if (!this.room || !this._copyRooms?.size) return;
+    if (this._dirty && !confirm(this._t.copy_unsaved)) return;
+    const res = await this._call<{ created: string[]; replaced: string[] }>("schedule/copy_to_rooms", {
+      entry_id: this.room.entry_id,
+      schedule_id: this._sid,
+      targets: [...this._copyRooms],
+    });
+    if (res) {
+      const names = [...(res.created ?? []), ...(res.replaced ?? [])].join(", ");
+      this._info = `${this._t.copied_to} ${names}`;
+      this._copyRooms = new Set();
+    }
+  }
+
+  private _renderCopyRoomsSheet() {
+    const t = this._t;
+    const name = this.room?.schedules.find((s) => s.id === this._sid)?.name ?? "";
+    const rooms = (this.snap?.rooms ?? []).filter((r) => r.entry_id !== this.room?.entry_id);
+    const toggle = (id: string) => {
+      const next = new Set(this._copyRooms);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      this._copyRooms = next;
+    };
+    const body = html`
+      <div class="muted small-text">${t.copy_rooms_hint.replace("{name}", name)}</div>
+      <div class="room-list">
+        ${rooms.map((r) => {
+          const on = this._copyRooms!.has(r.entry_id);
+          const exists = r.schedules.some((s) => s.name.toLowerCase() === name.toLowerCase());
+          return html`<button class="room-pick ${on ? "on" : ""}" @click=${() => toggle(r.entry_id)}>
+            <ha-icon icon=${on ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+            <span class="grow">${r.name}${r.floor ? html` <span class="muted">· ${r.floor.name}</span>` : nothing}</span>
+            <span class="muted small-text">${exists ? t.will_replace : t.will_create}</span>
+          </button>`;
+        })}
+      </div>
+      ${this._info ? html`<div class="info">${this._info}</div>` : nothing}
+      ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
+      <div class="sheet-actions">
+        <button class="text-btn" @click=${() => (this._copyRooms = new Set(rooms.map((r) => r.entry_id)))}>
+          ${t.all_rooms}
+        </button>
+        <span class="grow"></span>
+        <button class="primary-btn" ?disabled=${!this._copyRooms!.size || this._busy} @click=${this._copyToRooms}>
+          ${t.copy}
+        </button>
+      </div>`;
+    return this._sheet(`${t.copy_to_rooms}: ${name}`, body, () => {
+      this._copyRooms = undefined;
+      this._info = undefined;
+    });
   }
 
   private _renderNameSheet() {
@@ -948,15 +1036,33 @@ export class BtWeekEditor extends LitElement {
         justify-content: center;
       }
       .handle span {
-        width: 3px;
+        width: 2px;
         height: 100%;
-        border-radius: 2px;
+        border-radius: 1px;
         background: var(--primary-text-color);
         opacity: 0.35;
       }
+      .handle .knob {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 18px;
+        transform: translate(-50%, -50%);
+        border-radius: 4px;
+        background: var(--card-background-color, #fff);
+        border: 1.5px solid color-mix(in srgb, var(--primary-text-color) 45%, transparent);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        transition: transform 0.12s;
+      }
       .handle:hover span,
       .handle.dragging span {
-        opacity: 1;
+        opacity: 0.9;
+      }
+      .handle:hover .knob,
+      .handle.dragging .knob {
+        border-color: var(--primary-text-color);
+        transform: translate(-50%, -50%) scale(1.15);
       }
       .time-tip {
         position: absolute;
@@ -1176,6 +1282,36 @@ export class BtWeekEditor extends LitElement {
       }
       .var-add input.num {
         width: 80px;
+      }
+      .room-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .room-pick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 10px;
+        border-radius: 12px;
+        background: var(--bt-surface);
+        text-align: left;
+        width: 100%;
+        font-size: 15px;
+      }
+      .room-pick ha-icon {
+        --mdc-icon-size: 22px;
+        color: var(--bt-muted);
+      }
+      .room-pick.on ha-icon {
+        color: var(--bt-accent);
+      }
+      .info {
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--success-color, #3bb273) 15%, transparent);
       }
       .sheet-actions {
         display: flex;
