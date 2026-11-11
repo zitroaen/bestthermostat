@@ -343,3 +343,12 @@ export function updateBanner(backendVersion: string | undefined, cardVersion: st
   if (!backendVersion || backendVersion === cardVersion) return undefined;
   return { text: t.new_version, action: t.reload };
 }
+
+/** CSS gradient that follows the temperature colours between ``min`` and ``max``. */
+export function tempGradient(min: number, max: number): string {
+  const stops: string[] = [];
+  for (let t = min; t <= max; t += 1) {
+    stops.push(`${tempColor(t)} ${(((t - min) / (max - min)) * 100).toFixed(1)}%`);
+  }
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+}
