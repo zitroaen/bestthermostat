@@ -783,6 +783,7 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
             <div class="name">${l}</div>
             <div class="sub muted">${c}</div>
           </div>
+          ${s.show_editor&&!(s.show_timeline&&!s.compact)?this._pencil():d}
         </div>`}
 
         <div class="hero">
@@ -809,14 +810,20 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
         ${s.compact?d:this._renderList(t)}
         ${this._error?o`<div class="error">${this._error}</div>`:d}
       </ha-card>
-    `}_renderModes(e){let t=b(this.hass),s=[["auto",t.auto],["heat",t.heat],["off",t.off]];return o`<div class="seg accent" role="tablist">
+    `}_pencil(){let e=b(this.hass);return o`<button class="pencil" title=${e.edit} aria-label=${e.edit}
+      @click=${()=>this._editing=!0}>
+      <ha-icon icon="mdi:pencil"></ha-icon>
+    </button>`}_renderModes(e){let t=b(this.hass),s=[["auto",t.auto],["heat",t.heat],["off",t.off]];return o`<div class="seg accent" role="tablist">
       ${s.map(([r,a])=>o`<button role="tab" aria-selected=${e.mode===r}
           @click=${()=>this._mode(e,r)}>${a}</button>`)}
     </div>`}_renderScheduleChoice(e){return o`<div class="seg" role="tablist">
       ${e.schedules.map(t=>o`<button role="tab" aria-selected=${t.id===e.active_schedule}
           @click=${()=>this._schedule(e,t.id)}>${t.name}</button>`)}
     </div>`}_renderTimeline(e){let t=b(this.hass),s=e.schedules.find(h=>h.id===e.active_schedule);if(!s)return d;let r=this._snap.variables,a=s.week?.[tt()]??s.week?.[f[0]];if(!a?.length)return d;let l=U(a),c=et(),p=e.mode!=="auto"||e.override_active;return o`<div class="timeline ${p?"paused":""}">
-      <div class="cap muted">${t.today} · ${s.name}${p?` \xB7 ${t.schedule_paused}`:""}</div>
+      <div class="cap muted">
+        <span>${t.today} · ${s.name}${p?` \xB7 ${t.schedule_paused}`:""}</span>
+        ${this._config.show_editor?this._pencil():d}
+      </div>
       <div class="bar">
         ${l.map(h=>{let u=N(h.slot,r);return o`<div class="seg-t"
             title="${X(h.slot,r)}"
@@ -835,7 +842,6 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
           ${this._section==="periods"?o`<div class="detail">${this._renderPeriods(e)}</div>`:d}`:d}
       ${t.show_priorities?o`${this._row("mdi:layers-triple-outline",s.prio_short,p.name,"prio")}
           ${this._section==="prio"?o`<div class="detail">${this._renderPriorities(c)}</div>`:d}`:d}
-      ${t.show_editor?this._row("mdi:calendar-edit",s.edit,"",void 0,()=>this._editing=!0):d}
     </div>`}_renderPriorities(e){return o`<div class="prio">
       ${e.layers.map(t=>o`<div class="prio-row ${t.n===e.winner?"win":t.n<e.winner?"idle":"below"}">
           <span class="prio-n">${t.n}</span>
@@ -1011,8 +1017,33 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
         box-shadow: none;
       }
       .timeline .cap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-size: 12px;
         margin-bottom: 6px;
+        min-height: 28px;
+      }
+      .pencil {
+        width: 32px;
+        height: 32px;
+        margin: -4px -6px -4px 0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bt-muted);
+        flex: none;
+      }
+      .pencil:hover {
+        background: var(--bt-surface);
+        color: var(--primary-text-color);
+      }
+      .pencil ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .timeline .cap {
+        margin-bottom: 2px;
       }
       .timeline .bar {
         position: relative;
@@ -1210,7 +1241,7 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
       ha-card.compact .seg button {
         min-height: 44px;
       }
-    `];var vt={entity:{de:"Raum",en:"Room"},name:{de:"Name (optional)",en:"Name (optional)"},compact:{de:"Kompaktmodus (Wanddisplay)",en:"Compact mode (wall display)"},show_modes:{de:"Modi anzeigen",en:"Show modes"},show_schedules:{de:"Zeitpl\xE4ne anzeigen",en:"Show schedules"},show_timeline:{de:"Zeitleiste heute anzeigen",en:"Show today's timeline"},show_editor:{de:"Button f\xFCr Wocheneditor",en:"Weekly editor button"},show_periods:{de:"Zeitr\xE4ume anzeigen und planen",en:"Show and plan periods"},show_priorities:{de:"Priorit\xE4ten anzeigen",en:"Show priorities"},title:{de:"Titel",en:"Title"},show_override:{de:"Globalen Override anzeigen",en:"Show global override"},show_variables:{de:"Variablen anzeigen",en:"Show variables"},group_by_floor:{de:"Nach Stockwerk gruppieren",en:"Group by floor"},layout:{de:"Darstellung",en:"Layout"},show_summary:{de:"Zusammenfassung anzeigen",en:"Show summary"},room:{de:"R\xE4ume (gilt f\xFCr alle)",en:"Rooms (applies to all)"},exclude_rooms:{de:"R\xE4ume ausblenden",en:"Hide rooms"}},xt=[{name:"entity",required:!0,selector:{entity:{filter:{domain:"climate",integration:"bestthermostat"}}}},{name:"name",selector:{text:{}}},{type:"grid",name:"",schema:[{name:"compact",selector:{boolean:{}}},{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}}]}],$t=[{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"compact",selector:{boolean:{}}}];function yt(n){return[{name:"title",selector:{text:{}}},{name:"layout",selector:{select:{mode:"box",options:[{value:"list",label:n?"Liste (Raum zum Aufklappen)":"List (tap to expand)"},{value:"tiles",label:n?"Kacheln (alle R\xE4ume offen)":"Tiles (all rooms open)"}]}}},{type:"grid",name:"",schema:[{name:"show_summary",selector:{boolean:{}}},{name:"show_override",selector:{boolean:{}}},{name:"show_variables",selector:{boolean:{}}},{name:"group_by_floor",selector:{boolean:{}}}]},{type:"expandable",name:"room",title:n?"R\xE4ume (gilt f\xFCr alle)":"Rooms (applies to all)",schema:[{type:"grid",name:"",schema:$t}]},{name:"exclude_rooms",selector:{entity:{multiple:!0,filter:{domain:"climate",integration:"bestthermostat"}}}}]}var ne=class extends g{constructor(){super(...arguments);this._label=e=>{let t=(this.hass?.locale?.language||this.hass?.language||"en").startsWith("de")?"de":"en";return vt[e.name]?.[t]??e.name}}setConfig(e){let t=this.defaults,s=e;this._config={...t,...s,...t.room?{room:{...t.room,...s.room??{}}}:{}}}_changed(e){let t=e.detail.value;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0}))}render(){return!this.hass||!this._config?d:o`<ha-form
+    `];var vt={entity:{de:"Raum",en:"Room"},name:{de:"Name (optional)",en:"Name (optional)"},compact:{de:"Kompaktmodus (Wanddisplay)",en:"Compact mode (wall display)"},show_modes:{de:"Modi anzeigen",en:"Show modes"},show_schedules:{de:"Zeitpl\xE4ne anzeigen",en:"Show schedules"},show_timeline:{de:"Zeitleiste heute anzeigen",en:"Show today's timeline"},show_editor:{de:"Stift f\xFCr Wocheneditor",en:"Pencil for weekly editor"},show_periods:{de:"Zeitr\xE4ume anzeigen und planen",en:"Show and plan periods"},show_priorities:{de:"Priorit\xE4ten anzeigen",en:"Show priorities"},title:{de:"Titel",en:"Title"},show_override:{de:"Globalen Override anzeigen",en:"Show global override"},show_variables:{de:"Variablen anzeigen",en:"Show variables"},group_by_floor:{de:"Nach Stockwerk gruppieren",en:"Group by floor"},layout:{de:"Darstellung",en:"Layout"},show_summary:{de:"Zusammenfassung anzeigen",en:"Show summary"},room:{de:"R\xE4ume (gilt f\xFCr alle)",en:"Rooms (applies to all)"},exclude_rooms:{de:"R\xE4ume ausblenden",en:"Hide rooms"}},xt=[{name:"entity",required:!0,selector:{entity:{filter:{domain:"climate",integration:"bestthermostat"}}}},{name:"name",selector:{text:{}}},{type:"grid",name:"",schema:[{name:"compact",selector:{boolean:{}}},{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}}]}],$t=[{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"compact",selector:{boolean:{}}}];function yt(n){return[{name:"title",selector:{text:{}}},{name:"layout",selector:{select:{mode:"box",options:[{value:"list",label:n?"Liste (Raum zum Aufklappen)":"List (tap to expand)"},{value:"tiles",label:n?"Kacheln (alle R\xE4ume offen)":"Tiles (all rooms open)"}]}}},{type:"grid",name:"",schema:[{name:"show_summary",selector:{boolean:{}}},{name:"show_override",selector:{boolean:{}}},{name:"show_variables",selector:{boolean:{}}},{name:"group_by_floor",selector:{boolean:{}}}]},{type:"expandable",name:"room",title:n?"R\xE4ume (gilt f\xFCr alle)":"Rooms (applies to all)",schema:[{type:"grid",name:"",schema:$t}]},{name:"exclude_rooms",selector:{entity:{multiple:!0,filter:{domain:"climate",integration:"bestthermostat"}}}}]}var ne=class extends g{constructor(){super(...arguments);this._label=e=>{let t=(this.hass?.locale?.language||this.hass?.language||"en").startsWith("de")?"de":"en";return vt[e.name]?.[t]??e.name}}setConfig(e){let t=this.defaults,s=e;this._config={...t,...s,...t.room?{room:{...t.room,...s.room??{}}}:{}}}_changed(e){let t=e.detail.value;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0}))}render(){return!this.hass||!this._config?d:o`<ha-form
       .hass=${this.hass}
       .data=${this._config}
       .schema=${this.schema}
@@ -1690,4 +1721,4 @@ var re=globalThis,ae=re.ShadowRoot&&(re.ShadyCSS===void 0||re.ShadyCSS.nativeSha
         min-height: 30px;
         font-size: 13px;
       }
-    `];var kt="0.4.0";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",I);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",W);var ue=window;ue.customCards=ue.customCards||[];var Pe=(document.documentElement.lang||navigator.language||"").startsWith("de"),St=[{type:"bestthermostat-card",name:"Best Thermostat",description:Pe?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:Pe?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:Pe?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let n of St)ue.customCards.some(i=>i?.type===n.type)||ue.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${kt} `,"background:#ff8100;color:#fff","");
+    `];var kt="0.4.1";customElements.get("bestthermostat-card")||customElements.define("bestthermostat-card",I);customElements.get("bestthermostat-overview-card")||customElements.define("bestthermostat-overview-card",W);var ue=window;ue.customCards=ue.customCards||[];var Pe=(document.documentElement.lang||navigator.language||"").startsWith("de"),St=[{type:"bestthermostat-card",name:"Best Thermostat",description:Pe?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:Pe?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:Pe?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let n of St)ue.customCards.some(i=>i?.type===n.type)||ue.customCards.push(n);console.info(`%c BEST-THERMOSTAT %c ${kt} `,"background:#ff8100;color:#fff","");

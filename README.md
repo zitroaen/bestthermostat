@@ -221,8 +221,8 @@ room:                  # applies to all rooms – same options as the room card
 **Room card:** icon, name and status at the top; current temperature large with the
 target next to it (−/+ or **swipe horizontally** on the target; below it the variable and
 source in effect, e.g. "Comfort · Schedule"); mode and schedule selectors; a thin
-timeline for today; below that calm rows – periods, priority, weekly editor – that expand
-when tapped.
+timeline for today with a small pencil that opens the weekly editor; below that calm rows
+– periods, priority – that expand when tapped.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
 as a single switch (tap the temperature to change it), the variables as one line (tap to
@@ -236,7 +236,8 @@ floor level. The area of the Best Thermostat room device is used; if it has none
 area of its thermostats. New room devices get that area suggested automatically. Rooms
 without a floor are listed under "Other".
 
-Both cards have a visual editor. The weekly editor opens via "Edit weekly plan":
+Both cards have a visual editor. The weekly editor opens via the pencil next to the timeline (or in the header when the
+timeline is hidden):
 
 - Tap a block to edit it (temperature, variable, split, delete)
 - Drag the borders to move them (15-minute grid, the time is shown while dragging)

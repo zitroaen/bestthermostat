@@ -9,7 +9,7 @@ const LABELS: Record<string, { de: string; en: string }> = {
   show_modes: { de: "Modi anzeigen", en: "Show modes" },
   show_schedules: { de: "Zeitpläne anzeigen", en: "Show schedules" },
   show_timeline: { de: "Zeitleiste heute anzeigen", en: "Show today's timeline" },
-  show_editor: { de: "Button für Wocheneditor", en: "Weekly editor button" },
+  show_editor: { de: "Stift für Wocheneditor", en: "Pencil for weekly editor" },
   show_periods: { de: "Zeiträume anzeigen und planen", en: "Show and plan periods" },
   show_priorities: { de: "Prioritäten anzeigen", en: "Show priorities" },
   title: { de: "Titel", en: "Title" },

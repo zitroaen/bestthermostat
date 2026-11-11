@@ -219,8 +219,8 @@ room:                  # gilt für alle Räume – dieselben Optionen wie die Ra
 **Raumkarte:** Oben Icon, Name und Status; die Ist-Temperatur groß, daneben das Soll
 (−/+ oder **waagerecht wischen**; darunter klein die gültige Variable und Quelle, z. B.
 „Komfort · Zeitplan“); Modus- und Zeitplan-Auswahl, eine schmale Zeitleiste für heute
-und ruhige Zeilen – Zeiträume, Priorität, Wocheneditor –, die sich beim Antippen
-aufklappen.
+mit einem kleinen Stift, der den Wocheneditor öffnet, und ruhige Zeilen – Zeiträume,
+Priorität –, die sich beim Antippen aufklappen.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
 globale Override als ein Schalter (Tipp auf die Temperatur zum Ändern), die Variablen als
@@ -235,8 +235,8 @@ gruppiert, sortiert nach der Ebene. Verwendet wird der Bereich des Best-Thermost
 Raumgeräts, sonst der Bereich seiner Thermostate. Neue Raumgeräte bekommen diesen
 Bereich automatisch vorgeschlagen. Räume ohne Stockwerk stehen unter „Weitere“.
 
-Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
-„Wochenplan bearbeiten“:
+Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über den Stift an der Zeitleiste (bzw. oben im
+Kopf, wenn die Zeitleiste ausgeblendet ist):
 
 - Abschnitt antippen, um ihn zu bearbeiten (Temperatur, Variable, teilen, löschen)
 - Grenzen ziehen, um sie zu verschieben (15-Minuten-Raster)
