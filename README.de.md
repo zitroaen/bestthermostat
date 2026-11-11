@@ -207,9 +207,10 @@ group_by_floor: true  # Räume nach HA-Stockwerken gruppieren
 ```
 
 **Raumkarte:** Oben Icon, Name und Status; die Ist-Temperatur groß, daneben das Soll
-mit −/+; darunter die Modus-Auswahl, eine schmale Zeitleiste für heute und ruhige Zeilen
-– Zeitplan, nächster Wechsel, Zeiträume, Priorität, Wocheneditor –, die sich beim
-Antippen aufklappen.
+(−/+ oder **waagerecht wischen**; darunter klein die gültige Variable und Quelle, z. B.
+„Komfort · Zeitplan“); Modus- und Zeitplan-Auswahl, eine schmale Zeitleiste für heute
+und ruhige Zeilen – Zeiträume, Priorität, Wocheneditor –, die sich beim Antippen
+aufklappen.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
 globale Override als ein Schalter (Details klappen auf, wenn er an ist oder angetippt

@@ -59,6 +59,7 @@ export interface RoomData {
   frost_temperature: number;
   target_temperature: number | null;
   target_source: "override" | "off" | "manual" | "hand" | "schedule";
+  target_variable: string | null;
   current_temperature: number | null;
   hvac_action: string | null;
   min_temp: number;
