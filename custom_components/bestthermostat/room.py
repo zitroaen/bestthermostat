@@ -209,6 +209,10 @@ class RoomController:
         area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
         return area.name if area else None
 
+    def _trv_device_id(self, trv: str) -> str | None:
+        entry = er.async_get(self.hass).async_get(trv)
+        return entry.device_id if entry else None
+
     def _battery_entities(self) -> dict[str, list[str]]:
         """Battery entities (sensor %, binary_sensor low) on each TRV's device."""
         ent_reg = er.async_get(self.hass)
@@ -245,9 +249,23 @@ class RoomController:
                     low = state.state == "on"
             if level is not None and low is None:
                 low = level <= BATTERY_LOW
+            device_id = self._trv_device_id(trv)
+            device = dr.async_get(self.hass).async_get(device_id) if device_id else None
             trv_state = self.hass.states.get(trv)
-            name = trv_state.name if trv_state else trv
-            result.append({"entity_id": trv, "name": name, "level": level, "low": low})
+            name = (
+                (device.name_by_user or device.name)
+                if device and (device.name_by_user or device.name)
+                else (trv_state.name if trv_state else trv)
+            )
+            result.append(
+                {
+                    "entity_id": trv,
+                    "device_id": device_id,
+                    "name": name,
+                    "level": level,
+                    "low": low,
+                }
+            )
         return result
 
     def area_and_floor(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:

@@ -94,8 +94,9 @@ managed in the card.
 ## Battery levels
 
 The integration finds the battery entities of the thermostats automatically (a battery
-sensor in % or a "battery low" binary sensor on the same device). The room card shows the
-lowest level of the room (tap to see every thermostat, below 20 % in red); the overview
+sensor in % or a "battery low" binary sensor on the same device). The room card shows a
+small battery indicator with the level(s) in the top right corner (red below 20 %); tap it
+to see every thermostat – each entry links to the device in Home Assistant. The overview
 marks rooms with a weak battery. Option `show_battery`.
 
 ## Apple Home, Google Home (Matter / HomeKit)
@@ -204,7 +205,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # list active/planned periods and the "Plan period" button
 show_priorities: true   # row showing which priority layer is in control (expandable)
-show_battery: true      # battery of the thermostats (found automatically, < 20 % in red)
+show_battery: true      # battery indicator top right (found automatically, < 20 % in red)
 ```
 
 ```yaml

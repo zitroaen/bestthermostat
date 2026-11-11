@@ -58,6 +58,7 @@ export class BestThermostatCard extends LitElement {
     _editPeriod: { state: true },
     _allPeriods: { state: true },
     _section: { state: true },
+    _batOpen: { state: true },
     _swipe: { state: true },
     _error: { state: true },
   };
@@ -71,6 +72,7 @@ export class BestThermostatCard extends LitElement {
   _editPeriod?: PeriodData;
   _allPeriods = false;
   _section?: "schedule" | "periods" | "prio" | "battery";
+  _batOpen = false;
   _swipe?: { x: number; start: number; moved: boolean; id: number };
   private _planner?: BtPeriodDialog;
   _error?: string;
@@ -307,8 +309,13 @@ export class BestThermostatCard extends LitElement {
             <div class="name">${name}</div>
             <div class="sub muted">${sub}</div>
           </div>
+          ${c.show_battery ? this._batteryChip(room) : nothing}
           ${c.show_editor && !(c.show_timeline && !c.compact) ? this._pencil() : nothing}
         </div>`}
+        ${c.show_header === false && c.show_battery && lowestBattery(room)
+          ? html`<div class="bat-line">${this._batteryChip(room)}</div>`
+          : nothing}
+        ${this._batOpen && c.show_battery ? this._batteryPanel(room) : nothing}
 
         <div class="hero">
           <div class="current">
@@ -340,6 +347,44 @@ export class BestThermostatCard extends LitElement {
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
       </ha-card>
     `;
+  }
+
+  /** Small battery indicator with the level(s); tap to expand. */
+  private _batteryChip(room: RoomData) {
+    const list = room.batteries ?? [];
+    const lowest = lowestBattery(room);
+    if (!lowest) return nothing;
+    const levels = list.filter((b) => b.level != null).map((b) => Math.round(b.level as number));
+    const text = levels.length
+      ? levels.length <= 3
+        ? `${levels.join(" · ")} %`
+        : `${Math.min(...levels)} %`
+      : "";
+    const t = strings(this.hass);
+    return html`<button class="bat-chip ${lowest.low ? "low" : ""}" aria-expanded=${this._batOpen}
+      title=${t.battery} @click=${() => (this._batOpen = !this._batOpen)}>
+      <ha-icon icon=${batteryIcon(lowest.level, lowest.low)}></ha-icon>${text}
+    </button>`;
+  }
+
+  private _batteryPanel(room: RoomData) {
+    const t = strings(this.hass);
+    return html`<div class="bat-panel">
+      ${(room.batteries ?? []).map(
+        (b) => html`<button class="bat ${b.low ? "low" : ""}" ?disabled=${!b.device_id}
+          @click=${() => b.device_id && this._navigate(`/config/devices/device/${b.device_id}`)}>
+          <ha-icon icon=${batteryIcon(b.level, b.low)}></ha-icon>
+          <span class="grow">${b.name}</span>
+          <span class="bat-val">${b.level != null ? `${Math.round(b.level)} %` : b.low ? t.battery_low : t.battery_ok}</span>
+          ${b.device_id ? html`<ha-icon class="go" icon="mdi:chevron-right"></ha-icon>` : nothing}
+        </button>`,
+      )}
+    </div>`;
+  }
+
+  private _navigate(path: string) {
+    history.pushState(null, "", path);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
   /** Small pencil that opens the weekly editor. */
@@ -436,31 +481,7 @@ export class BestThermostatCard extends LitElement {
         ? html`${this._row("mdi:layers-triple-outline", t.prio_short, winner.name, "prio")}
           ${this._section === "prio" ? html`<div class="detail">${this._renderPriorities(prio)}</div>` : nothing}`
         : nothing}
-      ${c.show_battery ? this._renderBatteryRow(room) : nothing}
     </div>`;
-  }
-
-  private _renderBatteryRow(room: RoomData) {
-    const t = strings(this.hass);
-    const lowest = lowestBattery(room);
-    if (!lowest) return nothing;
-    const value = html`<span class=${lowest.low ? "low" : ""}>${lowest.level != null
-      ? `${Math.round(lowest.level)} %`
-      : lowest.low
-        ? t.battery_low
-        : t.battery_ok}</span>`;
-    return html`${this._row(batteryIcon(lowest.level, lowest.low), t.battery, value, "battery")}
-      ${this._section === "battery"
-        ? html`<div class="detail batteries">
-            ${(room.batteries ?? []).map(
-              (b) => html`<div class="bat ${b.low ? "low" : ""}">
-                <ha-icon icon=${batteryIcon(b.level, b.low)}></ha-icon>
-                <span class="grow">${b.name}</span>
-                <span>${b.level != null ? `${Math.round(b.level)} %` : b.low ? t.battery_low : t.battery_ok}</span>
-              </div>`,
-            )}
-          </div>`
-        : nothing}`;
   }
 
   private _renderPriorities(prio: ReturnType<typeof priorities>) {
@@ -773,16 +794,67 @@ export class BestThermostatCard extends LitElement {
         color: var(--error-color, #db4437);
         font-weight: 500;
       }
-      .batteries {
+      .bat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        min-height: 28px;
+        padding: 0 8px 0 4px;
+        border-radius: 14px;
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--bt-muted);
+        flex: none;
+        white-space: nowrap;
+      }
+      .bat-chip:hover,
+      .bat-chip[aria-expanded="true"] {
+        background: var(--bt-surface);
+      }
+      .bat-chip ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .bat-chip.low {
+        color: var(--error-color, #db4437);
+        font-weight: 500;
+      }
+      .bat-line {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: -10px;
+      }
+      .bat-panel {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
+        padding: 6px;
+        border-radius: 14px;
+        background: var(--bt-surface);
       }
       .bat {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 13px;
+        gap: 10px;
+        min-height: 38px;
+        padding: 0 6px 0 8px;
+        border-radius: 10px;
+        font-size: 14px;
+        text-align: left;
+        width: 100%;
+      }
+      .bat:hover:not(:disabled) {
+        background: var(--card-background-color, #fff);
+      }
+      .bat:disabled {
+        opacity: 1;
+        cursor: default;
+      }
+      .bat-val {
+        font-variant-numeric: tabular-nums;
+      }
+      .bat .go {
+        --mdc-icon-size: 18px;
+        color: var(--bt-muted);
       }
       .bat ha-icon {
         --mdc-icon-size: 18px;
