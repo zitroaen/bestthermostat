@@ -48,3 +48,18 @@ async def test_card_is_served(hass: HomeAssistant, hass_client) -> None:  # type
     resp = await client.get(CARD_URL)
     assert resp.status == 200
     assert "bestthermostat-card" in await resp.text()
+
+
+async def test_duplicate_resources_removed(hass: HomeAssistant) -> None:
+    """Several entries for the card are reduced to one."""
+    assert await async_setup_component(hass, "lovelace", {})
+    resources = _resources(hass)
+    await resources.async_load()
+    resources.loaded = True
+    await resources.async_create_item({"res_type": "module", "url": f"{CARD_URL}?v=0.1.0"})
+    await resources.async_create_item({"res_type": "module", "url": f"{CARD_URL}?v=0.3.0"})
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    urls = [i["url"] for i in resources.async_items()]
+    assert len(urls) == 1
+    assert urls[0].startswith(f"{CARD_URL}?v={VERSION}-")

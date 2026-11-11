@@ -18,6 +18,7 @@ import {
   toHHMM,
   toMin,
   weekEqual,
+  define,
 } from "./utils";
 
 interface Sel {
@@ -1206,4 +1207,4 @@ export class BtWeekEditor extends LitElement {
   ];
 }
 
-customElements.define("bt-week-editor", BtWeekEditor);
+define("bt-week-editor", BtWeekEditor);

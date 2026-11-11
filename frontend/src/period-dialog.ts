@@ -2,7 +2,7 @@ import { LitElement, css, html, nothing } from "lit";
 import type { HomeAssistant, PeriodData, RoomData } from "./api";
 import { ws } from "./api";
 import { shared } from "./styles";
-import { fmtTemp, strings } from "./utils";
+import { fmtTemp, strings, define } from "./utils";
 
 type What = { kind: "schedule"; id: string } | { kind: "mode"; mode: "auto" | "heat" | "off" };
 
@@ -391,4 +391,4 @@ export class BtPeriodDialog extends LitElement {
   ];
 }
 
-customElements.define("bt-period-dialog", BtPeriodDialog);
+define("bt-period-dialog", BtPeriodDialog);

@@ -312,3 +312,8 @@ export function strings(hass?: HomeAssistant): Strings {
   const lang = (hass?.locale?.language || hass?.language || "en").slice(0, 2);
   return lang === "de" ? STRINGS.de : STRINGS.en;
 }
+
+/** Register a custom element only once (the card file may be loaded twice). */
+export function define(name: string, ctor: CustomElementConstructor): void {
+  if (!customElements.get(name)) customElements.define(name, ctor);
+}
