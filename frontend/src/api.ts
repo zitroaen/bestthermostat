@@ -44,6 +44,7 @@ export interface PeriodData {
 
 export interface BatteryData {
   entity_id: string;
+  device_id: string | null;
   name: string;
   level: number | null;
   low: boolean | null;

@@ -90,9 +90,10 @@ sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 ## Batteriestände
 
 Die Integration findet die Batterie-Entitäten der Thermostate automatisch (Batteriesensor
-in % oder „Batterie schwach“-Sensor am selben Gerät). Die Raumkarte zeigt den niedrigsten
-Stand des Raums (antippen für jedes Thermostat, unter 20 % rot); die Übersicht markiert
-Räume mit schwacher Batterie. Option `show_battery`.
+in % oder „Batterie schwach“-Sensor am selben Gerät). Die Raumkarte zeigt oben rechts
+ein kleines Batteriesymbol mit dem Stand bzw. den Ständen (unter 20 % rot); antippen zeigt
+jedes Thermostat – jeder Eintrag führt direkt zum Gerät in Home Assistant. Die Übersicht
+markiert Räume mit schwacher Batterie. Option `show_battery`.
 
 ## Apple Home, Google Home (Matter / HomeKit)
 
@@ -202,7 +203,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
 show_priorities: true   # Zeile, welche Prioritäts-Ebene gerade bestimmt (aufklappbar)
-show_battery: true      # Batterie der Thermostate (automatisch ermittelt, < 20 % rot)
+show_battery: true      # Batteriesymbol oben rechts (automatisch ermittelt, < 20 % rot)
 ```
 
 ```yaml

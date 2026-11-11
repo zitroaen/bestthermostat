@@ -619,3 +619,5 @@ async def test_batteries(
     assert batteries["climate.trv1"]["level"] == 45.0
     assert batteries["climate.trv1"]["low"] is False
     assert batteries["climate.trv2"]["low"] is True
+    assert batteries["climate.trv1"]["name"] == "TRV 1"
+    assert batteries["climate.trv1"]["device_id"]

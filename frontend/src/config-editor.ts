@@ -12,7 +12,7 @@ const LABELS: Record<string, { de: string; en: string }> = {
   show_editor: { de: "Stift für Wocheneditor", en: "Pencil for weekly editor" },
   show_periods: { de: "Zeiträume anzeigen und planen", en: "Show and plan periods" },
   show_priorities: { de: "Prioritäten anzeigen", en: "Show priorities" },
-  show_battery: { de: "Batteriestand anzeigen", en: "Show battery levels" },
+  show_battery: { de: "Batteriesymbol anzeigen", en: "Show battery indicator" },
   title: { de: "Titel", en: "Title" },
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
   show_variables: { de: "Variablen anzeigen", en: "Show variables" },
