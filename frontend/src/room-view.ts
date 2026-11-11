@@ -1,0 +1,101 @@
+// Shared presentation helpers for the room and overview cards.
+import type { HomeAssistant, RoomData, Snapshot } from "./api";
+import { fmtTemp, fmtTime, type Strings } from "./utils";
+
+export function scheduleName(room: RoomData, id: string): string {
+  return room.schedules.find((s) => s.id === id)?.name ?? id;
+}
+
+/** Icon that tells what currently controls the room. */
+export function roomIcon(room: RoomData): string {
+  if (room.override_active) return "mdi:home-export-outline";
+  if (room.period) return "mdi:calendar-star";
+  if (room.mode === "off") return "mdi:radiator-off";
+  if (room.mode === "heat" || room.target_source === "hand") return "mdi:hand-back-right";
+  return "mdi:radiator";
+}
+
+/** One short status line: what controls the room and until when. */
+export function roomStatus(room: RoomData, t: Strings, hass: HomeAssistant): string {
+  if (room.override_active) return t.src_override;
+  if (room.target_source === "hand" && room.hand_until)
+    return `${t.src_hand} · ${t.until} ${fmtTime(room.hand_until, hass)}`;
+  if (room.period) {
+    const until = room.period.end ? `${t.period_until} ${fmtTime(room.period.end, hass)}` : t.period_open;
+    return `${room.period.title} · ${until}`;
+  }
+  if (room.mode === "off") return t.src_off;
+  if (room.mode === "heat") return t.src_manual;
+  const sched = scheduleName(room, room.active_schedule);
+  if (room.next_change)
+    return `${sched} · ${fmtTime(room.next_change, hass)} → ${fmtTemp(room.next_temperature)}`;
+  return sched;
+}
+
+export interface Layer {
+  n: number;
+  icon: string;
+  name: string;
+  value: string;
+}
+
+/** The priority layers of a room and the number of the one in control. */
+export function priorities(
+  room: RoomData,
+  snap: Snapshot,
+  t: Strings,
+  hass: HomeAssistant,
+): { layers: Layer[]; winner: number } {
+  const ov = snap.override;
+  const winner = room.override_active
+    ? 1
+    : room.target_source === "hand"
+      ? 2
+      : room.period
+        ? 3
+        : 4;
+  const base =
+    room.base_mode === "off"
+      ? `${t.src_off} · ${fmtTemp(room.frost_temperature)}`
+      : room.base_mode === "heat"
+        ? `${t.heat} · ${fmtTemp(room.base_manual_temperature)}`
+        : `${t.auto} · ${scheduleName(room, room.base_schedule)}`;
+  const layers: Layer[] = [
+    {
+      n: 1,
+      icon: "mdi:home-export-outline",
+      name: t.override,
+      value: !ov.active
+        ? t.prio_inactive
+        : room.override_active
+          ? fmtTemp(ov.value)
+          : `${fmtTemp(ov.value)} · ${t.override_not_applied}`,
+    },
+    {
+      n: 2,
+      icon: "mdi:hand-back-right",
+      name: t.prio_hand,
+      value:
+        room.target_source === "hand" && room.hand_until
+          ? `${fmtTemp(room.target_temperature)} · ${t.until} ${fmtTime(room.hand_until, hass)}`
+          : t.prio_none,
+    },
+    {
+      n: 3,
+      icon: "mdi:calendar-star",
+      name: t.period,
+      value: room.period
+        ? `${room.period.title} · ${room.period.end ? `${t.period_until} ${fmtTime(room.period.end, hass)}` : t.period_open}`
+        : t.prio_none,
+    },
+    { n: 4, icon: "mdi:radiator", name: t.prio_room, value: base },
+  ];
+  return { layers, winner };
+}
+
+export function upcomingPeriods(room: RoomData) {
+  const now = Date.now();
+  return (room.periods ?? [])
+    .filter((p) => new Date(p.start).getTime() > now)
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+}
