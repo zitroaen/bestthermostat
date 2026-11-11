@@ -301,7 +301,8 @@ export class BestThermostatCard extends LitElement {
     return html`
       <ha-card class="${c.compact ? "compact" : ""} ${c.embedded ? "embedded" : ""}">
         ${c.show_header === false ? nothing : html`<div class="head">
-          <button class="icon ${heating ? "heating" : ""}" @click=${() => this._moreInfo(room)}
+          <button class="icon ${heating ? "heating" : ""} ${room.mode === "off" ? "off" : ""}"
+            @click=${() => this._moreInfo(room)}
             aria-label=${name}>
             <ha-icon icon=${roomIcon(room)}></ha-icon>
           </button>
@@ -574,6 +575,9 @@ export class BestThermostatCard extends LitElement {
         background: var(--bt-surface);
         color: var(--bt-muted);
         flex: none;
+      }
+      .icon.off {
+        opacity: 0.55;
       }
       .icon.heating {
         background: color-mix(in srgb, var(--bt-heat) 18%, transparent);

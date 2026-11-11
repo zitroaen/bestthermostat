@@ -242,7 +242,10 @@ available for the rooms of the overview; the `room` options apply to all rooms.
 room as a tile in as many columns as fit – ideal as the main view.
 
 **Floors:** rooms are grouped by the floors configured in Home Assistant, ordered by the
-floor level. The area of the Best Thermostat room device is used; if it has none, the
+floor level. Tap a floor header to collapse it (remembered per device). If several rooms
+of a floor share the next change, it is shown once in the floor header. Rooms use the
+icon of their Home Assistant area; the target is only shown when it differs from the
+current temperature by 0.5° or more. The area of the Best Thermostat room device is used; if it has none, the
 area of its thermostats. New room devices get that area suggested automatically. Rooms
 without a floor are listed under "Other".
 

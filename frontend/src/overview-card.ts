@@ -1,7 +1,14 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import type { FloorData, HomeAssistant, RoomData, Snapshot } from "./api";
 import { subscribe, ws } from "./api";
-import { lowestBattery, roomIcon, roomStatus, upcomingPeriods } from "./room-view";
+import {
+  commonNextChange,
+  followsSchedule,
+  lowestBattery,
+  roomIcon,
+  roomStatus,
+  upcomingPeriods,
+} from "./room-view";
 import { shared } from "./styles";
 import { fmtTemp, fmtTime, strings, tempColor } from "./utils";
 
@@ -29,6 +36,8 @@ interface OverviewConfig {
   exclude_rooms?: string[];
   room?: RoomOptions;
 }
+
+const COLLAPSED_KEY = "bestthermostat.collapsedFloors";
 
 const ROOM_DEFAULTS: RoomOptions = {
   show_modes: true,
@@ -143,6 +152,29 @@ export class BestThermostatOverviewCard extends LitElement {
     }
   }
 
+  private _collapsed = this._loadCollapsed();
+
+  private _loadCollapsed(): Set<string> {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || "[]"));
+    } catch {
+      return new Set();
+    }
+  }
+
+  private _toggleFloor(key: string) {
+    const next = new Set(this._collapsed);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this._collapsed = next;
+    try {
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
+    } catch {
+      // storage not available – collapsing still works for this session
+    }
+    this.requestUpdate();
+  }
+
   private _floorIconNo(level: number | null | undefined): string {
     if (level == null) return "0";
     if (level < 0) return "negative-1";
@@ -214,18 +246,31 @@ export class BestThermostatOverviewCard extends LitElement {
         </div>
         <div class="rooms">
           ${groups.map(
-            (g) => html`${grouped
-                ? html`<div class="floor">
-                    <ha-icon icon=${g.floor?.icon || "mdi:home-floor-" + this._floorIconNo(g.floor?.level)}></ha-icon>
-                    <span>${g.floor?.name ?? t.other_floor}</span>
-                    ${this._heatingCount(g.rooms)
-                      ? html`<span class="floor-heat">· ${this._heatingCount(g.rooms)} ${t.heating_summary}</span>`
-                      : nothing}
-                  </div>`
-                : nothing}
-              <div class="grid ${tiles ? "tiles" : ""}">
-                ${g.rooms.map((room) => (tiles ? this._renderTile(room) : this._renderRoom(room)))}
-              </div>`,
+            (g) => {
+              const key = g.floor?.id ?? "_other";
+              const collapsed = grouped && this._collapsed.has(key);
+              const common = grouped ? commonNextChange(g.rooms) : undefined;
+              return html`${grouped
+                  ? html`<button class="floor" aria-expanded=${!collapsed} @click=${() => this._toggleFloor(key)}>
+                      <ha-icon icon=${g.floor?.icon || "mdi:home-floor-" + this._floorIconNo(g.floor?.level)}></ha-icon>
+                      <span>${g.floor?.name ?? t.other_floor}</span>
+                      ${this._heatingCount(g.rooms)
+                        ? html`<span class="floor-heat">· ${this._heatingCount(g.rooms)} ${t.heating_summary}</span>`
+                        : nothing}
+                      <span class="floor-next">${common
+                        ? `${t.until} ${fmtTime(common.time, this.hass!)}, ${t.then} ${fmtTemp(common.temp, false)}°`
+                        : ""}</span>
+                      <ha-icon class="floor-chev" icon=${collapsed ? "mdi:chevron-down" : "mdi:chevron-up"}></ha-icon>
+                    </button>`
+                  : nothing}
+                ${collapsed
+                  ? nothing
+                  : html`<div class="grid ${tiles ? "tiles" : ""}">
+                      ${g.rooms.map((room) =>
+                        tiles ? this._renderTile(room) : this._renderRoom(room, !!common && followsSchedule(room)),
+                      )}
+                    </div>`}`;
+            },
           )}
         </div>
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
@@ -311,7 +356,7 @@ export class BestThermostatOverviewCard extends LitElement {
     </div>`;
   }
 
-  private _renderRoom(room: RoomData) {
+  private _renderRoom(room: RoomData, omitNext = false) {
     const t = strings(this.hass);
     const h = this.hass!;
     const heating = room.hvac_action === "heating";
@@ -319,13 +364,15 @@ export class BestThermostatOverviewCard extends LitElement {
     const next = this._config?.room?.show_periods ? upcomingPeriods(room)[0] : undefined;
     return html`<div class="room-block ${open ? "open" : ""}">
       <button class="room" @click=${() => (this._open = open ? undefined : room.entry_id)}>
-        <span class="icon ${heating ? "heating" : ""}"><ha-icon icon=${roomIcon(room)}></ha-icon></span>
+        <span class="icon ${heating ? "heating" : ""} ${room.mode === "off" ? "off" : ""}">
+          <ha-icon icon=${roomIcon(room)}></ha-icon>
+        </span>
         <span class="grow left">
           <span class="name">${room.name}${this._config?.room?.show_battery && lowestBattery(room)?.low
             ? html`<ha-icon class="bat-low" icon="mdi:battery-alert-variant-outline"
                 title=${t.battery_low}></ha-icon>`
             : nothing}</span>
-          <span class="muted sub">${roomStatus(room, t, h)}</span>
+          <span class="muted sub">${roomStatus(room, t, h, omitNext)}</span>
           ${next
             ? html`<span class="muted sub planned">
                 <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>${next.title} · ${t.period_from}
@@ -335,7 +382,11 @@ export class BestThermostatOverviewCard extends LitElement {
         </span>
         <span class="temps">
           <span class="cur">${fmtTemp(room.current_temperature, false)}°</span>
-          <span class="muted tgt">→ ${fmtTemp(room.target_temperature, false)}°</span>
+          ${room.current_temperature == null ||
+          room.target_temperature == null ||
+          Math.abs(room.current_temperature - room.target_temperature) >= 0.5
+            ? html`<span class="muted tgt">→ ${fmtTemp(room.target_temperature, false)}°</span>`
+            : nothing}
         </span>
       </button>
       ${open
@@ -595,9 +646,26 @@ export class BestThermostatOverviewCard extends LitElement {
         text-transform: uppercase;
         color: var(--bt-muted);
         margin: 12px 4px 2px;
+        width: calc(100% - 8px);
+        padding: 4px 0;
+        text-align: left;
       }
       .floor ha-icon {
         --mdc-icon-size: 16px;
+      }
+      .floor-next {
+        margin-left: auto;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .floor-chev {
+        --mdc-icon-size: 18px;
+        margin-left: 2px;
+      }
+      .icon.off {
+        opacity: 0.55;
       }
       .floor-heat {
         color: var(--bt-heat);
