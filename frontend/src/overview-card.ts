@@ -137,14 +137,16 @@ export class BestThermostatOverviewCard extends LitElement {
               : nothing}
           </div>
         </div>
-        ${this._config.show_override ? this._renderOverride() : nothing}
-        ${this._config.show_variables && snap.variables.length ? this._renderVariables() : nothing}
+        <div class="top">
+          ${this._config.show_override ? this._renderOverride() : nothing}
+          ${this._config.show_variables && snap.variables.length ? this._renderVariables() : nothing}
+        </div>
         <div class="rooms">
           ${groups.map(
             (g) => html`${grouped
                 ? html`<div class="floor">${g.floor?.name ?? t.other_floor}</div>`
                 : nothing}
-              ${g.rooms.map((room) => this._renderRoom(room))}`,
+              <div class="grid">${g.rooms.map((room) => this._renderRoom(room))}</div>`,
           )}
         </div>
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
@@ -155,15 +157,19 @@ export class BestThermostatOverviewCard extends LitElement {
   private _renderOverride() {
     const t = strings(this.hass);
     const ov = this._snap!.override;
-    const open = ov.active || this._ovOpen;
+    const open = this._ovOpen;
     const step = (d: number) =>
       this._call("override/set", { temperature: Math.min(30, Math.max(5, (ov.value ?? 16) + d)) });
     return html`<div class="box ${ov.active ? "on" : ""}">
       <div class="box-head">
-        <button class="box-label" @click=${() => (this._ovOpen = !this._ovOpen)}>
+        <span class="box-label">
           <ha-icon icon="mdi:home-export-outline"></ha-icon>
           <span>${t.override}</span>
-          ${ov.active ? html`<span class="muted">· ${fmtTemp(ov.value)}</span>` : nothing}
+        </span>
+        <button class="value-btn ${open ? "open" : ""}" @click=${() => (this._ovOpen = !this._ovOpen)}
+          aria-expanded=${open}>
+          ${fmtTemp(ov.value)}
+          <ha-icon icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
         </button>
         <button class="switch ${ov.active ? "on" : ""}" role="switch" aria-checked=${ov.active}
           aria-label=${t.override} @click=${() => this._call("override/set", { active: !ov.active })}>
@@ -301,6 +307,59 @@ export class BestThermostatOverviewCard extends LitElement {
     css`
       .pad {
         padding: 16px;
+        container-type: inline-size;
+      }
+      .top {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      @container (min-width: 620px) {
+        .top {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          align-items: start;
+        }
+        .top .vars-line {
+          min-height: 48px;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          align-items: start;
+          gap: 8px;
+        }
+        .grid .room-block,
+        .grid .room-block + .room-block {
+          border: none;
+          border-radius: 14px;
+          background: var(--bt-surface);
+        }
+        .grid .room {
+          padding: 10px 12px;
+        }
+        .grid .icon {
+          background: var(--card-background-color, #fff);
+        }
+        .grid .controls {
+          margin: 0 10px 10px;
+          background: var(--card-background-color, #fff);
+        }
+        .grid .controls .seg {
+          background: var(--bt-surface);
+        }
+        .grid .controls .seg button[aria-selected="true"] {
+          background: var(--card-background-color, #fff);
+        }
+        .grid .controls .seg.accent button[aria-selected="true"] {
+          background: var(--bt-accent);
+        }
+        .grid .controls .round.small {
+          background: var(--bt-surface);
+        }
+        .floor {
+          margin-top: 16px;
+        }
       }
       .col {
         display: flex;
@@ -340,6 +399,21 @@ export class BestThermostatOverviewCard extends LitElement {
         gap: 8px;
         text-align: left;
         font-size: 14px;
+      }
+      .value-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        min-height: 30px;
+        padding: 0 6px 0 10px;
+        border-radius: 15px;
+        background: var(--card-background-color, #fff);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .value-btn ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--bt-muted);
       }
       .box-label ha-icon {
         --mdc-icon-size: 20px;
