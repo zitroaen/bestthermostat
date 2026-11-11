@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -18,6 +19,8 @@ from .hub import get_hub
 from .room import RoomController
 
 Connection = websocket_api.ActiveConnection
+
+SNAPSHOT_DELAY = 0.15
 
 
 def _snapshot(hass: HomeAssistant) -> dict[str, Any]:
@@ -102,11 +105,30 @@ def _handler(
 def ws_subscribe(hass: HomeAssistant, connection: Connection, msg: dict[str, Any]) -> None:
     """Send the full state now and on every change."""
 
+    pending: list[asyncio.TimerHandle | None] = [None]
+
     @callback
-    def _send(_entry_id: str | None = None) -> None:
+    def _send() -> None:
+        pending[0] = None
         connection.send_message(websocket_api.event_message(msg["id"], _snapshot(hass)))
 
-    connection.subscriptions[msg["id"]] = async_dispatcher_connect(hass, SIGNAL_UPDATE, _send)
+    @callback
+    def _schedule(_entry_id: str | None = None) -> None:
+        # Coalesce bursts (a global change touches every room, TRVs answer one
+        # after another) into a single snapshot.
+        if pending[0] is None:
+            pending[0] = hass.loop.call_later(SNAPSHOT_DELAY, _send)
+
+    unsub_dispatcher = async_dispatcher_connect(hass, SIGNAL_UPDATE, _schedule)
+
+    @callback
+    def _unsubscribe() -> None:
+        unsub_dispatcher()
+        if pending[0] is not None:
+            pending[0].cancel()
+            pending[0] = None
+
+    connection.subscriptions[msg["id"]] = _unsubscribe
     connection.send_result(msg["id"])
     _send()
 
