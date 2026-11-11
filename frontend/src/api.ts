@@ -76,7 +76,7 @@ export interface RoomData {
   base_schedule: string;
   base_mode: "auto" | "heat" | "off";
   base_manual_temperature: number;
-  area: { id: string; name: string } | null;
+  area: { id: string; name: string; icon?: string | null } | null;
   floor: FloorData | null;
   batteries?: BatteryData[];
   period: PeriodData | null;

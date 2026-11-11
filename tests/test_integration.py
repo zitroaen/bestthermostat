@@ -507,7 +507,7 @@ async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None
     ent_reg.async_get_or_create("climate", "test", "trv1", suggested_object_id="trv1")
     ent_reg.async_update_entity("climate.trv1", area_id=area.id)
     area_info, floor_info = room.area_and_floor()
-    assert area_info == {"id": area.id, "name": "Rotes Zimmer"}
+    assert area_info == {"id": area.id, "name": "Rotes Zimmer", "icon": None}
     assert floor_info is not None and floor_info["name"] == "Obergeschoss"
     assert floor_info["level"] == 1
 
@@ -518,7 +518,7 @@ async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None
     assert device is not None
     dev_reg.async_update_device(device.id, area_id=other.id)
     area_info, floor_info = room.area_and_floor()
-    assert area_info == {"id": other.id, "name": "Bad"}
+    assert area_info == {"id": other.id, "name": "Bad", "icon": None}
     assert floor_info is None
 
 

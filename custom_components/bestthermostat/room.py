@@ -278,7 +278,7 @@ class RoomController:
         floor = None
         if area.floor_id and (f := fr.async_get(self.hass).async_get_floor(area.floor_id)):
             floor = {"id": f.floor_id, "name": f.name, "level": f.level, "icon": f.icon}
-        return {"id": area.id, "name": area.name}, floor
+        return {"id": area.id, "name": area.name, "icon": area.icon}, floor
 
     @callback
     def async_start(self) -> None:

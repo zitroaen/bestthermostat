@@ -6,8 +6,9 @@ export function scheduleName(room: RoomData, id: string): string {
   return room.schedules.find((s) => s.id === id)?.name ?? id;
 }
 
-/** Icon that tells what currently controls the room. */
+/** Icon of the room: the icon of its Home Assistant area, else a state icon. */
 export function roomIcon(room: RoomData): string {
+  if (room.area?.icon) return room.area.icon;
   if (room.override_active) return "mdi:home-export-outline";
   if (room.period) return "mdi:calendar-star";
   if (room.mode === "off") return "mdi:radiator-off";
@@ -15,8 +16,32 @@ export function roomIcon(room: RoomData): string {
   return "mdi:radiator";
 }
 
+/** True if the room simply follows its schedule (no override, period, hand change). */
+export function followsSchedule(room: RoomData): boolean {
+  return room.target_source === "schedule" && !room.period && !room.override_active;
+}
+
+/**
+ * Next change shared by all rooms that simply follow their schedule (at least two),
+ * e.g. to show it once in a floor header.
+ */
+export function commonNextChange(rooms: RoomData[]): { time: string; temp: number | null } | undefined {
+  const following = rooms.filter((r) => followsSchedule(r) && r.next_change);
+  if (following.length < 2) return undefined;
+  const first = following[0];
+  const same = following.every(
+    (r) => r.next_change === first.next_change && r.next_temperature === first.next_temperature,
+  );
+  return same ? { time: first.next_change!, temp: first.next_temperature } : undefined;
+}
+
 /** One short status line: what controls the room and until when. */
-export function roomStatus(room: RoomData, t: Strings, hass: HomeAssistant): string {
+export function roomStatus(
+  room: RoomData,
+  t: Strings,
+  hass: HomeAssistant,
+  omitNextChange = false,
+): string {
   if (room.override_active) return t.src_override;
   if (room.target_source === "hand" && room.hand_until)
     return `${t.src_hand} · ${t.until} ${fmtTime(room.hand_until, hass)}`;
@@ -27,7 +52,7 @@ export function roomStatus(room: RoomData, t: Strings, hass: HomeAssistant): str
   if (room.mode === "off") return t.src_off;
   if (room.mode === "heat") return t.src_manual;
   const sched = scheduleName(room, room.active_schedule);
-  if (room.next_change)
+  if (room.next_change && !omitNextChange)
     return `${sched} · ${fmtTime(room.next_change, hass)} → ${fmtTemp(room.next_temperature)}`;
   return sched;
 }
