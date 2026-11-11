@@ -233,7 +233,8 @@ mit einem kleinen Stift, der den Wocheneditor öffnet, und ruhige Zeilen – Zei
 Priorität –, die sich beim Antippen aufklappen.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
-globale Override als ein Schalter (Tipp auf die Temperatur zum Ändern), die Variablen als
+globale Override als ein Schalter (Tipp auf die Temperatur öffnet einen Regler mit
+Temperatur-Farbverlauf, −/+ und Schnellwahl deiner Variablen), die Variablen als
 eine Zeile (Tipp zum Bearbeiten) und alle Räume – automatisch eingesammelt. Alles, was die
 Raumkarte anzeigen kann, ist auch für die Räume der Übersicht verfügbar; die Optionen
 unter `room` gelten für alle Räume. `layout: list` zeigt ruhige Zeilen und klappt einen

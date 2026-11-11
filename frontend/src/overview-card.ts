@@ -12,7 +12,7 @@ import {
 import { shared } from "./styles";
 import { startSwipe } from "./swipe";
 import { CARD_VERSION } from "./version";
-import { fmtTemp, fmtTime, strings, tempColor, updateBanner } from "./utils";
+import { fmtTemp, fmtTime, strings, tempColor, updateBanner, tempGradient } from "./utils";
 
 /** Options applied to every room (same as the room card's options). */
 export interface RoomOptions {
@@ -40,6 +40,8 @@ interface OverviewConfig {
 }
 
 const COLLAPSED_KEY = "bestthermostat.collapsedFloors";
+const MIN = 5;
+const MAX = 30;
 
 const ROOM_DEFAULTS: RoomOptions = {
   show_modes: true,
@@ -407,14 +409,7 @@ export class BestThermostatOverviewCard extends LitElement {
       </div>
       ${open
         ? html`<div class="box-body">
-            <div class="stepper">
-              <button class="round small" @click=${() => step(-0.5)}>−</button>
-              <span class="val swipeable ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
-                title=${t.swipe_hint}
-                @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}
-                @touchstart=${(e: TouchEvent) => this._swipeOverride(e, shown)}>${fmtTemp(shown)}</span>
-              <button class="round small" @click=${() => step(0.5)}>+</button>
-            </div>
+            ${this._renderOverrideSlider(shown, step)}
             <div class="also">
               <span class="muted">${t.override_also}</span>
               ${(
@@ -427,6 +422,55 @@ export class BestThermostatOverviewCard extends LitElement {
                   @click=${() => this._call("override/set", { [key]: !on })}>${label}</button>`,
               )}
             </div>
+          </div>`
+        : nothing}
+    </div>`;
+  }
+
+  private _renderOverrideSlider(shown: number | null, step: (d: number) => void) {
+    const t = strings(this.hass);
+    const ov = this._snap!.override;
+    const vars = [...this._snap!.variables].sort((a, b) => a.value - b.value);
+    const value = shown ?? 16;
+    const pos = (v: number) => ((Math.min(MAX, Math.max(MIN, v)) - MIN) / (MAX - MIN)) * 100;
+    return html`<div class="ov-slider" style="--thumb:${tempColor(value)}">
+      <div class="ov-value">
+        <button class="round small" aria-label="-0.5" @click=${() => step(-0.5)}>−</button>
+        <span class="big-val swipeable ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
+          title=${t.swipe_hint}
+          @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}
+          @touchstart=${(e: TouchEvent) => this._swipeOverride(e, shown)}>
+          ${fmtTemp(value, false)}<small>°C</small>
+        </span>
+        <button class="round small" aria-label="+0.5" @click=${() => step(0.5)}>+</button>
+      </div>
+      <div class="track">
+        <input type="range" min=${MIN} max=${MAX} step="0.5" .value=${String(value)}
+          aria-label=${t.override}
+          style="background:${tempGradient(MIN, MAX)}"
+          @input=${(e: Event) => {
+            this._pending.set("override", Number((e.target as HTMLInputElement).value));
+            window.clearTimeout(this._timers.get("override"));
+            this.requestUpdate();
+          }}
+          @change=${async (e: Event) => {
+            const v = Number((e.target as HTMLInputElement).value);
+            await this._call("override/set", { temperature: v });
+            this._pending.delete("override");
+            this.requestUpdate();
+          }} />
+        ${vars.map((v) => html`<i class="tick" style="left:${pos(v.value)}%" title=${v.name}></i>`)}
+      </div>
+      <div class="scale muted">${[5, 10, 15, 20, 25, 30].map((s) => html`<span>${s}°</span>`)}</div>
+      ${vars.length
+        ? html`<div class="quick">
+            ${vars.map(
+              (v) => html`<button class="mini q ${ov.variable === v.id ? "on" : ""}"
+                @click=${() => this._call("override/set", { variable: v.id })}>
+                <span class="dot" style="background:${tempColor(v.value)}"></span>${v.name}
+                <b>${fmtTemp(v.value, false)}°</b>
+              </button>`,
+            )}
           </div>`
         : nothing}
     </div>`;
@@ -643,11 +687,122 @@ export class BestThermostatOverviewCard extends LitElement {
       }
       .box-body {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 4px 6px 10px 0;
+      }
+      .ov-slider {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px 12px 10px;
+        border-radius: 14px;
+        background: var(--card-background-color, #fff);
+      }
+      .ov-value {
+        display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
-        padding: 4px 0 8px;
+      }
+      .ov-value .round.small {
+        background: var(--bt-surface);
+      }
+      .big-val {
+        font-size: 30px;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+        padding: 0 10px;
+      }
+      .big-val small {
+        font-size: 14px;
+        color: var(--bt-muted);
+        margin-left: 2px;
+      }
+      .track {
+        position: relative;
+        padding: 10px 0 4px;
+      }
+      .track input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        display: block;
+        width: 100%;
+        height: 10px;
+        margin: 0;
+        border-radius: 5px;
+        outline: none;
+        cursor: pointer;
+      }
+      .track input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #fff;
+        border: 5px solid var(--thumb);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+        cursor: grab;
+        position: relative;
+        z-index: 2;
+      }
+      .track input[type="range"]:active::-webkit-slider-thumb {
+        cursor: grabbing;
+        transform: scale(1.08);
+      }
+      .track input[type="range"]::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        border: 5px solid var(--thumb);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+        cursor: grab;
+      }
+      .track input[type="range"]::-moz-range-track {
+        background: transparent;
+      }
+      .track input[type="range"]:focus-visible::-webkit-slider-thumb {
+        outline: 2px solid var(--bt-accent);
+        outline-offset: 2px;
+      }
+      .tick {
+        position: absolute;
+        top: 12px;
+        width: 2px;
+        height: 6px;
+        margin-left: -1px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.9);
+        pointer-events: none;
+      }
+      .scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        padding: 0 2px;
+      }
+      .quick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 4px;
+      }
+      .mini.q {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--bt-surface);
+        color: var(--primary-text-color);
+      }
+      .mini.q b {
+        font-weight: 600;
+      }
+      .mini.q.on {
+        background: var(--bt-accent);
+        color: var(--text-primary-color, #fff);
       }
       .switch {
         width: 40px;

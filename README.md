@@ -235,7 +235,8 @@ timeline for today with a small pencil that opens the weekly editor; below that 
 – periods, priority – that expand when tapped.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
-as a single switch (tap the temperature to change it), the variables as one line (tap to
+as a single switch (tap the temperature to open a slider with a temperature-coloured
+track, −/+ and quick picks for your variables), the variables as one line (tap to
 edit) and all rooms – collected automatically. Everything the room card can show is
 available for the rooms of the overview; the `room` options apply to all rooms.
 `layout: list` shows calm rows and expands a room on tap, `layout: tiles` shows every
