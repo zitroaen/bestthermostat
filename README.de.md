@@ -87,6 +87,25 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
 bearbeiten und löschen. Eine Variable, die noch in einem Zeitplan verwendet wird, lässt
 sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.
 
+## Apple Home, Google Home (Matter / HomeKit)
+
+Matter und HomeKit kennen für Thermostate nur Aus, Heizen, Kühlen und Auto (= Heizen/
+Kühlen). Das `auto` (Zeitplan) des Raumthermostats erscheint dort deshalb nicht, und
+„Heizung“ würde den Raum auf Manuell schalten.
+
+Schalte **„Apple Home / Matter-kompatible Modi“** ein (Eintrag „Best Thermostat“ →
+*Konfigurieren* → *Einstellungen*). Die Raumthermostate bieten dann nur **Heizung** und
+**Aus**:
+
+- **Heizung** = Zeitplan (ein Raum im Modus Manuell wird als Heizung angezeigt)
+- **Aus** = Frostschutz
+- **Temperatur ändern** gilt als Änderung von Hand (nach Raum-Einstellung, z. B. bis zum
+  nächsten Slot)
+- Der Modus Manuell bleibt in den Karten voll verfügbar
+
+Es entstehen keine zusätzlichen Entitäten. Der Schalter für den globalen Override kann
+zusätzlich freigegeben werden.
+
 ## Priorität der Solltemperatur
 
 | Priorität | Ebene |

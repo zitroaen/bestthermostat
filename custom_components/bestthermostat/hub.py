@@ -55,6 +55,7 @@ class Hub:
         self.rooms_data: dict[str, dict[str, Any]] = {}
         self.controllers: dict[str, RoomController] = {}
         self.global_entry_id: str | None = None
+        self.simple_modes = False
 
     async def async_load(self) -> None:
         """Load persisted data."""

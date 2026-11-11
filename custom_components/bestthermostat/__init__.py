@@ -18,6 +18,7 @@ from homeassistant.helpers.typing import ConfigType
 from .const import (
     CONF_ENTRY_TYPE,
     CONF_HIDE_TRVS,
+    CONF_SIMPLE_MODES,
     CONF_TRVS,
     DEFAULT_HIDE_TRVS,
     DOMAIN,
@@ -81,7 +82,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hub = get_hub(hass)
     if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_GLOBAL:
         hub.global_entry_id = entry.entry_id
+        hub.simple_modes = bool(entry.options.get(CONF_SIMPLE_MODES, False))
         await hass.config_entries.async_forward_entry_setups(entry, GLOBAL_PLATFORMS)
+        entry.async_on_unload(entry.add_update_listener(_async_global_options_changed))
         return True
 
     if not any(
@@ -106,6 +109,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hub.notify(None)
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     return True
+
+
+async def _async_global_options_changed(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    hub = get_hub(hass)
+    simple = bool(entry.options.get(CONF_SIMPLE_MODES, False))
+    if simple != hub.simple_modes:
+        hub.simple_modes = simple
+        hub.notify(None)  # room thermostats re-report their modes
 
 
 async def _async_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
