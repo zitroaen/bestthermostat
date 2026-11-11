@@ -243,7 +243,8 @@ room as a tile in as many columns as fit – ideal as the main view.
 
 **Floors:** rooms are grouped by the floors configured in Home Assistant, ordered by the
 floor level. Tap a floor header to collapse it (remembered per device). If several rooms
-of a floor share the next change, it is shown once in the floor header. Rooms use the
+of a floor share the next change, it is shown once in the floor header. Swipe horizontally on a
+room's temperature (or on the override temperature) to change it. Rooms use the
 icon of their Home Assistant area; the target is only shown when it differs from the
 current temperature by 0.5° or more. The area of the Best Thermostat room device is used; if it has none, the
 area of its thermostats. New room devices get that area suggested automatically. Rooms

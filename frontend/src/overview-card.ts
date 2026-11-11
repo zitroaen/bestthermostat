@@ -38,6 +38,7 @@ interface OverviewConfig {
 }
 
 const COLLAPSED_KEY = "bestthermostat.collapsedFloors";
+const SWIPE_STEP = 24;
 
 const ROOM_DEFAULTS: RoomOptions = {
   show_modes: true,
@@ -170,6 +171,84 @@ export class BestThermostatOverviewCard extends LitElement {
         this.requestUpdate();
       }, 600),
     );
+  }
+
+  // ---------------------------------------------------------------- swipe
+
+  _swipe?: { key: string; x: number; start: number; min: number; max: number; moved: boolean; id: number; commit: (v: number) => Promise<void> };
+  private _swipeConsumed = false;
+
+  /** Horizontal swipe on a temperature: 0.5 °C per SWIPE_STEP px, sent on release. */
+  private _swipeStart(
+    ev: PointerEvent,
+    key: string,
+    start: number,
+    min: number,
+    max: number,
+    commit: (v: number) => Promise<void>,
+  ) {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    this._swipe = { key, x: ev.clientX, start: this._pending.get(key) ?? start, min, max, moved: false, id: ev.pointerId, commit };
+    window.addEventListener("pointermove", this._onSwipeMove);
+    window.addEventListener("pointerup", this._onSwipeEnd);
+    window.addEventListener("pointercancel", this._onSwipeCancel);
+  }
+
+  private _swipeOverride(ev: PointerEvent, shown: number | null) {
+    this._swipeStart(ev, "override", shown ?? 16, 5, 30, (v) => this._call("override/set", { temperature: v }));
+  }
+
+  private _onSwipeMove = (ev: PointerEvent) => {
+    const sw = this._swipe;
+    if (!sw || sw.id !== ev.pointerId) return;
+    const dx = ev.clientX - sw.x;
+    if (!sw.moved) {
+      if (Math.abs(dx) < 10) return;
+      sw.moved = true;
+    }
+    ev.preventDefault();
+    const value = Math.min(sw.max, Math.max(sw.min, Math.round((sw.start + Math.round(dx / SWIPE_STEP) * 0.5) * 2) / 2));
+    if (value !== this._pending.get(sw.key)) {
+      this._pending.set(sw.key, value);
+      window.clearTimeout(this._timers.get(sw.key));
+      navigator.vibrate?.(5);
+    }
+    this.requestUpdate();
+  };
+
+  private _onSwipeEnd = async (ev: PointerEvent) => {
+    const sw = this._swipe;
+    this._removeSwipeListeners();
+    this._swipe = undefined;
+    if (!sw || sw.id !== ev.pointerId || !sw.moved) return;
+    // Swallow only the click that directly follows this swipe.
+    this._swipeConsumed = true;
+    window.setTimeout(() => (this._swipeConsumed = false), 0);
+    const value = this._pending.get(sw.key);
+    if (value === undefined) return;
+    await sw.commit(value);
+    this._pending.delete(sw.key);
+    this.requestUpdate();
+  };
+
+  private _onSwipeCancel = () => {
+    if (this._swipe) this._pending.delete(this._swipe.key);
+    this._swipe = undefined;
+    this._removeSwipeListeners();
+    this.requestUpdate();
+  };
+
+  private _removeSwipeListeners() {
+    window.removeEventListener("pointermove", this._onSwipeMove);
+    window.removeEventListener("pointerup", this._onSwipeEnd);
+    window.removeEventListener("pointercancel", this._onSwipeCancel);
+  }
+
+  /** True once after a swipe, so the click that follows does not toggle anything. */
+  private _consumeSwipe(): boolean {
+    const consumed = this._swipeConsumed;
+    this._swipeConsumed = false;
+    return consumed;
   }
 
   private _varStep(id: string, value: number, delta: number) {
@@ -318,7 +397,13 @@ export class BestThermostatOverviewCard extends LitElement {
           <ha-icon icon="mdi:home-export-outline"></ha-icon>
           <span>${t.override}</span>
         </span>
-        <button class="value-btn ${open ? "open" : ""}" @click=${() => (this._ovOpen = !this._ovOpen)}
+        <button class="value-btn swipeable ${open ? "open" : ""} ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
+          title=${t.swipe_hint}
+          @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}
+          @click=${() => {
+            if (this._consumeSwipe()) return;
+            this._ovOpen = !this._ovOpen;
+          }}
           aria-expanded=${open}>
           ${fmtTemp(shown)}
           <ha-icon icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
@@ -332,7 +417,9 @@ export class BestThermostatOverviewCard extends LitElement {
         ? html`<div class="box-body">
             <div class="stepper">
               <button class="round small" @click=${() => step(-0.5)}>−</button>
-              <span class="val">${fmtTemp(shown)}</span>
+              <span class="val swipeable ${this._swipe?.key === "override" && this._swipe.moved ? "swiping" : ""}"
+                title=${t.swipe_hint}
+                @pointerdown=${(e: PointerEvent) => this._swipeOverride(e, shown)}>${fmtTemp(shown)}</span>
               <button class="round small" @click=${() => step(0.5)}>+</button>
             </div>
             <div class="also">
@@ -390,7 +477,10 @@ export class BestThermostatOverviewCard extends LitElement {
     const open = this._open === room.entry_id;
     const next = this._config?.room?.show_periods ? upcomingPeriods(room)[0] : undefined;
     return html`<div class="room-block ${open ? "open" : ""}">
-      <button class="room" @click=${() => (this._open = open ? undefined : room.entry_id)}>
+      <button class="room" @click=${() => {
+        if (this._consumeSwipe()) return;
+        this._open = open ? undefined : room.entry_id;
+      }}>
         <span class="icon ${heating ? "heating" : ""} ${room.mode === "off" ? "off" : ""}">
           <ha-icon icon=${roomIcon(room)}></ha-icon>
         </span>
@@ -407,13 +497,19 @@ export class BestThermostatOverviewCard extends LitElement {
               </span>`
             : nothing}
         </span>
-        <span class="temps">
+        <span class="temps swipeable ${this._swipe?.key === `room:${room.entry_id}` && this._swipe.moved ? "swiping" : ""}"
+          title=${t.swipe_hint}
+          @pointerdown=${(e: PointerEvent) =>
+            this._swipeStart(e, `room:${room.entry_id}`, room.target_temperature ?? 20, room.min_temp, room.max_temp,
+              (v) => this._call("room/temperature", { entry_id: room.entry_id, temperature: v }))}>
           <span class="cur">${fmtTemp(room.current_temperature, false)}°</span>
-          ${room.current_temperature == null ||
-          room.target_temperature == null ||
-          Math.abs(room.current_temperature - room.target_temperature) >= 0.5
-            ? html`<span class="muted tgt">→ ${fmtTemp(room.target_temperature, false)}°</span>`
-            : nothing}
+          ${this._pending.has(`room:${room.entry_id}`)
+            ? html`<span class="tgt live">→ ${fmtTemp(this._pending.get(`room:${room.entry_id}`), false)}°</span>`
+            : room.current_temperature == null ||
+                room.target_temperature == null ||
+                Math.abs(room.current_temperature - room.target_temperature) >= 0.5
+              ? html`<span class="muted tgt">→ ${fmtTemp(room.target_temperature, false)}°</span>`
+              : nothing}
         </span>
       </button>
       ${open
@@ -679,6 +775,30 @@ export class BestThermostatOverviewCard extends LitElement {
       }
       .floor ha-icon {
         --mdc-icon-size: 16px;
+      }
+      .swipeable {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: ew-resize;
+        border-radius: 10px;
+        transition: background 0.15s;
+      }
+      .temps.swipeable {
+        padding: 2px 6px;
+        margin: -2px -6px;
+      }
+      .swiping {
+        background: var(--bt-surface);
+      }
+      .swiping .tgt,
+      .tgt.live,
+      .val.swiping,
+      .value-btn.swiping {
+        color: var(--bt-accent);
+      }
+      .val.swipeable {
+        padding: 4px 0;
       }
       .floor-next {
         margin-left: auto;
