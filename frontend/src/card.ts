@@ -298,6 +298,7 @@ export class BestThermostatCard extends LitElement {
             <div class="name">${name}</div>
             <div class="sub muted">${sub}</div>
           </div>
+          ${c.show_editor && !(c.show_timeline && !c.compact) ? this._pencil() : nothing}
         </div>`}
 
         <div class="hero">
@@ -330,6 +331,15 @@ export class BestThermostatCard extends LitElement {
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
       </ha-card>
     `;
+  }
+
+  /** Small pencil that opens the weekly editor. */
+  private _pencil() {
+    const t = strings(this.hass);
+    return html`<button class="pencil" title=${t.edit} aria-label=${t.edit}
+      @click=${() => (this._editing = true)}>
+      <ha-icon icon="mdi:pencil"></ha-icon>
+    </button>`;
   }
 
   private _renderModes(room: RoomData) {
@@ -367,7 +377,10 @@ export class BestThermostatCard extends LitElement {
     const now = nowMinutes();
     const paused = room.mode !== "auto" || room.override_active;
     return html`<div class="timeline ${paused ? "paused" : ""}">
-      <div class="cap muted">${t.today} · ${sched.name}${paused ? ` · ${t.schedule_paused}` : ""}</div>
+      <div class="cap muted">
+        <span>${t.today} · ${sched.name}${paused ? ` · ${t.schedule_paused}` : ""}</span>
+        ${this._config!.show_editor ? this._pencil() : nothing}
+      </div>
       <div class="bar">
         ${segs.map((s) => {
           const temp = resolveSlot(s.slot, vars);
@@ -413,9 +426,6 @@ export class BestThermostatCard extends LitElement {
       ${c.show_priorities
         ? html`${this._row("mdi:layers-triple-outline", t.prio_short, winner.name, "prio")}
           ${this._section === "prio" ? html`<div class="detail">${this._renderPriorities(prio)}</div>` : nothing}`
-        : nothing}
-      ${c.show_editor
-        ? this._row("mdi:calendar-edit", t.edit, "", undefined, () => (this._editing = true))
         : nothing}
     </div>`;
   }
@@ -623,8 +633,33 @@ export class BestThermostatCard extends LitElement {
         box-shadow: none;
       }
       .timeline .cap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-size: 12px;
         margin-bottom: 6px;
+        min-height: 28px;
+      }
+      .pencil {
+        width: 32px;
+        height: 32px;
+        margin: -4px -6px -4px 0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bt-muted);
+        flex: none;
+      }
+      .pencil:hover {
+        background: var(--bt-surface);
+        color: var(--primary-text-color);
+      }
+      .pencil ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .timeline .cap {
+        margin-bottom: 2px;
       }
       .timeline .bar {
         position: relative;
