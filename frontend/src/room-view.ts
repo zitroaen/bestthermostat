@@ -99,3 +99,20 @@ export function upcomingPeriods(room: RoomData) {
     .filter((p) => new Date(p.start).getTime() > now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 }
+
+/** Lowest battery of a room (or undefined if none is reported). */
+export function lowestBattery(room: RoomData) {
+  const list = room.batteries ?? [];
+  if (!list.length) return undefined;
+  const withLevel = list.filter((b) => b.level != null);
+  const low = list.some((b) => b.low);
+  const level = withLevel.length ? Math.min(...withLevel.map((b) => b.level as number)) : null;
+  return { level, low };
+}
+
+export function batteryIcon(level: number | null, low: boolean | null): string {
+  if (level == null) return low ? "mdi:battery-alert-variant-outline" : "mdi:battery";
+  if (level <= 10) return "mdi:battery-alert-variant-outline";
+  if (level >= 95) return "mdi:battery";
+  return `mdi:battery-${Math.max(10, Math.floor(level / 10) * 10)}`;
+}

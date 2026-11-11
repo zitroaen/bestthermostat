@@ -42,6 +42,13 @@ export interface PeriodData {
   title: string;
 }
 
+export interface BatteryData {
+  entity_id: string;
+  name: string;
+  level: number | null;
+  low: boolean | null;
+}
+
 export interface FloorData {
   id: string;
   name: string;
@@ -70,6 +77,7 @@ export interface RoomData {
   base_manual_temperature: number;
   area: { id: string; name: string } | null;
   floor: FloorData | null;
+  batteries?: BatteryData[];
   period: PeriodData | null;
   periods: PeriodData[];
   hand_until: string | null;
