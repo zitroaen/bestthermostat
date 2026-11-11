@@ -310,8 +310,8 @@ export class BestThermostatCard extends LitElement {
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
-        ${c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
         ${c.show_timeline && !c.compact ? this._renderTimeline(room) : nothing}
+        ${c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
         ${c.compact ? nothing : this._renderList(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
       </ha-card>
