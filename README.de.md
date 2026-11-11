@@ -200,10 +200,20 @@ show_priorities: true   # Zeile, welche Prioritäts-Ebene gerade bestimmt (aufkl
 ```yaml
 type: custom:bestthermostat-overview-card
 title: Heizung
+layout: tiles          # list (Raum antippen zum Aufklappen) oder tiles (alle Räume offen)
+show_summary: true
 show_override: true
 show_variables: true
-show_periods: true    # nächsten geplanten Zeitraum je Raum anzeigen
-group_by_floor: true  # Räume nach HA-Stockwerken gruppieren
+group_by_floor: true
+exclude_rooms: [climate.keller]
+room:                  # gilt für alle Räume – dieselben Optionen wie die Raumkarte
+  show_modes: true
+  show_schedules: true
+  show_timeline: true
+  show_periods: true
+  show_priorities: true
+  show_editor: true
+  compact: false
 ```
 
 **Raumkarte:** Oben Icon, Name und Status; die Ist-Temperatur groß, daneben das Soll
@@ -213,9 +223,12 @@ und ruhige Zeilen – Zeiträume, Priorität, Wocheneditor –, die sich beim An
 aufklappen.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
-globale Override als ein Schalter (Details klappen auf, wenn er an ist oder angetippt
-wird), die Variablen als eine Zeile (Tipp zum Bearbeiten) und die Räume als Liste. Ein
-Tipp auf einen Raum klappt seine Bedienung auf (Modus, Zeitplan, Temperatur).
+globale Override als ein Schalter (Tipp auf die Temperatur zum Ändern), die Variablen als
+eine Zeile (Tipp zum Bearbeiten) und alle Räume – automatisch eingesammelt. Alles, was die
+Raumkarte anzeigen kann, ist auch für die Räume der Übersicht verfügbar; die Optionen
+unter `room` gelten für alle Räume. `layout: list` zeigt ruhige Zeilen und klappt einen
+Raum beim Antippen auf, `layout: tiles` zeigt jeden Raum als Kachel in so vielen Spalten,
+wie Platz ist – ideal als Hauptansicht.
 
 **Stockwerke:** Die Räume werden nach den in Home Assistant angelegten Stockwerken
 gruppiert, sortiert nach der Ebene. Verwendet wird der Bereich des Best-Thermostat-

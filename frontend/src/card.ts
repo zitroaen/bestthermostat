@@ -33,6 +33,10 @@ export interface CardConfig {
   show_editor?: boolean;
   show_periods?: boolean;
   show_priorities?: boolean;
+  /** Used inside the overview card: no card frame, optional header. */
+  embedded?: boolean;
+  show_header?: boolean;
+  show_floor?: boolean;
 }
 
 export class BestThermostatCard extends LitElement {
@@ -86,8 +90,14 @@ export class BestThermostatCard extends LitElement {
       show_editor: true,
       show_periods: true,
       show_priorities: true,
+      show_header: true,
       ...config,
     };
+  }
+
+  /** Property alternative to setConfig (used when embedded by the overview card). */
+  set config(config: CardConfig) {
+    this.setConfig(config);
   }
 
   getCardSize() {
@@ -269,13 +279,17 @@ export class BestThermostatCard extends LitElement {
     const heating = room.hvac_action === "heating";
     const target = this._pending ?? room.target_temperature;
     const name = c.name || room.name;
-    const sub = [room.floor?.name, roomStatus(room, t, this.hass), heating ? t.heating : ""]
+    const sub = [
+      c.show_floor === false ? "" : room.floor?.name,
+      roomStatus(room, t, this.hass),
+      heating ? t.heating : "",
+    ]
       .filter(Boolean)
       .join(" · ");
 
     return html`
-      <ha-card class=${c.compact ? "compact" : ""}>
-        <div class="head">
+      <ha-card class="${c.compact ? "compact" : ""} ${c.embedded ? "embedded" : ""}">
+        ${c.show_header === false ? nothing : html`<div class="head">
           <button class="icon ${heating ? "heating" : ""}" @click=${() => this._moreInfo(room)}
             aria-label=${name}>
             <ha-icon icon=${roomIcon(room)}></ha-icon>
@@ -284,7 +298,7 @@ export class BestThermostatCard extends LitElement {
             <div class="name">${name}</div>
             <div class="sub muted">${sub}</div>
           </div>
-        </div>
+        </div>`}
 
         <div class="hero">
           <div class="current">
@@ -347,7 +361,9 @@ export class BestThermostatCard extends LitElement {
     const sched = room.schedules.find((s) => s.id === room.active_schedule);
     if (!sched) return nothing;
     const vars = this._snap!.variables;
-    const segs = segments(sched.week[todayKey()] ?? sched.week[DAYS[0]]);
+    const day = sched.week?.[todayKey()] ?? sched.week?.[DAYS[0]];
+    if (!day?.length) return nothing;
+    const segs = segments(day);
     const now = nowMinutes();
     const paused = room.mode !== "auto" || room.override_active;
     return html`<div class="timeline ${paused ? "paused" : ""}">
@@ -467,6 +483,17 @@ export class BestThermostatCard extends LitElement {
       }
       .msg {
         padding: 8px;
+      }
+      ha-card.embedded {
+        --ha-card-background: transparent;
+        --ha-card-box-shadow: none;
+        --ha-card-border-width: 0;
+        background: transparent;
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        height: auto;
+        overflow: visible;
       }
       .head {
         display: flex;
