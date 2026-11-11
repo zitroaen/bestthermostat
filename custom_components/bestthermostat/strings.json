@@ -50,7 +50,8 @@
         "menu_options": {
           "add_variable": "Add variable",
           "edit_variable": "Edit variable",
-          "remove_variable": "Delete variable"
+          "remove_variable": "Delete variable",
+          "settings": "Settings"
         }
       },
       "add_variable": {
@@ -84,6 +85,15 @@
           "name": "Name",
           "value": "Temperature",
           "variable": "Variable"
+        }
+      },
+      "settings": {
+        "title": "Settings",
+        "data": {
+          "simple_modes": "Apple Home / Matter compatible modes"
+        },
+        "data_description": {
+          "simple_modes": "Room thermostats only offer Heat and Off: Heat follows the schedule, Off is frost protection, temperature changes are handled like hand changes. Manual mode remains available in the card. Recommended when exposing rooms to Apple Home or Google Home via Matter or HomeKit."
         }
       }
     },

@@ -520,3 +520,55 @@ async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None
     area_info, floor_info = room.area_and_floor()
     assert area_info == {"id": other.id, "name": "Bad"}
     assert floor_info is None
+
+
+async def test_simple_modes(hass: HomeAssistant, room: RoomController) -> None:
+    """Apple Home / Matter compatible modes: heat = schedule, off = frost protection."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    global_entry = next(e for e in entries if e.data.get("entry_type") == ENTRY_TYPE_GLOBAL)
+    result = await hass.config_entries.options.async_init(global_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"simple_modes": True}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await settle(hass)
+    state = hass.states.get("climate.arbeitszimmer")
+    assert state is not None
+    assert state.attributes["hvac_modes"] == ["heat", "off"]
+    assert state.state == "heat"
+
+    # a planned-period-free room following the schedule stays untouched on "heat"
+    period = room.add_period(schedule="Default", end=None)
+    await hass.services.async_call(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.arbeitszimmer", "hvac_mode": "heat"},
+        blocking=True,
+    )
+    assert room.state.periods == [period]
+    room.cancel_period(period.id)
+
+    await hass.services.async_call(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.arbeitszimmer", "hvac_mode": "off"},
+        blocking=True,
+    )
+    await settle(hass)
+    assert temps(hass) == (5.0, 5.0)
+    await hass.services.async_call(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.arbeitszimmer", "hvac_mode": "heat"},
+        blocking=True,
+    )
+    await settle(hass)
+    assert room.state.mode == "auto"
+    assert temps(hass) == (21.0, 21.0)
+    # manual (set in the card) is shown as heat
+    room.set_mode("heat", 19.0)
+    await settle(hass)
+    assert hass.states.get("climate.arbeitszimmer").state == "heat"  # type: ignore[union-attr]

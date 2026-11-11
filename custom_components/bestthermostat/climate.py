@@ -35,7 +35,6 @@ class RoomClimate(RoomEntity, ClimateEntity):
     """Thermostat of a room."""
 
     _attr_name = None
-    _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.TURN_ON
@@ -54,9 +53,32 @@ class RoomClimate(RoomEntity, ClimateEntity):
         self.controller.climate_entity_id = self.entity_id
 
     @property
+    def _simple(self) -> bool:
+        """Apple Home / Matter compatible modes: heat (= schedule) and off."""
+        return self.controller.hub.simple_modes
+
+    @property
+    def hvac_modes(self) -> list[HVACMode]:
+        """Available modes."""
+        if self._simple:
+            return [HVACMode.HEAT, HVACMode.OFF]
+        return [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
+
+    @property
     def hvac_mode(self) -> HVACMode:
         """Current mode."""
+        if self._simple:
+            return HVACMode.OFF if self.controller.mode == MODE_OFF else HVACMode.HEAT
         return MODE_TO_HVAC[self.controller.mode]
+
+    def _apply_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        if self._simple and hvac_mode in (HVACMode.HEAT, HVACMode.AUTO):
+            # "Heat" means: follow the schedule. Already following it (possibly
+            # through a period)? Then keep everything as it is.
+            if self.controller.mode != MODE_AUTO:
+                self.controller.set_mode(MODE_AUTO)
+            return
+        self.controller.set_mode(HVAC_TO_MODE[hvac_mode])
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -104,14 +126,16 @@ class RoomClimate(RoomEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set a temperature for the room."""
         if (mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
-            self.controller.set_mode(HVAC_TO_MODE[HVACMode(mode)], kwargs.get(ATTR_TEMPERATURE))
-            return
+            if not self._simple:
+                self.controller.set_mode(HVAC_TO_MODE[HVACMode(mode)], kwargs.get(ATTR_TEMPERATURE))
+                return
+            self._apply_hvac_mode(HVACMode(mode))
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
             self.controller.set_temperature(temperature)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Change the mode."""
-        self.controller.set_mode(HVAC_TO_MODE[hvac_mode])
+        self._apply_hvac_mode(hvac_mode)
 
     async def async_turn_on(self) -> None:
         """Turn on = follow the schedule."""

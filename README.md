@@ -91,6 +91,23 @@ language of Home Assistant.
 variable that is still used in a schedule cannot be deleted. Variables can also be
 managed in the card.
 
+## Apple Home, Google Home (Matter / HomeKit)
+
+Matter and HomeKit only know the thermostat modes off, heat, cool and auto (= heat/cool).
+The room thermostat's `auto` (schedule) is therefore not shown there, and choosing
+"Heat" would switch the room to manual mode.
+
+Enable **"Apple Home / Matter compatible modes"** (entry "Best Thermostat" →
+*Configure* → *Settings*). Room thermostats then only offer **Heat** and **Off**:
+
+- **Heat** = follow the schedule (a room in manual mode is shown as Heat)
+- **Off** = frost protection
+- **Changing the temperature** is handled like a hand change (room setting, e.g. until
+  the next slot)
+- Manual mode stays fully available in the cards
+
+No extra entities are created. The global override switch can be exposed as well.
+
 ## Priority of the set-point
 
 | Priority | Layer |

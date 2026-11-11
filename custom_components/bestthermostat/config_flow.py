@@ -21,6 +21,7 @@ from .const import (
     CONF_FROST_TEMPERATURE,
     CONF_HAND_CHANGE,
     CONF_HIDE_TRVS,
+    CONF_SIMPLE_MODES,
     CONF_SYNC_TRVS,
     CONF_TRVS,
     DEFAULT_FROST_TEMPERATURE,
@@ -175,7 +176,31 @@ class GlobalOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show the menu."""
         return self.async_show_menu(
-            step_id="init", menu_options=["add_variable", "edit_variable", "remove_variable"]
+            step_id="init",
+            menu_options=["settings", "add_variable", "edit_variable", "remove_variable"],
+        )
+
+    async def async_step_settings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """General settings."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={
+                    **self.config_entry.options,
+                    CONF_SIMPLE_MODES: bool(user_input[CONF_SIMPLE_MODES]),
+                }
+            )
+        return self.async_show_form(
+            step_id="settings",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SIMPLE_MODES,
+                        default=self.config_entry.options.get(CONF_SIMPLE_MODES, False),
+                    ): selector.BooleanSelector()
+                }
+            ),
         )
 
     def _var_selector(self) -> selector.SelectSelector:

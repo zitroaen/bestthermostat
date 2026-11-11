@@ -50,7 +50,8 @@
         "menu_options": {
           "add_variable": "Variable hinzufügen",
           "edit_variable": "Variable bearbeiten",
-          "remove_variable": "Variable löschen"
+          "remove_variable": "Variable löschen",
+          "settings": "Einstellungen"
         }
       },
       "add_variable": {
@@ -84,6 +85,15 @@
           "name": "Name",
           "value": "Temperatur",
           "variable": "Variable"
+        }
+      },
+      "settings": {
+        "title": "Einstellungen",
+        "data": {
+          "simple_modes": "Apple Home / Matter-kompatible Modi"
+        },
+        "data_description": {
+          "simple_modes": "Raumthermostate bieten nur Heizung und Aus an: Heizung folgt dem Zeitplan, Aus ist Frostschutz, Temperaturänderungen gelten als Änderung von Hand. Der Modus Manuell bleibt in der Karte verfügbar. Empfohlen, wenn Räume per Matter oder HomeKit an Apple Home oder Google Home freigegeben werden."
         }
       }
     },
