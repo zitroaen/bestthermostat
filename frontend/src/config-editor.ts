@@ -16,6 +16,10 @@ const LABELS: Record<string, { de: string; en: string }> = {
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
   show_variables: { de: "Variablen anzeigen", en: "Show variables" },
   group_by_floor: { de: "Nach Stockwerk gruppieren", en: "Group by floor" },
+  layout: { de: "Darstellung", en: "Layout" },
+  show_summary: { de: "Zusammenfassung anzeigen", en: "Show summary" },
+  room: { de: "Räume (gilt für alle)", en: "Rooms (applies to all)" },
+  exclude_rooms: { de: "Räume ausblenden", en: "Hide rooms" },
 };
 
 const ROOM_SCHEMA = [
@@ -40,29 +44,71 @@ const ROOM_SCHEMA = [
   },
 ];
 
-const OVERVIEW_SCHEMA = [
-  { name: "title", selector: { text: {} } },
-  {
-    type: "grid",
-    name: "",
-    schema: [
-      { name: "show_override", selector: { boolean: {} } },
-      { name: "show_variables", selector: { boolean: {} } },
-      { name: "show_periods", selector: { boolean: {} } },
-      { name: "group_by_floor", selector: { boolean: {} } },
-    ],
-  },
+const ROOM_OPTIONS = [
+  { name: "show_modes", selector: { boolean: {} } },
+  { name: "show_schedules", selector: { boolean: {} } },
+  { name: "show_timeline", selector: { boolean: {} } },
+  { name: "show_periods", selector: { boolean: {} } },
+  { name: "show_priorities", selector: { boolean: {} } },
+  { name: "show_editor", selector: { boolean: {} } },
+  { name: "compact", selector: { boolean: {} } },
 ];
+
+function overviewSchema(de: boolean) {
+  return [
+    { name: "title", selector: { text: {} } },
+    {
+      name: "layout",
+      selector: {
+        select: {
+          mode: "box",
+          options: [
+            { value: "list", label: de ? "Liste (Raum zum Aufklappen)" : "List (tap to expand)" },
+            { value: "tiles", label: de ? "Kacheln (alle Räume offen)" : "Tiles (all rooms open)" },
+          ],
+        },
+      },
+    },
+    {
+      type: "grid",
+      name: "",
+      schema: [
+        { name: "show_summary", selector: { boolean: {} } },
+        { name: "show_override", selector: { boolean: {} } },
+        { name: "show_variables", selector: { boolean: {} } },
+        { name: "group_by_floor", selector: { boolean: {} } },
+      ],
+    },
+    {
+      type: "expandable",
+      name: "room",
+      title: de ? "Räume (gilt für alle)" : "Rooms (applies to all)",
+      schema: [{ type: "grid", name: "", schema: ROOM_OPTIONS }],
+    },
+    {
+      name: "exclude_rooms",
+      selector: {
+        entity: { multiple: true, filter: { domain: "climate", integration: "bestthermostat" } },
+      },
+    },
+  ];
+}
 
 abstract class BaseEditor extends LitElement {
   static properties = { hass: { attribute: false }, _config: { state: true } };
   hass?: HomeAssistant;
   _config?: Record<string, unknown>;
-  protected abstract schema: unknown[];
+  protected abstract get schema(): unknown[];
   protected abstract defaults: Record<string, unknown>;
 
   setConfig(config: CardConfig) {
-    this._config = { ...this.defaults, ...config };
+    const defaults = this.defaults as Record<string, any>;
+    const cfg = config as Record<string, any>;
+    this._config = {
+      ...defaults,
+      ...cfg,
+      ...(defaults.room ? { room: { ...defaults.room, ...(cfg.room ?? {}) } } : {}),
+    };
   }
 
   private _label = (s: { name: string }) => {
@@ -92,7 +138,9 @@ abstract class BaseEditor extends LitElement {
 }
 
 export class BestThermostatCardEditor extends BaseEditor {
-  protected schema = ROOM_SCHEMA;
+  protected get schema(): unknown[] {
+    return ROOM_SCHEMA;
+  }
   protected defaults = {
     compact: false,
     show_modes: true,
@@ -105,12 +153,26 @@ export class BestThermostatCardEditor extends BaseEditor {
 }
 
 export class BestThermostatOverviewEditor extends BaseEditor {
-  protected schema = OVERVIEW_SCHEMA;
+  protected get schema(): unknown[] {
+    const lang = this.hass?.locale?.language || this.hass?.language || "en";
+    return overviewSchema(lang.startsWith("de"));
+  }
+
   protected defaults = {
+    layout: "list",
+    show_summary: true,
     show_override: true,
     show_variables: true,
-    show_periods: true,
     group_by_floor: true,
+    room: {
+      show_modes: true,
+      show_schedules: true,
+      show_timeline: true,
+      show_periods: true,
+      show_priorities: true,
+      show_editor: true,
+      compact: false,
+    },
   };
 }
 

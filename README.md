@@ -202,10 +202,20 @@ show_priorities: true   # row showing which priority layer is in control (expand
 ```yaml
 type: custom:bestthermostat-overview-card
 title: Heating
+layout: tiles          # list (tap a room to expand) or tiles (all rooms open)
+show_summary: true
 show_override: true
 show_variables: true
-show_periods: true    # show the next planned period per room
-group_by_floor: true  # group rooms by Home Assistant floors
+group_by_floor: true
+exclude_rooms: [climate.basement]
+room:                  # applies to all rooms – same options as the room card
+  show_modes: true
+  show_schedules: true
+  show_timeline: true
+  show_periods: true
+  show_priorities: true
+  show_editor: true
+  compact: false
 ```
 
 **Room card:** icon, name and status at the top; current temperature large with the
@@ -215,9 +225,11 @@ timeline for today; below that calm rows – periods, priority, weekly editor �
 when tapped.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
-as a single switch (details expand when it is on or tapped), the variables as one line
-(tap to edit) and the rooms as a list. Tapping a room expands its controls (mode,
-schedule, temperature).
+as a single switch (tap the temperature to change it), the variables as one line (tap to
+edit) and all rooms – collected automatically. Everything the room card can show is
+available for the rooms of the overview; the `room` options apply to all rooms.
+`layout: list` shows calm rows and expands a room on tap, `layout: tiles` shows every
+room as a tile in as many columns as fit – ideal as the main view.
 
 **Floors:** rooms are grouped by the floors configured in Home Assistant, ordered by the
 floor level. The area of the Best Thermostat room device is used; if it has none, the

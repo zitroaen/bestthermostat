@@ -5,14 +5,39 @@ import { roomIcon, roomStatus, upcomingPeriods } from "./room-view";
 import { shared } from "./styles";
 import { fmtTemp, fmtTime, strings, tempColor } from "./utils";
 
+/** Options applied to every room (same as the room card's options). */
+export interface RoomOptions {
+  show_modes?: boolean;
+  show_schedules?: boolean;
+  show_timeline?: boolean;
+  show_periods?: boolean;
+  show_priorities?: boolean;
+  show_editor?: boolean;
+  compact?: boolean;
+}
+
 interface OverviewConfig {
   type: string;
   title?: string;
+  layout?: "list" | "tiles";
+  show_summary?: boolean;
   show_override?: boolean;
   show_variables?: boolean;
   show_periods?: boolean;
   group_by_floor?: boolean;
+  exclude_rooms?: string[];
+  room?: RoomOptions;
 }
+
+const ROOM_DEFAULTS: RoomOptions = {
+  show_modes: true,
+  show_schedules: true,
+  show_timeline: true,
+  show_periods: true,
+  show_priorities: true,
+  show_editor: true,
+  compact: false,
+};
 
 interface Group {
   floor: FloorData | null;
@@ -49,12 +74,41 @@ export class BestThermostatOverviewCard extends LitElement {
 
   setConfig(config: OverviewConfig) {
     this._config = {
+      layout: "list",
+      show_summary: true,
       show_override: true,
       show_variables: true,
       show_periods: true,
       group_by_floor: true,
       ...config,
+      room: {
+        ...ROOM_DEFAULTS,
+        // older configs had show_periods on the top level
+        ...(config.show_periods === false ? { show_periods: false } : {}),
+        ...(config.room ?? {}),
+      },
     };
+    this._cardConfigs.clear();
+  }
+
+  private _cardConfigs = new Map<string, Record<string, unknown>>();
+
+  /** Stable config object per room for the embedded room card. */
+  private _cardConfig(room: RoomData, header: boolean): Record<string, unknown> {
+    const key = `${room.entry_id}:${header}`;
+    let cfg = this._cardConfigs.get(key);
+    if (!cfg) {
+      cfg = {
+        type: "custom:bestthermostat-card",
+        entity: room.climate_entity_id ?? room.entry_id,
+        embedded: true,
+        show_header: header,
+        show_floor: !this._config!.group_by_floor,
+        ...this._config!.room,
+      };
+      this._cardConfigs.set(key, cfg);
+    }
+    return cfg;
   }
 
   getCardSize() {
@@ -87,15 +141,20 @@ export class BestThermostatOverviewCard extends LitElement {
     }
   }
 
-  private _moreInfo(room: RoomData) {
-    if (!room.climate_entity_id) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        detail: { entityId: room.climate_entity_id },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+  private _floorIconNo(level: number | null | undefined): string {
+    if (level == null) return "0";
+    if (level < 0) return "negative-1";
+    return level > 3 ? "3" : String(level);
+  }
+
+  private _heatingCount(rooms: RoomData[]): number {
+    return rooms.filter((r) => r.hvac_action === "heating").length;
+  }
+
+  private _renderTile(room: RoomData) {
+    return html`<div class="tile">
+      <bestthermostat-card .hass=${this.hass} .config=${this._cardConfig(room, true)}></bestthermostat-card>
+    </div>`;
   }
 
   private _groups(rooms: RoomData[]): Group[] {
@@ -125,18 +184,28 @@ export class BestThermostatOverviewCard extends LitElement {
     const heating = snap.rooms.filter((r) => r.hvac_action === "heating").length;
     const temps = snap.rooms.map((r) => r.current_temperature).filter((v): v is number => v != null);
     const avg = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
-    const groups = this._groups(snap.rooms);
+    const excluded = new Set(this._config.exclude_rooms ?? []);
+    const rooms = snap.rooms.filter(
+      (r) => !excluded.has(r.climate_entity_id ?? "") && !excluded.has(r.entry_id),
+    );
+    const groups = this._groups(rooms);
     const grouped = groups.length > 1 || groups[0]?.floor;
+    const tiles = this._config.layout === "tiles";
+    const title = this._config.title ?? t.rooms;
     return html`<ha-card>
       <div class="pad col">
-        <div>
-          <div class="title">${this._config.title ?? t.rooms}</div>
-          <div class="muted summary">
-            ${heating} ${t.of} ${snap.rooms.length} ${t.rooms_word} ${t.heating_summary}${avg != null
-              ? html` · Ø ${fmtTemp(avg)}`
-              : nothing}
-          </div>
-        </div>
+        ${title || this._config.show_summary
+          ? html`<div>
+              ${title ? html`<div class="title">${title}</div>` : nothing}
+              ${this._config.show_summary
+                ? html`<div class="muted summary">
+                    ${heating} ${t.of} ${snap.rooms.length} ${t.rooms_word} ${t.heating_summary}${avg != null
+                      ? html` · Ø ${fmtTemp(avg)}`
+                      : nothing}
+                  </div>`
+                : nothing}
+            </div>`
+          : nothing}
         <div class="top">
           ${this._config.show_override ? this._renderOverride() : nothing}
           ${this._config.show_variables && snap.variables.length ? this._renderVariables() : nothing}
@@ -144,9 +213,17 @@ export class BestThermostatOverviewCard extends LitElement {
         <div class="rooms">
           ${groups.map(
             (g) => html`${grouped
-                ? html`<div class="floor">${g.floor?.name ?? t.other_floor}</div>`
+                ? html`<div class="floor">
+                    <ha-icon icon=${g.floor?.icon || "mdi:home-floor-" + this._floorIconNo(g.floor?.level)}></ha-icon>
+                    <span>${g.floor?.name ?? t.other_floor}</span>
+                    ${this._heatingCount(g.rooms)
+                      ? html`<span class="floor-heat">· ${this._heatingCount(g.rooms)} ${t.heating_summary}</span>`
+                      : nothing}
+                  </div>`
                 : nothing}
-              <div class="grid">${g.rooms.map((room) => this._renderRoom(room))}</div>`,
+              <div class="grid ${tiles ? "tiles" : ""}">
+                ${g.rooms.map((room) => (tiles ? this._renderTile(room) : this._renderRoom(room)))}
+              </div>`,
           )}
         </div>
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
@@ -237,7 +314,7 @@ export class BestThermostatOverviewCard extends LitElement {
     const h = this.hass!;
     const heating = room.hvac_action === "heating";
     const open = this._open === room.entry_id;
-    const next = this._config?.show_periods ? upcomingPeriods(room)[0] : undefined;
+    const next = this._config?.room?.show_periods ? upcomingPeriods(room)[0] : undefined;
     return html`<div class="room-block ${open ? "open" : ""}">
       <button class="room" @click=${() => (this._open = open ? undefined : room.entry_id)}>
         <span class="icon ${heating ? "heating" : ""}"><ha-icon icon=${roomIcon(room)}></ha-icon></span>
@@ -256,49 +333,11 @@ export class BestThermostatOverviewCard extends LitElement {
           <span class="muted tgt">→ ${fmtTemp(room.target_temperature, false)}°</span>
         </span>
       </button>
-      ${open ? this._renderControls(room) : nothing}
-    </div>`;
-  }
-
-  private _renderControls(room: RoomData) {
-    const t = strings(this.hass);
-    const modes: [string, string][] = [
-      ["auto", t.auto],
-      ["heat", t.heat],
-      ["off", t.off],
-    ];
-    const target = room.target_temperature ?? 20;
-    const set = (d: number) =>
-      this._call("room/temperature", {
-        entry_id: room.entry_id,
-        temperature: Math.min(room.max_temp, Math.max(room.min_temp, target + d)),
-      });
-    return html`<div class="controls">
-      <div class="seg accent">
-        ${modes.map(
-          ([mode, label]) => html`<button aria-selected=${room.mode === mode}
-            @click=${() => this._call("room/mode", { entry_id: room.entry_id, mode })}>${label}</button>`,
-        )}
-      </div>
-      ${room.schedules.length > 1
-        ? html`<div class="seg">
-            ${room.schedules.map(
-              (s) => html`<button aria-selected=${s.id === room.active_schedule}
-                @click=${() =>
-                  this._call("schedule/activate", { entry_id: room.entry_id, schedule_id: s.id })}>
-                ${s.name}
-              </button>`,
-            )}
+      ${open
+        ? html`<div class="detail">
+            <bestthermostat-card .hass=${this.hass} .config=${this._cardConfig(room, false)}></bestthermostat-card>
           </div>`
         : nothing}
-      <div class="stepper wide">
-        <button class="round small" @click=${() => set(-0.5)}>−</button>
-        <span class="val">${fmtTemp(room.target_temperature)}</span>
-        <button class="round small" @click=${() => set(0.5)}>+</button>
-      </div>
-      <button class="text-btn details" @click=${() => this._moreInfo(room)}>
-        ${t.open_details}
-      </button>
     </div>`;
   }
 
@@ -542,12 +581,42 @@ export class BestThermostatOverviewCard extends LitElement {
         flex-direction: column;
       }
       .floor {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-size: 11.5px;
         font-weight: 600;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--bt-muted);
         margin: 12px 4px 2px;
+      }
+      .floor ha-icon {
+        --mdc-icon-size: 16px;
+      }
+      .floor-heat {
+        color: var(--bt-heat);
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+      }
+      .detail {
+        margin: 0 0 12px;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--divider-color);
+      }
+      .grid.tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        align-items: start;
+        gap: 10px;
+      }
+      .tile {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color, #fff);
       }
       .floor:first-child {
         margin-top: 0;
