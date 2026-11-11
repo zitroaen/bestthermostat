@@ -14,6 +14,7 @@ import {
   tempColor,
   todayKey,
 } from "./utils";
+import { priorities, roomIcon, roomStatus, scheduleName, upcomingPeriods } from "./room-view";
 import "./week-editor";
 import "./period-dialog";
 import type { BtPeriodDialog } from "./period-dialog";
@@ -42,6 +43,7 @@ export class BestThermostatCard extends LitElement {
     _planning: { state: true },
     _editPeriod: { state: true },
     _allPeriods: { state: true },
+    _section: { state: true },
     _error: { state: true },
   };
 
@@ -53,6 +55,7 @@ export class BestThermostatCard extends LitElement {
   _planning = false;
   _editPeriod?: PeriodData;
   _allPeriods = false;
+  _section?: "schedule" | "periods" | "prio";
   private _planner?: BtPeriodDialog;
   _error?: string;
   private _unsub?: () => void;
@@ -78,7 +81,7 @@ export class BestThermostatCard extends LitElement {
       show_timeline: true,
       show_editor: true,
       show_periods: true,
-      show_priorities: false,
+      show_priorities: true,
       ...config,
     };
   }
@@ -199,6 +202,15 @@ export class BestThermostatCard extends LitElement {
     );
   }
 
+  private _openPeriod(period: PeriodData) {
+    this._editPeriod = period;
+    this._planning = true;
+  }
+
+  private _toggle(section: "schedule" | "periods" | "prio") {
+    this._section = this._section === section ? undefined : section;
+  }
+
   protected render() {
     if (!this._config || !this.hass) return nothing;
     const t = strings(this.hass);
@@ -209,122 +221,145 @@ export class BestThermostatCard extends LitElement {
     const heating = room.hvac_action === "heating";
     const target = this._pending ?? room.target_temperature;
     const name = c.name || room.name;
-    const status = this._status(room);
+    const sub = [room.floor?.name, roomStatus(room, t, this.hass), heating ? t.heating : ""]
+      .filter(Boolean)
+      .join(" · ");
 
     return html`
       <ha-card class=${c.compact ? "compact" : ""}>
         <div class="head">
           <button class="icon ${heating ? "heating" : ""}" @click=${() => this._moreInfo(room)}
             aria-label=${name}>
-            <ha-icon icon=${room.mode === "off" ? "mdi:radiator-off" : "mdi:radiator"}></ha-icon>
+            <ha-icon icon=${roomIcon(room)}></ha-icon>
           </button>
           <div class="title">
             <div class="name">${name}</div>
-            <div class="sub muted">${status}</div>
+            <div class="sub muted">${sub}</div>
           </div>
+        </div>
+
+        <div class="hero">
           <div class="current">
             <span class="big">${fmtTemp(room.current_temperature, false)}</span><span class="unit">°C</span>
           </div>
-        </div>
-
-        <div class="target">
-          <button class="round" @click=${() => this._step(room, -0.5)} aria-label="-0.5">−</button>
-          <div class="target-val" style="--c:${tempColor(target ?? undefined)}">
-            <span class="tv">${fmtTemp(target, false)}</span><span class="unit">°C</span>
-            <div class="src muted">${t[`src_${room.target_source}` as keyof typeof t] as string}</div>
+          <div class="ctl">
+            <button class="round" @click=${() => this._step(room, -0.5)} aria-label="-0.5">−</button>
+            <div class="target">
+              <div class="tv" style="--c:${tempColor(target ?? undefined)}">${fmtTemp(target, false)}°</div>
+              <div class="muted src">${t[`src_${room.target_source}` as keyof typeof t] as string}</div>
+            </div>
+            <button class="round" @click=${() => this._step(room, 0.5)} aria-label="+0.5">+</button>
           </div>
-          <button class="round" @click=${() => this._step(room, 0.5)} aria-label="+0.5">+</button>
         </div>
 
         ${c.show_modes ? this._renderModes(room) : nothing}
-        ${this._renderPeriods(room)}
-        ${c.show_priorities ? this._renderPriorities(room) : nothing}
-        ${this._renderScheduleSection(room)}
+        ${c.compact && c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
+        ${c.show_timeline && !c.compact ? this._renderTimeline(room) : nothing}
+        ${c.compact ? nothing : this._renderList(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
-        ${c.show_editor && !c.compact
-          ? html`<div class="footer">
-              <button class="text-btn" @click=${() => (this._editing = true)}>
-                <ha-icon icon="mdi:calendar-edit"></ha-icon> ${t.edit}
-              </button>
-            </div>`
-          : nothing}
       </ha-card>
     `;
   }
 
-  private _status(room: RoomData): string {
+  private _renderModes(room: RoomData) {
     const t = strings(this.hass);
-    const sched = room.schedules.find((s) => s.id === room.active_schedule)?.name ?? "";
-    const parts: string[] = [];
-    if (room.override_active) parts.push(t.src_override);
-    else if (room.period && room.mode !== "auto") parts.push(room.period.title);
-    else if (room.mode === "auto") {
-      parts.push(sched);
-      if (room.hand_until) parts.push(`${t.until} ${fmtTime(room.hand_until, this.hass!)}`);
-      else if (room.next_change)
-        parts.push(`${fmtTime(room.next_change, this.hass!)} → ${fmtTemp(room.next_temperature)}`);
-    } else parts.push(room.mode === "off" ? t.src_off : t.src_manual);
-    if (this._snap?.override.active && !room.override_active) parts.push(t.override_not_applied);
-    if (room.hvac_action === "heating") parts.push(t.heating);
-    return parts.filter(Boolean).join(" · ");
+    const modes: [string, string][] = [
+      ["auto", t.auto],
+      ["heat", t.heat],
+      ["off", t.off],
+    ];
+    return html`<div class="seg accent" role="tablist">
+      ${modes.map(
+        ([mode, label]) => html`<button role="tab" aria-selected=${room.mode === mode}
+          @click=${() => this._mode(room, mode)}>${label}</button>`,
+      )}
+    </div>`;
   }
 
-  private _renderPriorities(room: RoomData) {
+  private _renderScheduleChoice(room: RoomData) {
+    return html`<div class="seg" role="tablist">
+      ${room.schedules.map(
+        (s) => html`<button role="tab" aria-selected=${s.id === room.active_schedule}
+          @click=${() => this._schedule(room, s.id)}>${s.name}</button>`,
+      )}
+    </div>`;
+  }
+
+  private _renderTimeline(room: RoomData) {
+    const t = strings(this.hass);
+    const sched = room.schedules.find((s) => s.id === room.active_schedule);
+    if (!sched) return nothing;
+    const vars = this._snap!.variables;
+    const segs = segments(sched.week[todayKey()] ?? sched.week[DAYS[0]]);
+    const now = nowMinutes();
+    const paused = room.mode !== "auto" || room.override_active;
+    return html`<div class="timeline ${paused ? "paused" : ""}">
+      <div class="cap muted">${t.today} · ${sched.name}${paused ? ` · ${t.schedule_paused}` : ""}</div>
+      <div class="bar">
+        ${segs.map((s) => {
+          const temp = resolveSlot(s.slot, vars);
+          return html`<div class="seg-t"
+            title="${slotLabel(s.slot, vars)}"
+            style="left:${(s.start / DAY_MIN) * 100}%;width:${((s.end - s.start) / DAY_MIN) * 100}%;background:${tempColor(temp)}"></div>`;
+        })}
+        <div class="now" style="left:${(now / DAY_MIN) * 100}%"></div>
+      </div>
+      <div class="ticks muted"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+    </div>`;
+  }
+
+  private _row(icon: string, label: string, value: unknown, section?: "schedule" | "periods" | "prio", onClick?: () => void) {
+    const open = section !== undefined && this._section === section;
+    const clickable = section !== undefined || onClick !== undefined;
+    return html`<button class="row ${open ? "open" : ""}" ?disabled=${!clickable}
+      @click=${() => (section ? this._toggle(section) : onClick?.())}>
+      <ha-icon icon=${icon}></ha-icon>
+      <span class="row-label">${label}</span>
+      <span class="row-value">${value}</span>
+      ${clickable ? html`<ha-icon class="chev" icon=${open ? "mdi:chevron-up" : "mdi:chevron-right"}></ha-icon>` : nothing}
+    </button>`;
+  }
+
+  private _renderList(room: RoomData) {
+    const c = this._config!;
     const t = strings(this.hass);
     const h = this.hass!;
-    const ov = this._snap!.override;
-    const schedName = (id: string) => room.schedules.find((s) => s.id === id)?.name ?? id;
-    const winner = room.override_active
-      ? 1
-      : room.target_source === "hand"
-        ? 2
-        : room.period
-          ? 3
-          : 4;
-    const base =
-      room.base_mode === "off"
-        ? `${t.src_off} · ${fmtTemp(room.frost_temperature)}`
-        : room.base_mode === "heat"
-          ? `${t.heat} · ${fmtTemp(room.base_manual_temperature)}`
-          : `${t.auto} · ${schedName(room.base_schedule)}`;
-    const layers: { n: number; icon: string; name: string; value: string }[] = [
-      {
-        n: 1,
-        icon: "mdi:home-export-outline",
-        name: t.override,
-        value: !ov.active
-          ? t.prio_inactive
-          : room.override_active
-            ? fmtTemp(ov.value)
-            : `${fmtTemp(ov.value)} · ${t.override_not_applied}`,
-      },
-      {
-        n: 2,
-        icon: "mdi:hand-back-right",
-        name: t.prio_hand,
-        value:
-          room.target_source === "hand" && room.hand_until
-            ? `${fmtTemp(room.target_temperature)} · ${t.until} ${fmtTime(room.hand_until, h)}`
-            : t.prio_none,
-      },
-      {
-        n: 3,
-        icon: "mdi:calendar-star",
-        name: t.period,
-        value: room.period
-          ? `${room.period.title} · ${room.period.end ? `${t.period_until} ${fmtTime(room.period.end, h)}` : t.period_open}`
-          : t.prio_none,
-      },
-      { n: 4, icon: "mdi:radiator", name: t.prio_room, value: base },
-    ];
+    const upcoming = upcomingPeriods(room);
+    const periodValue = room.period
+      ? room.period.title
+      : upcoming.length
+        ? `${upcoming.length} ${t.period_planned_n}`
+        : t.prio_none;
+    const prio = priorities(room, this._snap!, t, h);
+    const winner = prio.layers.find((l) => l.n === prio.winner)!;
+    return html`<div class="list">
+      ${c.show_schedules
+        ? html`${this._row("mdi:calendar-clock", t.schedule, scheduleName(room, room.active_schedule),
+            room.schedules.length > 1 ? "schedule" : undefined)}
+          ${this._section === "schedule" ? html`<div class="detail">${this._renderScheduleChoice(room)}</div>` : nothing}`
+        : nothing}
+      ${room.next_change
+        ? this._row("mdi:clock-outline", t.next, `${fmtTime(room.next_change, h)} → ${fmtTemp(room.next_temperature)}`)
+        : nothing}
+      ${c.show_periods
+        ? html`${this._row("mdi:calendar-star", t.period_plural, periodValue, "periods")}
+          ${this._section === "periods" ? html`<div class="detail">${this._renderPeriods(room)}</div>` : nothing}`
+        : nothing}
+      ${c.show_priorities
+        ? html`${this._row("mdi:layers-triple-outline", t.prio_short, winner.name, "prio")}
+          ${this._section === "prio" ? html`<div class="detail">${this._renderPriorities(prio)}</div>` : nothing}`
+        : nothing}
+      ${c.show_editor
+        ? this._row("mdi:calendar-edit", t.edit, "", undefined, () => (this._editing = true))
+        : nothing}
+    </div>`;
+  }
+
+  private _renderPriorities(prio: ReturnType<typeof priorities>) {
     return html`<div class="prio">
-      <div class="sched-head">
-        <ha-icon icon="mdi:layers-triple-outline"></ha-icon><span>${t.prio_title}</span>
-      </div>
-      ${layers.map(
-        (l) => html`<div class="prio-row ${l.n === winner ? "win" : l.n < winner ? "idle" : "below"}">
+      ${prio.layers.map(
+        (l) => html`<div class="prio-row ${l.n === prio.winner ? "win" : l.n < prio.winner ? "idle" : "below"}">
           <span class="prio-n">${l.n}</span>
-          <ha-icon icon=${l.icon}></ha-icon>
           <span class="prio-name">${l.name}</span>
           <span class="prio-val">${l.value}</span>
         </div>`,
@@ -332,128 +367,40 @@ export class BestThermostatCard extends LitElement {
     </div>`;
   }
 
-  private _openPeriod(period: PeriodData) {
-    this._editPeriod = period;
-    this._planning = true;
-  }
-
   private _renderPeriods(room: RoomData) {
-    const c = this._config!;
-    if (!c.show_periods) return nothing;
     const t = strings(this.hass);
-    const now = Date.now();
+    const h = this.hass!;
     const active = room.period;
-    const upcoming = (room.periods ?? [])
-      .filter((p) => new Date(p.start).getTime() > now)
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    const shown = c.compact ? [] : this._allPeriods ? upcoming : upcoming.slice(0, 3);
-    if (!active && !shown.length && c.compact) return nothing;
-    const range = (p: { start: string; end: string | null }) =>
-      `${fmtTime(p.start, this.hass!)} – ${p.end ? fmtTime(p.end, this.hass!) : t.period_open}`;
+    const upcoming = upcomingPeriods(room);
+    const shown = this._allPeriods ? upcoming : upcoming.slice(0, 3);
+    const range = (p: PeriodData) =>
+      `${fmtTime(p.start, h)} – ${p.end ? fmtTime(p.end, h) : t.period_open}`;
+    const item = (p: PeriodData, isActive: boolean) => html`<div class="period ${isActive ? "active" : ""}">
+      <button class="period-text" @click=${() => this._openPeriod(p)}>
+        <span class="period-title">${p.title}</span>
+        <span class="muted period-when">${isActive
+          ? p.end ? `${t.period_until} ${fmtTime(p.end, h)}` : t.period_open
+          : range(p)}</span>
+      </button>
+      <button class="text-btn small" @click=${() =>
+        this._call("period/cancel", { entry_id: room.entry_id, period_id: p.id })}>
+        ${isActive ? t.period_end : t.period_delete}
+      </button>
+    </div>`;
     return html`<div class="periods">
-      ${active
-        ? html`<div class="period active">
-            <ha-icon icon="mdi:calendar-star"></ha-icon>
-            <div class="period-text" role="button" tabindex="0"
-              @click=${() => this._openPeriod(active)}>
-              <div class="period-title">${active.title}</div>
-              <div class="muted period-when">
-                ${active.end ? `${t.period_until} ${fmtTime(active.end, this.hass!)}` : t.period_open}
-              </div>
-            </div>
-            <button class="chip" @click=${() =>
-              this._call("period/cancel", { entry_id: room.entry_id, period_id: active.id })}>
-              ${t.period_end}
-            </button>
-          </div>`
-        : nothing}
-      ${shown.map(
-        (p) => html`<div class="period">
-          <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>
-          <div class="period-text" role="button" tabindex="0" @click=${() => this._openPeriod(p)}>
-            <div class="period-title">${p.title}</div>
-            <div class="muted period-when">${range(p)}</div>
-          </div>
-          <button class="round small" aria-label=${t.period_delete} @click=${() =>
-            this._call("period/cancel", { entry_id: room.entry_id, period_id: p.id })}>
-            <ha-icon icon="mdi:delete-outline"></ha-icon>
-          </button>
-        </div>`,
-      )}
-      ${!c.compact && upcoming.length > 3
-        ? html`<button class="muted more" @click=${() => (this._allPeriods = !this._allPeriods)}>
+      ${active ? item(active, true) : nothing}
+      ${shown.map((p) => item(p, false))}
+      ${upcoming.length > 3
+        ? html`<button class="text-btn small" @click=${() => (this._allPeriods = !this._allPeriods)}>
             ${this._allPeriods ? t.period_less : `+${upcoming.length - shown.length} ${t.period_more}`}
           </button>`
         : nothing}
-      ${c.compact
-        ? nothing
-        : html`<button class="text-btn plan" @click=${() => (this._planning = true)}>
-            <ha-icon icon="mdi:calendar-plus"></ha-icon> ${t.period_plan}
-          </button>`}
-    </div>`;
-  }
-
-  private _renderModes(room: RoomData) {
-    const t = strings(this.hass);
-    const modes: [string, string, string][] = [
-      ["auto", t.auto, "mdi:calendar-clock"],
-      ["heat", t.heat, "mdi:hand-back-right"],
-      ["off", t.off, "mdi:snowflake"],
-    ];
-    return html`<div class="chips scroll row">
-      ${modes.map(
-        ([mode, label, icon]) => html`<button class="chip" aria-pressed=${room.mode === mode}
-          @click=${() => this._mode(room, mode)}>
-          <ha-icon icon=${icon}></ha-icon>${label}
-        </button>`,
-      )}
-    </div>`;
-  }
-
-  private _renderScheduleSection(room: RoomData) {
-    const c = this._config!;
-    const showChoice = c.show_schedules && room.schedules.length > 1;
-    const showTimeline = c.show_timeline && !c.compact;
-    if (!showChoice && !showTimeline) return nothing;
-    const t = strings(this.hass);
-    const paused = room.mode !== "auto" || room.override_active;
-    return html`<div class="sched-box ${paused ? "paused" : ""}">
-      <div class="sched-head">
-        <ha-icon icon="mdi:calendar-clock"></ha-icon>
-        <span>${t.schedule}</span>
-        ${paused ? html`<span class="muted sched-note">${t.schedule_paused}</span>` : nothing}
-      </div>
-      ${showChoice
-        ? html`<div class="segmented" role="tablist">
-            ${room.schedules.map(
-              (s) => html`<button role="tab" aria-selected=${s.id === room.active_schedule}
-                @click=${() => this._schedule(room, s.id)}>${s.name}</button>`,
-            )}
-          </div>`
-        : nothing}
-      ${showTimeline ? this._renderTimeline(room) : nothing}
-    </div>`;
-  }
-
-  private _renderTimeline(room: RoomData) {
-    const sched = room.schedules.find((s) => s.id === room.active_schedule);
-    if (!sched) return nothing;
-    const vars = this._snap!.variables;
-    const segs = segments(sched.week[todayKey()] ?? sched.week[DAYS[0]]);
-    const now = nowMinutes();
-    return html`<div class="timeline">
-      <div class="bar">
-        ${segs.map((s) => {
-          const temp = resolveSlot(s.slot, vars);
-          const w = ((s.end - s.start) / DAY_MIN) * 100;
-          return html`<div class="seg" title="${slotLabel(s.slot, vars)}"
-            style="left:${(s.start / DAY_MIN) * 100}%;width:${w}%;background:${tempColor(temp)}">
-            ${w > 9 ? html`<span>${fmtTemp(temp, false)}</span>` : nothing}
-          </div>`;
-        })}
-        <div class="now" style="left:${(now / DAY_MIN) * 100}%"></div>
-      </div>
-      <div class="ticks muted"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <button class="text-btn plan" @click=${() => {
+        this._editPeriod = undefined;
+        this._planning = true;
+      }}>
+        <ha-icon icon="mdi:calendar-plus"></ha-icon> ${t.period_plan}
+      </button>
     </div>`;
   }
 
@@ -464,7 +411,7 @@ export class BestThermostatCard extends LitElement {
         padding: 16px;
         display: flex;
         flex-direction: column;
-        gap: var(--bt-gap);
+        gap: 14px;
         overflow: hidden;
         height: 100%;
         box-sizing: border-box;
@@ -478,8 +425,8 @@ export class BestThermostatCard extends LitElement {
         gap: 12px;
       }
       .icon {
-        width: 42px;
-        height: 42px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -489,7 +436,7 @@ export class BestThermostatCard extends LitElement {
         flex: none;
       }
       .icon.heating {
-        background: color-mix(in srgb, var(--bt-heat) 20%, transparent);
+        background: color-mix(in srgb, var(--bt-heat) 18%, transparent);
         color: var(--bt-heat);
       }
       .title {
@@ -509,73 +456,175 @@ export class BestThermostatCard extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .current .big {
-        font-size: 22px;
-        font-weight: 500;
+      .hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .big {
+        font-size: 52px;
+        font-weight: 300;
+        line-height: 1;
+        letter-spacing: -0.02em;
       }
       .unit {
-        font-size: 13px;
+        font-size: 16px;
         color: var(--bt-muted);
         margin-left: 2px;
       }
-      .target {
+      .ctl {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 4px 0;
+        gap: 6px;
       }
-      .target-val {
+      .ctl .round {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+      .target {
         text-align: center;
-        flex: 1;
+        min-width: 64px;
       }
       .tv {
-        font-size: 44px;
-        font-weight: 400;
+        font-size: 24px;
+        font-weight: 500;
         line-height: 1.1;
-        color: var(--primary-text-color);
       }
-      .target-val .unit {
-        font-size: 18px;
-      }
-      .target-val::after {
+      .tv::after {
         content: "";
         display: block;
-        width: 40px;
-        height: 4px;
+        width: 22px;
+        height: 3px;
         border-radius: 2px;
-        margin: 6px auto 0;
+        margin: 3px auto 0;
         background: var(--c);
       }
       .src {
-        font-size: 12px;
+        font-size: 11px;
       }
-      .row ha-icon {
+      .seg {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--bt-surface);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .seg button {
+        flex: 1 0 auto;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 9px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--bt-muted);
+        white-space: nowrap;
+      }
+      .seg button[aria-selected="true"] {
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+      }
+      .seg.accent button[aria-selected="true"] {
+        background: var(--bt-accent);
+        color: var(--text-primary-color, #fff);
+        box-shadow: none;
+      }
+      .timeline .cap {
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+      .timeline .bar {
+        position: relative;
+        height: 6px;
+        border-radius: 3px;
+        overflow: hidden;
+        background: var(--bt-surface);
+      }
+      .timeline.paused .bar {
+        opacity: 0.45;
+      }
+      .seg-t {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+      }
+      .now {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        margin-left: -1px;
+        background: var(--primary-text-color);
+      }
+      .ticks {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        margin-top: 4px;
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        margin: -4px -4px -8px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 46px;
+        padding: 0 4px;
+        border-top: 1px solid var(--divider-color);
+        text-align: left;
+        width: 100%;
+        font-size: 14px;
+      }
+      .row:disabled {
+        cursor: default;
+        opacity: 1;
+      }
+      .row > ha-icon {
+        --mdc-icon-size: 20px;
+        color: var(--bt-muted);
+      }
+      .row-label {
+        flex: 1;
+        color: var(--bt-muted);
+        white-space: nowrap;
+      }
+      .row-value {
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+      .row .chev {
         --mdc-icon-size: 18px;
+        margin-left: -6px;
+      }
+      .row.open .row-label {
+        color: var(--primary-text-color);
+      }
+      .detail {
+        padding: 2px 4px 12px 36px;
       }
       .prio {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 12px;
-        border-radius: 14px;
-        background: var(--bt-surface);
-      }
-      .prio .sched-head {
-        margin-bottom: 4px;
+        gap: 2px;
       }
       .prio-row {
         display: grid;
-        grid-template-columns: 20px 20px auto 1fr;
+        grid-template-columns: 20px auto 1fr;
         align-items: center;
         gap: 8px;
-        padding: 6px 8px;
-        border-radius: 10px;
+        padding: 5px 8px;
+        border-radius: 9px;
         font-size: 13px;
-      }
-      .prio-row ha-icon {
-        --mdc-icon-size: 18px;
-        color: var(--bt-muted);
       }
       .prio-n {
         width: 20px;
@@ -586,10 +635,9 @@ export class BestThermostatCard extends LitElement {
         justify-content: center;
         font-size: 11px;
         font-weight: 700;
-        background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
+        background: var(--bt-surface);
       }
       .prio-name {
-        font-weight: 500;
         white-space: nowrap;
       }
       .prio-val {
@@ -600,16 +648,13 @@ export class BestThermostatCard extends LitElement {
         white-space: nowrap;
       }
       .prio-row.win {
-        background: var(--card-background-color, #fff);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        background: var(--bt-surface);
       }
       .prio-row.win .prio-n {
         background: var(--bt-accent);
         color: var(--text-primary-color, #fff);
       }
-      .prio-row.win ha-icon {
-        color: var(--bt-accent);
-      }
+      .prio-row.win .prio-name,
       .prio-row.win .prio-val {
         color: var(--primary-text-color);
         font-weight: 500;
@@ -620,193 +665,73 @@ export class BestThermostatCard extends LitElement {
       .periods {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-      }
-      .periods .plan {
-        align-self: flex-start;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        margin: -4px -8px;
-      }
-      .periods .plan ha-icon {
-        --mdc-icon-size: 18px;
-      }
-      .more {
-        font-size: 12px;
-        padding: 2px 12px;
-        align-self: flex-start;
-      }
-      .round.small {
-        width: 32px;
-        height: 32px;
-        background: var(--card-background-color, #fff);
-      }
-      .round.small ha-icon {
-        --mdc-icon-size: 18px;
+        gap: 2px;
+        align-items: stretch;
       }
       .period {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 8px 8px 12px;
-        border-radius: 14px;
-        background: var(--bt-surface);
+        gap: 8px;
+        padding: 4px 4px 4px 10px;
+        border-radius: 10px;
       }
       .period.active {
-        background: color-mix(in srgb, var(--bt-accent) 16%, transparent);
-      }
-      .period ha-icon {
-        --mdc-icon-size: 20px;
-        color: var(--bt-accent);
+        background: color-mix(in srgb, var(--bt-accent) 12%, transparent);
       }
       .period-text {
         flex: 1;
         min-width: 0;
-        cursor: pointer;
-      }
-      .period-text:hover .period-title {
-        text-decoration: underline;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 4px 0;
       }
       .period-title {
-        font-weight: 500;
         font-size: 14px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-weight: 500;
       }
       .period-when {
         font-size: 12px;
       }
-      .period .chip {
-        background: var(--card-background-color, #fff);
+      .text-btn.small {
         min-height: 32px;
-      }
-      .sched-box {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
-        border-radius: 14px;
-        background: var(--bt-surface);
-      }
-      .sched-head {
-        display: flex;
-        align-items: center;
-        gap: 6px;
         font-size: 13px;
-        font-weight: 600;
-        color: var(--bt-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        padding: 0 10px;
+        align-self: flex-start;
       }
-      .sched-head ha-icon {
-        --mdc-icon-size: 16px;
+      .period .text-btn.small {
+        align-self: center;
       }
-      .sched-note {
-        margin-left: auto;
-        font-weight: 400;
-        text-transform: none;
-        letter-spacing: 0;
-      }
-      .sched-box.paused .timeline {
-        opacity: 0.55;
-      }
-      .segmented {
-        display: flex;
-        gap: 4px;
-        padding: 3px;
-        border-radius: 12px;
-        background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .segmented button {
-        flex: 1 0 auto;
-        min-height: 34px;
-        padding: 0 12px;
-        border-radius: 9px;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--bt-muted);
-        white-space: nowrap;
-      }
-      .segmented button[aria-selected="true"] {
-        background: var(--card-background-color, #fff);
-        color: var(--primary-text-color);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-      }
-      .sched-box .timeline .bar {
-        background: var(--card-background-color, #fff);
-      }
-      .timeline .bar {
-        position: relative;
-        height: 28px;
-        border-radius: 10px;
-        overflow: hidden;
-        background: var(--bt-surface);
-      }
-      .seg {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        display: flex;
+      .plan {
+        align-self: flex-start;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 600;
-        color: rgba(0, 0, 0, 0.7);
-        border-right: 1px solid var(--bt-surface);
-        box-sizing: border-box;
+        gap: 4px;
+        padding-left: 6px;
       }
-      .now {
-        position: absolute;
-        top: -2px;
-        bottom: -2px;
-        width: 3px;
-        margin-left: -1px;
-        background: var(--primary-text-color);
-        border-radius: 2px;
-      }
-      .ticks {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11px;
-        margin-top: 4px;
-      }
-      .footer {
-        display: flex;
-        justify-content: flex-end;
-        margin: -4px -8px -8px;
-      }
-      .footer ha-icon {
+      .plan ha-icon {
         --mdc-icon-size: 18px;
-        margin-right: 4px;
       }
-      /* Compact: optimised for small square wall displays */
+      /* Compact: small square wall displays */
       ha-card.compact {
         padding: 12px;
-        gap: 10px;
+        gap: 12px;
         justify-content: space-between;
       }
+      ha-card.compact .big {
+        font-size: 44px;
+      }
+      ha-card.compact .ctl .round {
+        width: 52px;
+        height: 52px;
+        font-size: 26px;
+      }
       ha-card.compact .tv {
-        font-size: 52px;
+        font-size: 28px;
       }
-      ha-card.compact .round {
-        width: 64px;
-        height: 64px;
-        font-size: 32px;
-      }
-      ha-card.compact .chip {
+      ha-card.compact .seg button {
         min-height: 44px;
-        flex: 1;
-        justify-content: center;
-      }
-      ha-card.compact .segmented button {
-        min-height: 42px;
-      }
-      ha-card.compact .sched-head {
-        display: none;
       }
     `,
   ];

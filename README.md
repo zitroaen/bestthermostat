@@ -179,7 +179,7 @@ show_schedules: true
 show_timeline: true
 show_editor: true
 show_periods: true    # list active/planned periods and the "Plan period" button
-show_priorities: false  # show the priority layers and which one is in control
+show_priorities: true   # row showing which priority layer is in control (expandable)
 ```
 
 ```yaml
@@ -188,10 +188,22 @@ title: Heating
 show_override: true
 show_variables: true
 show_periods: true    # show the next planned period per room
+group_by_floor: true  # group rooms by Home Assistant floors
 ```
 
-In the overview card, tapping a variable opens a −/+ control. Below each room there are
-bubbles for auto / manual / off and, with several schedules, for the active schedule.
+**Room card:** icon, name and status at the top; current temperature large with the
+target and −/+ next to it; mode selector; a thin timeline for today; below that calm rows
+– schedule, next change, periods, priority, weekly editor – that expand when tapped.
+
+**Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
+as a single switch (details expand when it is on or tapped), the variables as one line
+(tap to edit) and the rooms as a list. Tapping a room expands its controls (mode,
+schedule, temperature).
+
+**Floors:** rooms are grouped by the floors configured in Home Assistant, ordered by the
+floor level. The area of the Best Thermostat room device is used; if it has none, the
+area of its thermostats. New room devices get that area suggested automatically. Rooms
+without a floor are listed under "Other".
 
 Both cards have a visual editor. The weekly editor opens via "Edit weekly plan":
 

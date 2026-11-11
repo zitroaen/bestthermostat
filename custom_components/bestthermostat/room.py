@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
 import logging
@@ -21,6 +22,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+    floor_registry as fr,
+)
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
@@ -174,8 +181,43 @@ class RoomController:
             name=self.name,
             manufacturer=NAME,
             model=text(self.hass, "model_room"),
+            suggested_area=self._trv_area_name(),
             sw_version=VERSION,
         )
+
+    def _trv_area_id(self) -> str | None:
+        """Most common area of the room's thermostats."""
+        dev_reg = dr.async_get(self.hass)
+        ent_reg = er.async_get(self.hass)
+        counts: Counter[str] = Counter()
+        for entity_id in self.trvs:
+            entry = ent_reg.async_get(entity_id)
+            if entry is None:
+                continue
+            area_id = entry.area_id
+            if area_id is None and entry.device_id:
+                device = dev_reg.async_get(entry.device_id)
+                area_id = device.area_id if device else None
+            if area_id:
+                counts[area_id] += 1
+        return counts.most_common(1)[0][0] if counts else None
+
+    def _trv_area_name(self) -> str | None:
+        area_id = self._trv_area_id()
+        area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
+        return area.name if area else None
+
+    def area_and_floor(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """Area of the room device (fallback: of its TRVs) and the area's floor."""
+        device = dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, self.entry_id)})
+        area_id = device.area_id if device and device.area_id else self._trv_area_id()
+        area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
+        if area is None:
+            return None, None
+        floor = None
+        if area.floor_id and (f := fr.async_get(self.hass).async_get_floor(area.floor_id)):
+            floor = {"id": f.floor_id, "name": f.name, "level": f.level, "icon": f.icon}
+        return {"id": area.id, "name": area.name}, floor
 
     @callback
     def async_start(self) -> None:
@@ -793,7 +835,10 @@ class RoomController:
         nxt = self.next_change()
         target = self.target()
         low, high = self.limits()
+        area, floor = self.area_and_floor()
         return {
+            "area": area,
+            "floor": floor,
             "entry_id": self.entry_id,
             "name": self.name,
             "climate_entity_id": self.climate_entity_id,

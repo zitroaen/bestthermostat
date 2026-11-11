@@ -15,6 +15,7 @@ const LABELS: Record<string, { de: string; en: string }> = {
   title: { de: "Titel", en: "Title" },
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
   show_variables: { de: "Variablen anzeigen", en: "Show variables" },
+  group_by_floor: { de: "Nach Stockwerk gruppieren", en: "Group by floor" },
 };
 
 const ROOM_SCHEMA = [
@@ -48,6 +49,7 @@ const OVERVIEW_SCHEMA = [
       { name: "show_override", selector: { boolean: {} } },
       { name: "show_variables", selector: { boolean: {} } },
       { name: "show_periods", selector: { boolean: {} } },
+      { name: "group_by_floor", selector: { boolean: {} } },
     ],
   },
 ];
@@ -98,13 +100,18 @@ export class BestThermostatCardEditor extends BaseEditor {
     show_timeline: true,
     show_editor: true,
     show_periods: true,
-    show_priorities: false,
+    show_priorities: true,
   };
 }
 
 export class BestThermostatOverviewEditor extends BaseEditor {
   protected schema = OVERVIEW_SCHEMA;
-  protected defaults = { show_override: true, show_variables: true, show_periods: true };
+  protected defaults = {
+    show_override: true,
+    show_variables: true,
+    show_periods: true,
+    group_by_floor: true,
+  };
 }
 
 customElements.define("bestthermostat-card-editor", BestThermostatCardEditor);

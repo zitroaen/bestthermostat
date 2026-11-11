@@ -6,8 +6,13 @@ import logging
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
-from homeassistant.core import Event, HomeAssistant
-from homeassistant.helpers import config_validation as cv
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import (
+    area_registry as ar,
+    config_validation as cv,
+    device_registry as dr,
+    floor_registry as fr,
+)
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -52,6 +57,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await hub.async_save_now()
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _on_stop)
+
+    @callback
+    def _registry_changed(_event: Event) -> None:
+        # Areas/floors are shown (and used for grouping) in the cards.
+        hub.notify(None)
+
+    for event_type in (
+        ar.EVENT_AREA_REGISTRY_UPDATED,
+        fr.EVENT_FLOOR_REGISTRY_UPDATED,
+        dr.EVENT_DEVICE_REGISTRY_UPDATED,
+    ):
+        hass.bus.async_listen(event_type, _registry_changed)  # type: ignore[misc]
 
     async_register_services(hass)
     async_register_websocket(hass)

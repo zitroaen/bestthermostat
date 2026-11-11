@@ -175,7 +175,7 @@ show_schedules: true
 show_timeline: true
 show_editor: true
 show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
-show_priorities: false  # Prioritäten-Ebenen anzeigen und markieren, welche gerade bestimmt
+show_priorities: true   # Zeile, welche Prioritäts-Ebene gerade bestimmt (aufklappbar)
 ```
 
 ```yaml
@@ -184,11 +184,23 @@ title: Heizung
 show_override: true
 show_variables: true
 show_periods: true    # nächsten geplanten Zeitraum je Raum anzeigen
+group_by_floor: true  # Räume nach HA-Stockwerken gruppieren
 ```
 
-In der Übersichtskarte öffnet ein Tipp auf eine Variable einen Regler (− / +). Unter jedem
-Raum gibt es Bubbles für Auto / Manuell / Aus und, bei mehreren Zeitplänen, für den
-aktiven Zeitplan.
+**Raumkarte:** Oben Icon, Name und Status; die Ist-Temperatur groß, daneben das Soll
+mit −/+; darunter die Modus-Auswahl, eine schmale Zeitleiste für heute und ruhige Zeilen
+– Zeitplan, nächster Wechsel, Zeiträume, Priorität, Wocheneditor –, die sich beim
+Antippen aufklappen.
+
+**Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
+globale Override als ein Schalter (Details klappen auf, wenn er an ist oder angetippt
+wird), die Variablen als eine Zeile (Tipp zum Bearbeiten) und die Räume als Liste. Ein
+Tipp auf einen Raum klappt seine Bedienung auf (Modus, Zeitplan, Temperatur).
+
+**Stockwerke:** Die Räume werden nach den in Home Assistant angelegten Stockwerken
+gruppiert, sortiert nach der Ebene. Verwendet wird der Bereich des Best-Thermostat-
+Raumgeräts, sonst der Bereich seiner Thermostate. Neue Raumgeräte bekommen diesen
+Bereich automatisch vorgeschlagen. Räume ohne Stockwerk stehen unter „Weitere“.
 
 Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über
 „Wochenplan bearbeiten“:

@@ -42,6 +42,13 @@ export interface PeriodData {
   title: string;
 }
 
+export interface FloorData {
+  id: string;
+  name: string;
+  level: number | null;
+  icon: string | null;
+}
+
 export interface RoomData {
   entry_id: string;
   name: string;
@@ -60,6 +67,8 @@ export interface RoomData {
   base_schedule: string;
   base_mode: "auto" | "heat" | "off";
   base_manual_temperature: number;
+  area: { id: string; name: string } | null;
+  floor: FloorData | null;
   period: PeriodData | null;
   periods: PeriodData[];
   hand_until: string | null;

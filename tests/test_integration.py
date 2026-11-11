@@ -486,3 +486,37 @@ async def test_german_defaults(
     assert {v.name for v in get_hub(hass).variables.values()} == {"Komfort", "Absenk"}
     period = controller.add_period(mode="off")
     assert controller.period_summary(period) == "Aus"
+
+
+async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None:
+    """The room's floor comes from the room device's area, else from the TRVs."""
+    from homeassistant.helpers import (
+        area_registry as ar,
+        device_registry as dr,
+        entity_registry as er,
+        floor_registry as fr,
+    )
+
+    floor = fr.async_get(hass).async_create("Obergeschoss", level=1)
+    area = ar.async_get(hass).async_create("Rotes Zimmer", floor_id=floor.floor_id)
+    assert room.area_and_floor() == (None, None)
+
+    # TRV area as fallback
+    ent_reg = er.async_get(hass)
+    hass.states.async_remove("climate.trv1")
+    ent_reg.async_get_or_create("climate", "test", "trv1", suggested_object_id="trv1")
+    ent_reg.async_update_entity("climate.trv1", area_id=area.id)
+    area_info, floor_info = room.area_and_floor()
+    assert area_info == {"id": area.id, "name": "Rotes Zimmer"}
+    assert floor_info is not None and floor_info["name"] == "Obergeschoss"
+    assert floor_info["level"] == 1
+
+    # the room device's own area wins
+    other = ar.async_get(hass).async_create("Bad")
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_device(identifiers={(DOMAIN, room.entry_id)})
+    assert device is not None
+    dev_reg.async_update_device(device.id, area_id=other.id)
+    area_info, floor_info = room.area_and_floor()
+    assert area_info == {"id": other.id, "name": "Bad"}
+    assert floor_info is None
