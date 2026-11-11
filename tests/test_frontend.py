@@ -63,3 +63,17 @@ async def test_duplicate_resources_removed(hass: HomeAssistant) -> None:
     urls = [i["url"] for i in resources.async_items()]
     assert len(urls) == 1
     assert urls[0].startswith(f"{CARD_URL}?v={VERSION}-")
+
+
+def test_card_version_matches_integration() -> None:
+    """The card shows a 'reload' hint if its version differs from the integration."""
+    import json
+    from pathlib import Path
+    import re
+
+    root = Path(__file__).parent.parent
+    manifest = json.loads((root / "custom_components/bestthermostat/manifest.json").read_text())
+    card = (root / "frontend/src/version.ts").read_text()
+    built = (root / "custom_components/bestthermostat/frontend/bestthermostat-card.js").read_text()
+    assert re.search(r'CARD_VERSION = "([^"]+)"', card).group(1) == VERSION == manifest["version"]  # type: ignore[union-attr]
+    assert f'"{VERSION}"' in built

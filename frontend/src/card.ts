@@ -13,6 +13,7 @@ import {
   strings,
   tempColor,
   todayKey,
+  updateBanner,
 } from "./utils";
 import {
   batteryIcon,
@@ -22,12 +23,12 @@ import {
   roomStatus,
   upcomingPeriods,
 } from "./room-view";
+import { startSwipe } from "./swipe";
+import { CARD_VERSION } from "./version";
 import "./week-editor";
 import "./period-dialog";
 import type { BtPeriodDialog } from "./period-dialog";
 import type { BtWeekEditor } from "./week-editor";
-
-const SWIPE_STEP = 24;
 
 export interface CardConfig {
   type: string;
@@ -73,7 +74,7 @@ export class BestThermostatCard extends LitElement {
   _allPeriods = false;
   _section?: "schedule" | "periods" | "prio" | "battery";
   _batOpen = false;
-  _swipe?: { x: number; start: number; moved: boolean; id: number };
+  _swipe?: { moved: boolean };
   private _planner?: BtPeriodDialog;
   _error?: string;
   private _unsub?: () => void;
@@ -201,44 +202,29 @@ export class BestThermostatCard extends LitElement {
     return Math.min(room.max_temp, Math.max(room.min_temp, Math.round(value * 2) / 2));
   }
 
-  /** Horizontal swipe on the target temperature: 0.5 °C per SWIPE_STEP px. */
-  private _swipeStart(ev: PointerEvent, room: RoomData) {
-    if (ev.pointerType === "mouse" && ev.button !== 0) return;
-    this._swipe = {
-      x: ev.clientX,
-      start: this._pending ?? room.target_temperature ?? 20,
-      moved: false,
-      id: ev.pointerId,
-    };
-  }
-
-  private _swipeMove(ev: PointerEvent, room: RoomData) {
-    const sw = this._swipe;
-    if (!sw || sw.id !== ev.pointerId) return;
-    const dx = ev.clientX - sw.x;
-    if (!sw.moved) {
-      if (Math.abs(dx) < 10) return;
-      sw.moved = true;
-      (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
-      this.requestUpdate();
-    }
-    const value = this._clampTemp(room, sw.start + Math.round(dx / SWIPE_STEP) * 0.5);
-    if (value !== this._pending) {
-      this._pending = value;
-      window.clearTimeout(this._debounce);
-      navigator.vibrate?.(5);
-    }
-  }
-
-  private _swipeEnd(ev: PointerEvent, room: RoomData) {
-    const sw = this._swipe;
-    this._swipe = undefined;
-    if (!sw || !sw.moved || sw.id !== ev.pointerId) return;
-    if (this._pending !== undefined && this._pending !== room.target_temperature) {
-      this._step(room, 0);
-    } else {
-      this._pending = undefined;
-    }
+  /** Horizontal swipe on the target temperature (0.5 °C per step), sent on release. */
+  private _swipeStart(ev: PointerEvent | TouchEvent, room: RoomData) {
+    const start = this._pending ?? room.target_temperature ?? 20;
+    startSwipe(ev, {
+      onStep: (steps) => {
+        if (!this._swipe) this._swipe = { moved: true };
+        const value = this._clampTemp(room, start + steps * 0.5);
+        if (value !== this._pending) {
+          this._pending = value;
+          window.clearTimeout(this._debounce);
+          navigator.vibrate?.(5);
+        }
+      },
+      onEnd: (moved) => {
+        this._swipe = undefined;
+        if (!moved) return;
+        if (this._pending !== undefined && this._pending !== room.target_temperature) {
+          this._step(room, 0);
+        } else {
+          this._pending = undefined;
+        }
+      },
+    });
   }
 
   private _step(room: RoomData, delta: number) {
@@ -280,6 +266,14 @@ export class BestThermostatCard extends LitElement {
     this._section = this._section === section ? undefined : section;
   }
 
+  private _renderUpdate() {
+    const b = updateBanner(this._snap?.version, CARD_VERSION, strings(this.hass));
+    return b
+      ? html`<div class="update"><span>${b.text}</span>
+          <button class="text-btn" @click=${() => location.reload()}>${b.action}</button></div>`
+      : nothing;
+  }
+
   protected render() {
     if (!this._config || !this.hass) return nothing;
     const t = strings(this.hass);
@@ -300,6 +294,7 @@ export class BestThermostatCard extends LitElement {
 
     return html`
       <ha-card class="${c.compact ? "compact" : ""} ${c.embedded ? "embedded" : ""}">
+        ${c.embedded ? nothing : this._renderUpdate()}
         ${c.show_header === false ? nothing : html`<div class="head">
           <button class="icon ${heating ? "heating" : ""} ${room.mode === "off" ? "off" : ""}"
             @click=${() => this._moreInfo(room)}
@@ -326,9 +321,7 @@ export class BestThermostatCard extends LitElement {
             <button class="round" @click=${() => this._step(room, -0.5)} aria-label="-0.5">−</button>
             <div class="target ${this._swipe?.moved ? "swiping" : ""}" title=${t.swipe_hint}
               @pointerdown=${(e: PointerEvent) => this._swipeStart(e, room)}
-              @pointermove=${(e: PointerEvent) => this._swipeMove(e, room)}
-              @pointerup=${(e: PointerEvent) => this._swipeEnd(e, room)}
-              @pointercancel=${() => (this._swipe = undefined)}>
+              @touchstart=${(e: TouchEvent) => this._swipeStart(e, room)}>
               <div class="tv" style="--c:${tempColor(target ?? undefined)}">${fmtTemp(target, false)}°</div>
               <div class="muted src">${[
                 room.target_variable,
@@ -545,6 +538,18 @@ export class BestThermostatCard extends LitElement {
         overflow: hidden;
         height: 100%;
         box-sizing: border-box;
+      }
+      .update {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 6px 6px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        background: color-mix(in srgb, var(--bt-accent) 14%, transparent);
+      }
+      .update span {
+        flex: 1;
       }
       .msg {
         padding: 8px;

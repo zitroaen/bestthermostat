@@ -133,6 +133,8 @@ const STRINGS = {
     prio_title: "Prioritäten",
     prio_short: "Priorität",
     week_plan: "Wochenplan",
+    new_version: "Neue Version der Karte verfügbar.",
+    reload: "Neu laden",
     then: "dann",
     copy_to_rooms: "In andere Räume kopieren",
     copy_rooms_hint: "„{name}“ wird in die gewählten Räume kopiert. Gibt es dort schon einen gleichnamigen Zeitplan, wird er ersetzt.",
@@ -242,6 +244,8 @@ const STRINGS = {
     prio_title: "Priorities",
     prio_short: "Priority",
     week_plan: "Weekly plan",
+    new_version: "A new version of the card is available.",
+    reload: "Reload",
     then: "then",
     copy_to_rooms: "Copy to other rooms",
     copy_rooms_hint: "\"{name}\" is copied to the selected rooms. An existing schedule with the same name is replaced.",
@@ -332,4 +336,10 @@ export function strings(hass?: HomeAssistant): Strings {
 /** Register a custom element only once (the card file may be loaded twice). */
 export function define(name: string, ctor: CustomElementConstructor): void {
   if (!customElements.get(name)) customElements.define(name, ctor);
+}
+
+/** Banner shown when the card in the browser is older/newer than the integration. */
+export function updateBanner(backendVersion: string | undefined, cardVersion: string, t: Strings) {
+  if (!backendVersion || backendVersion === cardVersion) return undefined;
+  return { text: t.new_version, action: t.reload };
 }

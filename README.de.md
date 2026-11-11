@@ -295,6 +295,12 @@ Jeder Tag braucht einen Slot ab `00:00`. Ein Slot gilt bis zum Start des nächst
 über Mitternacht hinweg. Erlaubt sind Zeiten im 15-Minuten-Raster und Temperaturen in
 0,5-°C-Schritten.
 
+## Aktualisieren
+
+Nach einem Update über HACS Home Assistant neu starten. Offene Dashboards zeigen den
+Hinweis „Neue Version der Karte verfügbar – Neu laden“; Neuladen genügt, den
+Frontend-Cache musst du nicht leeren.
+
 ## Entwicklung
 
 ```bash
