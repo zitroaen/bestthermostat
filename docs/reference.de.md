@@ -45,6 +45,14 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
   Entitäten bleiben unberührt. Beim Ausschalten der Option, beim Entfernen eines TRVs aus
   dem Raum oder beim Löschen des Raums werden sie wieder eingeblendet.
 
+**Auto am Thermostat:** Wird ein Thermostat direkt am Gerät (oder über seine eigene
+Entität) auf *Auto* gestellt, folgt der Raum wieder seinem Zeitplan: Modus
+Manuell/Aus, eine Änderung von Hand und ein laufender Zeitraum enden, als wäre in der
+Karte *Auto* gewählt worden. Danach wird das Thermostat auf seinen vorherigen Modus
+zurückgestellt, weil *Auto* bei den meisten Thermostaten den geräteeigenen Wochenplan
+startet, der gegen Best Thermostat arbeiten würde. Das gilt in jedem Raum, unabhängig
+von der Einstellung für Änderungen von Hand.
+
 **Global** (Eintrag „Best Thermostat“ → *Konfigurieren*): Variablen hinzufügen,
 bearbeiten und löschen. Eine Variable, die noch in einem Zeitplan verwendet wird, lässt
 sich nicht löschen. Variablen lassen sich auch in der Karte verwalten.

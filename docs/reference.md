@@ -47,6 +47,13 @@ language of Home Assistant.
   untouched. They are shown again when the option is turned off, a TRV is removed from the
   room or the room is deleted.
 
+**Auto on the thermostat:** switching a thermostat to *auto* directly on the device (or
+in its own entity) makes the room follow its schedule again: manual/off mode, a hand
+change and a running period end, as if *Auto* had been chosen in the card. The
+thermostat is then put back into its previous mode, because on most thermostats *auto*
+runs the device's own weekly schedule, which would work against Best Thermostat. This
+works in every room, whatever the hand-change setting.
+
 **Global** (entry "Best Thermostat" → *Configure*): add, edit and delete variables. A
 variable that is still used in a schedule cannot be deleted. Variables can also be
 managed in the card.

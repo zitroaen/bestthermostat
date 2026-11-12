@@ -33,6 +33,9 @@ class Sender:
         self._latest: dict[str, float] = {}
         self._attempts: dict[str, int] = {}
         self._last: dict[str, tuple[float, float, str]] = {}
+        # Contexts of recent writes per entity: echoes of an earlier write can arrive
+        # after a newer write was sent.
+        self._contexts: dict[str, deque[tuple[float, str]]] = {}
         self._task: asyncio.Task[None] | None = None
         self._retry_handles: dict[str, asyncio.TimerHandle] = {}
 
@@ -61,13 +64,28 @@ class Sender:
         last = self._last.get(entity_id)
         if last is None:
             return False
-        sent_temp, sent_at, context_id = last
-        if context is not None and context_id in (context.id, context.parent_id):
-            return True
+        sent_temp, sent_at, _context_id = last
+        if context is not None:
+            now = time.monotonic()
+            for at, context_id in self._contexts.get(entity_id, ()):
+                if now - at < OWN_WRITE_WINDOW and context_id in (context.id, context.parent_id):
+                    return True
         return (
             abs(float(temperature) - sent_temp) < 0.05
             and time.monotonic() - sent_at < OWN_WRITE_WINDOW
         )
+
+    def note_write(self, entity_id: str, temperature: float, context: Context) -> None:
+        """Remember a write done elsewhere (e.g. a mode change) as our own.
+
+        Reports right after it are then re-checked instead of being taken as hand changes.
+        """
+        self._remember(entity_id, temperature, context)
+
+    def _remember(self, entity_id: str, temperature: float, context: Context) -> None:
+        now = time.monotonic()
+        self._last[entity_id] = (temperature, now, context.id)
+        self._contexts.setdefault(entity_id, deque(maxlen=8)).append((now, context.id))
 
     def recently_sent(self, entity_id: str, seconds: float) -> bool:
         """Return True if we wrote to the entity within the last ``seconds``."""
@@ -83,7 +101,7 @@ class Sender:
             entity_id = self._order.popleft()
             temperature = self._pending.pop(entity_id)
             context = Context()
-            self._last[entity_id] = (temperature, time.monotonic(), context.id)
+            self._remember(entity_id, temperature, context)
             _LOGGER.debug("Sending %s °C to %s (context %s)", temperature, entity_id, context.id)
             try:
                 await self.hass.services.async_call(

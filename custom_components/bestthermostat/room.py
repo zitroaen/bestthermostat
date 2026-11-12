@@ -12,15 +12,26 @@ import uuid
 from homeassistant.components.climate import (
     ATTR_CURRENT_TEMPERATURE,
     ATTR_HVAC_ACTION,
+    ATTR_HVAC_MODE,
     ATTR_MAX_TEMP,
     ATTR_MIN_TEMP,
     ATTR_TARGET_TEMP_STEP,
     ATTR_TEMPERATURE,
+    DOMAIN as CLIMATE_DOMAIN,
+    SERVICE_SET_HVAC_MODE,
     HVACAction,
+    HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
+from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import (
+    Context,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import (
     area_registry as ar,
@@ -624,6 +635,9 @@ class RoomController:
             self.apply()
             return
         assert old is not None
+        if new.state == HVACMode.AUTO and old.state != HVACMode.AUTO:
+            self._on_trv_auto(entity_id, old.state)
+            return
         new_t = _float(new.attributes.get(ATTR_TEMPERATURE))
         old_t = _float(old.attributes.get(ATTR_TEMPERATURE))
         if new_t is None or new_t == old_t:
@@ -653,6 +667,35 @@ class RoomController:
             self._recheck_later(entity_id)
             return
         self._handle_hand_change(entity_id, new_t)
+
+    def _on_trv_auto(self, entity_id: str, previous_mode: str) -> None:
+        """A thermostat was switched to auto: the room follows its schedule again.
+
+        On most TRVs "auto" runs the device's own weekly schedule, which would fight
+        with ours, so the thermostat is switched back to its previous mode.
+        """
+        _LOGGER.info(
+            "%s: %s switched to auto, room follows its schedule again", self.name, entity_id
+        )
+        if self.state.mode != MODE_AUTO or self.active_period or self.hand_active:
+            self.set_mode(MODE_AUTO)  # also ends a running period and a hand change
+        self._clear_deviations()
+        self.hub.save()
+        context = Context()
+        target = self.target()
+        if (state := self.hass.states.get(entity_id)) and target.temperature is not None:
+            self.hub.sender.note_write(entity_id, self._want(state, target), context)
+        self.hass.async_create_task(
+            self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_HVAC_MODE,
+                {ATTR_ENTITY_ID: entity_id, ATTR_HVAC_MODE: previous_mode},
+                context=context,
+            ),
+            f"{DOMAIN} restore hvac mode of {entity_id}",
+        )
+        self.apply()
+        self.notify()
 
     def _recheck_later(self, entity_id: str) -> None:
         if unsub := self._settle.pop(entity_id, None):

@@ -904,3 +904,62 @@ async def test_variable_usage_names_unloaded_room(
     assert entry is not None
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert get_hub(hass).variable_usage("comfort") == ["Arbeitszimmer: Default"]
+
+
+async def test_trv_switched_to_auto_resumes_schedule(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """Switching a thermostat to auto by hand makes the room follow its schedule again."""
+    mode_calls: list[ServiceCall] = []
+
+    async def set_hvac_mode(call: ServiceCall) -> None:
+        mode_calls.append(call)
+        state = hass.states.get(call.data["entity_id"])
+        assert state is not None
+        hass.states.async_set(
+            call.data["entity_id"], call.data["hvac_mode"], state.attributes, context=call.context
+        )
+
+    hass.services.async_register("climate", "set_hvac_mode", set_hvac_mode)
+    room.set_mode("heat", 23.0)
+    room.add_period(mode="heat", temperature=24.0)
+    await settle(hass)
+    assert temps(hass) == (24.0, 24.0)
+
+    # The user selects "auto" on the device; it also jumps to its own schedule value.
+    hass.states.async_set("climate.trv1", "auto", {**TRV_ATTRS, "temperature": 18.0})
+    await settle(hass)
+    assert room.mode == "auto"
+    assert room.active_period is None
+    assert room.target().source == "schedule"
+    assert temps(hass) == (21.0, 21.0)
+    # The thermostat is put back into its previous mode so its own schedule stays off.
+    assert [(c.data["entity_id"], c.data["hvac_mode"]) for c in mode_calls] == [
+        ("climate.trv1", "heat")
+    ]
+    assert hass.states.get("climate.trv1").state == "heat"  # type: ignore[union-attr]
+    assert room.target().source == "schedule"  # switching back is not a hand change
+
+
+async def test_trv_coming_back_in_auto_is_no_user_action(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """A thermostat that becomes available in auto mode does not change the room."""
+    room.set_mode("heat", 23.0)
+    await settle(hass)
+    hass.states.async_set("climate.trv1", STATE_UNAVAILABLE, {})
+    await settle(hass)
+    hass.states.async_set("climate.trv1", "auto", {**TRV_ATTRS, "temperature": 23.0})
+    await settle(hass)
+    assert room.mode == "heat"
+
+
+async def test_late_echo_of_earlier_write_is_own(hass: HomeAssistant, room: RoomController) -> None:
+    """The echo of an earlier write that arrives after a newer write is recognised."""
+    sender = get_hub(hass).sender
+    first, second = Context(), Context()
+    sender.note_write("climate.trv1", 23.0, first)
+    sender.note_write("climate.trv1", 24.0, second)
+    assert sender.is_own("climate.trv1", Context(parent_id=first.id), 23.0)
+    assert sender.is_own("climate.trv1", second, 24.0)
+    assert not sender.is_own("climate.trv1", Context(), 22.0)
