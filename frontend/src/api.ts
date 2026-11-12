@@ -83,6 +83,8 @@ export interface RoomData {
   periods: PeriodData[];
   hand_until: string | null;
   override_active: boolean;
+  /** Thermostats changed by hand that are not synced (room option "sync" off). */
+  trv_deviations?: { entity_id: string; name: string; temperature: number; until: string | null }[];
   next_change: string | null;
   next_temperature: number | null;
   schedules: ScheduleData[];

@@ -318,6 +318,22 @@ class Period:
 
 
 @dataclass(frozen=True)
+class TrvDeviation:
+    """A set-point changed on one thermostat that is not synced to the others.
+
+    Used when "sync thermostats" is off. ``until`` None means: until the room's mode,
+    schedule or temperature is changed explicitly or a period starts or ends.
+    """
+
+    temperature: float
+    until: datetime | None = None
+
+    def active(self, now: datetime) -> bool:
+        """Return True while the deviation applies."""
+        return self.until is None or now < self.until
+
+
+@dataclass(frozen=True)
 class Effective:
     """What currently controls a room after applying an active period."""
 
@@ -338,6 +354,7 @@ class RoomState:
     hand_temperature: float | None = None
     hand_until: datetime | None = None
     periods: list[Period] = field(default_factory=list)
+    trv_deviations: dict[str, TrvDeviation] = field(default_factory=dict)
 
     @property
     def schedule(self) -> Schedule:

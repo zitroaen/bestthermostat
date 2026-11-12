@@ -751,3 +751,77 @@ async def test_deleted_variable_entity_is_removed(
     hub.delete_variable(var.id)
     await hass.async_block_till_done()
     assert registry.async_get_entity_id("number", DOMAIN, f"global_variable_{var.id}") is None
+
+
+async def test_sync_off_keeps_hand_change_on_one_trv(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """With sync off a hand change stays on its thermostat until the next slot."""
+    freezer.move_to(MONDAY_7)
+    room = (await create_room(hass, sync_trvs=False)).runtime_data
+    assert temps(hass) == (21.0, 21.0)
+    hass.states.async_set("climate.trv1", "heat", {**TRV_ATTRS, "temperature": 23.0})
+    await settle(hass)
+    assert temps(hass) == (23.0, 21.0)
+    assert room.target().temperature == 21.0  # the room target does not change
+    assert [d["entity_id"] for d in room.as_dict()["trv_deviations"]] == ["climate.trv1"]
+
+    # Unrelated changes re-apply the room without touching the deviation.
+    get_hub(hass).update_variable("eco", value=16.0)
+    await settle(hass)
+    assert temps(hass) == (23.0, 21.0)
+
+    # The global override wins, afterwards the deviation is back.
+    get_hub(hass).set_override(active=True, temperature=15.0)
+    await settle(hass)
+    assert temps(hass) == (15.0, 15.0)
+    get_hub(hass).set_override(active=False)
+    await settle(hass)
+    assert temps(hass) == (23.0, 21.0)
+
+    # Next slot (22:00, eco 16 °C) ends it.
+    freezer.move_to(datetime(2026, 11, 9, 22, 0, 1, tzinfo=BERLIN))
+    async_fire_time_changed(hass)
+    await settle(hass)
+    assert temps(hass) == (16.0, 16.0)
+    assert room.as_dict()["trv_deviations"] == []
+
+
+async def test_sync_off_explicit_room_change_ends_deviation(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """Setting the room temperature or mode applies to every thermostat again."""
+    freezer.move_to(MONDAY_7)
+    room = (await create_room(hass, sync_trvs=False)).runtime_data
+    hass.states.async_set("climate.trv1", "heat", {**TRV_ATTRS, "temperature": 23.0})
+    await settle(hass)
+    room.set_temperature(20.0)
+    await settle(hass)
+    assert temps(hass) == (20.0, 20.0)
+
+    hass.states.async_set("climate.trv2", "heat", {**TRV_ATTRS, "temperature": 18.0})
+    await settle(hass)
+    assert temps(hass) == (20.0, 18.0)
+    room.set_mode("heat", 22.0)
+    await settle(hass)
+    assert temps(hass) == (22.0, 22.0)
+
+
+async def test_sync_off_manual_setting(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """'Switch to manual' with sync off: room goes manual, only that TRV changes."""
+    freezer.move_to(MONDAY_7)
+    room = (await create_room(hass, sync_trvs=False, hand_change=HAND_MANUAL)).runtime_data
+    hass.states.async_set("climate.trv2", "heat", {**TRV_ATTRS, "temperature": 19.0})
+    await settle(hass)
+    assert room.mode == "heat"
+    assert room.target().temperature == 21.0
+    assert temps(hass) == (21.0, 19.0)
+    # Survives a reload of the room.
+    entry = hass.config_entries.async_get_entry(room.entry_id)
+    assert entry is not None
+    await hass.config_entries.async_reload(entry.entry_id)
+    await settle(hass)
+    assert temps(hass) == (21.0, 19.0)
+    assert entry.runtime_data.as_dict()["trv_deviations"][0]["temperature"] == 19.0
