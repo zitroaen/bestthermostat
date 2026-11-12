@@ -27,7 +27,7 @@ language of Home Assistant.
 
 **Room** (when creating it and later via *Configure*):
 
-- Thermostats of the room
+- Thermostats of the room (a thermostat can only belong to one room)
 - Frost protection temperature for off mode (default 5 °C)
 - Behaviour on manual changes in auto mode:
   - *Switch room to manual mode*

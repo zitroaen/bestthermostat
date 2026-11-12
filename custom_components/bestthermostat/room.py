@@ -594,8 +594,14 @@ class RoomController:
 
     @callback
     def _on_timer(self, _now: datetime) -> None:
+        # The handle has fired; forget it so _schedule_timer does not cancel it.
         self._timer = None
         _LOGGER.debug("%s: timer fired", self.name)
+        self._reevaluate()
+
+    @callback
+    def _reevaluate(self) -> None:
+        """Re-check periods/hand change, apply the target and reschedule the timer."""
         now = dt_util.utcnow()
         changed = self._drop_expired_periods(now)
         period = self.state.active_period(now)
@@ -832,7 +838,7 @@ class RoomController:
         now = dt_util.utcnow()
         self._drop_expired_periods(now)
         self.hub.save()
-        self._on_timer(now)  # re-evaluate (a period may start or end right now)
+        self._reevaluate()  # a period may start or end right now
 
     @callback
     def add_period(
@@ -920,7 +926,7 @@ class RoomController:
                 raise HomeAssistantError(f"{self.name}: unknown period {period_id!r}")
             self.state.periods = [p for p in self.state.periods if p.id != period_id]
         self.hub.save()
-        self._on_timer(dt_util.utcnow())
+        self._reevaluate()
         return before - len(self.state.periods)
 
     def period_summary(self, period: Period) -> str:

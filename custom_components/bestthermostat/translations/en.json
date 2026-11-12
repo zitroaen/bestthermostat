@@ -25,7 +25,8 @@
       "no_trvs": "Select at least one thermostat.",
       "own_entity": "Best Thermostat rooms cannot be used as thermostats.",
       "variable_invalid": "Invalid name/value or name already exists.",
-      "variable_in_use": "Still used in: {usage}"
+      "variable_in_use": "Still used in: {usage}",
+      "trv_in_use": "{trv} is already used in the room {room}."
     },
     "abort": {
       "already_configured": "Already configured."
@@ -103,7 +104,8 @@
       "no_trvs": "Select at least one thermostat.",
       "own_entity": "Best Thermostat rooms cannot be used as thermostats.",
       "variable_invalid": "Invalid name/value or name already exists.",
-      "variable_in_use": "Still used in: {usage}"
+      "variable_in_use": "Still used in: {usage}",
+      "trv_in_use": "{trv} is already used in the room {room}."
     }
   },
   "selector": {

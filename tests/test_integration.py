@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from freezegun.api import FrozenDateTimeFactory
@@ -12,6 +12,8 @@ from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import Context, HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
@@ -631,7 +633,7 @@ async def test_copy_schedule_to_rooms(
     from custom_components.bestthermostat.websocket import _copy_to_rooms
 
     freezer.move_to(MONDAY_7)
-    first = (await create_room(hass)).runtime_data
+    first = (await create_room(hass, trvs=["climate.trv1"])).runtime_data
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -682,3 +684,70 @@ async def test_global_change_sends_one_snapshot(
         await asyncio.sleep(0)
     assert connection.send_message.call_count == 1
     connection.subscriptions[5]()
+
+
+async def test_no_timer_runs_after_unload(
+    hass: HomeAssistant, room: RoomController, freezer: FrozenDateTimeFactory
+) -> None:
+    """Re-evaluating (e.g. after adding a period) must not orphan the pending timer."""
+    entry = hass.config_entries.async_get_entry(room.entry_id)
+    assert entry is not None
+    room.add_period(mode="off", end=dt_util.utcnow() + timedelta(days=3))
+    room.cancel_period()
+    calls = 0
+    original = room.apply
+
+    def counting() -> None:
+        nonlocal calls
+        calls += 1
+        original()
+
+    room.apply = counting  # type: ignore[method-assign]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    freezer.move_to(MONDAY_7 + timedelta(hours=20))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert calls == 0
+
+
+async def test_trv_cannot_be_used_in_two_rooms(hass: HomeAssistant, room: RoomController) -> None:
+    """A thermostat that belongs to a room cannot be added to another room."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "name": "Office",
+            "trvs": ["climate.trv2"],
+            "frost_temperature": 5.0,
+            "hand_change": "until_next_slot",
+            "sync_trvs": True,
+            "hide_trvs": False,
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"trvs": "trv_in_use"}
+    assert result["description_placeholders"]["room"] == "Arbeitszimmer"
+
+    # Editing the room itself keeps its own thermostats valid.
+    entry = hass.config_entries.async_get_entry(room.entry_id)
+    assert entry is not None
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**entry.options, "trvs": ["climate.trv1", "climate.trv2"]}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_deleted_variable_entity_is_removed(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """The number entity of a deleted variable disappears from the registry."""
+    hub = get_hub(hass)
+    var = hub.create_variable("Night", 16.0)
+    await hass.async_block_till_done()
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("number", DOMAIN, f"global_variable_{var.id}")
+    assert entity_id is not None
+    hub.delete_variable(var.id)
+    await hass.async_block_till_done()
+    assert registry.async_get_entity_id("number", DOMAIN, f"global_variable_{var.id}") is None

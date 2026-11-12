@@ -25,7 +25,7 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
 
 **Raum** (beim Anlegen und später über *Konfigurieren*):
 
-- Thermostate des Raums
+- Thermostate des Raums (ein Thermostat kann nur zu einem Raum gehören)
 - Frostschutztemperatur für den Modus Aus (Standard 5 °C)
 - Verhalten bei Änderungen von Hand im Auto-Modus:
   - *Raum auf Manuell schalten*

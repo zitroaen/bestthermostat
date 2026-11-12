@@ -25,7 +25,8 @@
       "no_trvs": "Mindestens ein Thermostat auswählen.",
       "own_entity": "Best-Thermostat-Räume können nicht als Thermostat verwendet werden.",
       "variable_invalid": "Ungültiger Name/Wert oder Name existiert bereits.",
-      "variable_in_use": "Wird noch verwendet in: {usage}"
+      "variable_in_use": "Wird noch verwendet in: {usage}",
+      "trv_in_use": "{trv} wird bereits im Raum {room} verwendet."
     },
     "abort": {
       "already_configured": "Bereits eingerichtet."
@@ -103,7 +104,8 @@
       "no_trvs": "Mindestens ein Thermostat auswählen.",
       "own_entity": "Best-Thermostat-Räume können nicht als Thermostat verwendet werden.",
       "variable_invalid": "Ungültiger Name/Wert oder Name existiert bereits.",
-      "variable_in_use": "Wird noch verwendet in: {usage}"
+      "variable_in_use": "Wird noch verwendet in: {usage}",
+      "trv_in_use": "{trv} wird bereits im Raum {room} verwendet."
     }
   },
   "selector": {

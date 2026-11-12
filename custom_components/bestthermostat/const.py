@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "bestthermostat"
 NAME: Final = "Best Thermostat"
-VERSION: Final = "0.7.6"
+VERSION: Final = "0.7.7"
 
 CONF_ENTRY_TYPE: Final = "entry_type"
 ENTRY_TYPE_GLOBAL: Final = "global"
