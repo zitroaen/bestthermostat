@@ -20,6 +20,8 @@ import {
   tempColor,
   updateBanner,
   tempGradient,
+  limitsOf,
+  clampTemp,
 } from "./utils";
 
 /** Options applied to every room (same as the room card's options). */
@@ -48,8 +50,6 @@ interface OverviewConfig {
 }
 
 const COLLAPSED_KEY = "bestthermostat.collapsedFloors";
-const MIN = 5;
-const MAX = 30;
 
 const ROOM_DEFAULTS: RoomOptions = {
   show_modes: true,
@@ -187,7 +187,8 @@ export class BestThermostatOverviewCard extends LitElement {
   private _timers = new Map<string, number>();
 
   private _stepPending(key: string, value: number, send: (value: number) => Promise<void>) {
-    const next = Math.min(30, Math.max(5, Math.round(value * 2) / 2));
+    const { min, max } = limitsOf(this._snap);
+    const next = clampTemp(value, min, max);
     this._pending.set(key, next);
     this.requestUpdate();
     window.clearTimeout(this._timers.get(key));
@@ -250,7 +251,8 @@ export class BestThermostatOverviewCard extends LitElement {
   }
 
   private _swipeOverride(ev: PointerEvent | TouchEvent, shown: number | null) {
-    this._swipeStart(ev, "override", shown ?? 16, 5, 30, (v) => this._call("override/set", { temperature: v }));
+    const { min, max } = limitsOf(this._snap);
+    this._swipeStart(ev, "override", shown ?? 16, min, max, (v) => this._call("override/set", { temperature: v }));
   }
 
   /** True once after a swipe, so the click that follows does not toggle anything. */
@@ -458,6 +460,9 @@ export class BestThermostatOverviewCard extends LitElement {
     const ov = this._snap!.override;
     const vars = [...this._snap!.variables].sort((a, b) => a.value - b.value);
     const value = shown ?? 16;
+    const { min: MIN, max: MAX } = limitsOf(this._snap);
+    const scale: number[] = [];
+    for (let s = Math.ceil(MIN / 5) * 5; s <= MAX; s += 5) scale.push(s);
     const pos = (v: number) => ((Math.min(MAX, Math.max(MIN, v)) - MIN) / (MAX - MIN)) * 100;
     return html`<div class="ov-slider" style="--thumb:${tempColor(value)}">
       <div class="ov-value">
@@ -487,7 +492,7 @@ export class BestThermostatOverviewCard extends LitElement {
           }} />
         ${vars.map((v) => html`<i class="tick" style="left:${pos(v.value)}%" title=${v.name}></i>`)}
       </div>
-      <div class="scale muted">${[5, 10, 15, 20, 25, 30].map((s) => html`<span>${s}°</span>`)}</div>
+      <div class="scale muted">${scale.map((s) => html`<span style="left:${pos(s)}%">${s}°</span>`)}</div>
       ${vars.length
         ? html`<div class="quick">
             ${vars.map(
@@ -805,10 +810,14 @@ export class BestThermostatOverviewCard extends LitElement {
         pointer-events: none;
       }
       .scale {
-        display: flex;
-        justify-content: space-between;
+        position: relative;
+        height: 14px;
         font-size: 11px;
-        padding: 0 2px;
+        margin: 0 10px; /* the slider thumb never reaches the very edges */
+      }
+      .scale span {
+        position: absolute;
+        transform: translateX(-50%);
       }
       .quick {
         display: flex;

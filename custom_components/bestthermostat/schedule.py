@@ -16,6 +16,10 @@ from typing import Any
 DAYS: tuple[str, ...] = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 GRID_MINUTES = 15
 TEMP_STEP = 0.5
+# Allowed range for every temperature the user configures (slots, variables, override,
+# periods, frost protection). The single source of truth: entities, config flow,
+# services and the cards (via the snapshot's "limits") use these values. What is
+# actually written to a thermostat is additionally clamped to its own min/max.
 MIN_TEMP = 4.0
 MAX_TEMP = 35.0
 MAX_SLOTS_PER_DAY = 48

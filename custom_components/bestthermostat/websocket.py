@@ -17,6 +17,7 @@ import voluptuous as vol
 from .const import DOMAIN, SIGNAL_UPDATE, VERSION
 from .hub import get_hub
 from .room import RoomController
+from .schedule import MAX_TEMP, MIN_TEMP, TEMP_STEP
 
 Connection = websocket_api.ActiveConnection
 
@@ -39,6 +40,7 @@ def _build_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     hub = get_hub(hass)
     return {
         "version": VERSION,
+        "limits": {"min": MIN_TEMP, "max": MAX_TEMP, "step": TEMP_STEP},
         "rooms": sorted(
             (c.as_dict() for c in hub.controllers.values()), key=lambda r: r["name"].casefold()
         ),

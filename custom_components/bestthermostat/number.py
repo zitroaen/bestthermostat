@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import GlobalEntity
 from .hub import Hub, get_hub
-from .schedule import MIN_TEMP, TEMP_STEP
+from .schedule import MAX_TEMP, MIN_TEMP, TEMP_STEP
 
 
 async def async_setup_entry(
@@ -40,7 +40,7 @@ def _remove_deleted_variables(hass: HomeAssistant, entry: ConfigEntry, hub: Hub)
 
 class _TemperatureNumber(GlobalEntity, NumberEntity):
     _attr_native_min_value = MIN_TEMP
-    _attr_native_max_value = 30.0
+    _attr_native_max_value = MAX_TEMP
     _attr_native_step = TEMP_STEP
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_mode = NumberMode.BOX

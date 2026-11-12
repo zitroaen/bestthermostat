@@ -36,11 +36,16 @@ from .const import (
     NAME,
 )
 from .hub import get_hub
+from .schedule import MAX_TEMP, MIN_TEMP, TEMP_STEP
 from .visibility import async_unhide_trvs
 
 TEMP_SELECTOR = selector.NumberSelector(
     selector.NumberSelectorConfig(
-        min=4, max=30, step=0.5, unit_of_measurement="°C", mode=selector.NumberSelectorMode.BOX
+        min=MIN_TEMP,
+        max=MAX_TEMP,
+        step=TEMP_STEP,
+        unit_of_measurement="°C",
+        mode=selector.NumberSelectorMode.BOX,
     )
 )
 

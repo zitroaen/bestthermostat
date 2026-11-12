@@ -14,7 +14,7 @@ import voluptuous as vol
 from .const import DOMAIN
 from .hub import get_hub
 from .room import RoomController
-from .schedule import MODES
+from .schedule import MAX_TEMP, MIN_TEMP, MODES
 
 ATTR_SCHEDULE = "schedule"
 ATTR_MODE = "mode"
@@ -144,7 +144,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
             room.cancel_period(call.data.get(ATTR_PERIOD_ID))
 
-    temp = vol.All(vol.Coerce(float), vol.Range(min=4, max=35))
+    temp = vol.All(vol.Coerce(float), vol.Range(min=MIN_TEMP, max=MAX_TEMP))
     hass.services.async_register(
         DOMAIN,
         "add_period",

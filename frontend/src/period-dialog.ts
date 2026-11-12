@@ -193,9 +193,9 @@ export class BtPeriodDialog extends LitElement {
             </div>
             ${this._what?.kind === "mode" && this._what.mode === "heat"
               ? html`<div class="temp-row">
-                  <button class="round" @click=${() => (this._temp = Math.max(5, this._temp - 0.5))}>−</button>
+                  <button class="round" @click=${() => (this._temp = Math.max(this.room?.min_temp ?? 4, this._temp - 0.5))}>−</button>
                   <span class="temp-val">${fmtTemp(this._temp)}</span>
-                  <button class="round" @click=${() => (this._temp = Math.min(30, this._temp + 0.5))}>+</button>
+                  <button class="round" @click=${() => (this._temp = Math.min(this.room?.max_temp ?? 35, this._temp + 0.5))}>+</button>
                 </div>`
               : nothing}
           </section>

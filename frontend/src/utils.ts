@@ -1,4 +1,4 @@
-import type { HomeAssistant, SlotData, VariableData, WeekData } from "./api";
+import type { HomeAssistant, Limits, SlotData, Snapshot, VariableData, WeekData } from "./api";
 import { DAYS } from "./api";
 
 export const GRID = 15;
@@ -382,4 +382,14 @@ export function hassRelevant(oldHass: HomeAssistant | undefined, hass: HomeAssis
     oldHass.language !== hass.language ||
     oldHass.locale?.language !== hass.locale?.language
   );
+}
+
+/** Temperature limits from the backend (fallback for older backends). */
+export function limitsOf(snap?: Snapshot): Limits {
+  return snap?.limits ?? { min: 4, max: 35, step: 0.5 };
+}
+
+/** Round to 0.5 and clamp into [min, max]. */
+export function clampTemp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value * 2) / 2));
 }
