@@ -103,7 +103,7 @@ export function priorities(
       value:
         room.target_source === "hand" && room.hand_until
           ? `${fmtTemp(room.target_temperature)} · ${t.until} ${fmtTime(room.hand_until, hass)}`
-          : t.prio_none,
+          : deviations(room, t, hass) || t.prio_none,
     },
     {
       n: 3,
@@ -140,4 +140,15 @@ export function batteryIcon(level: number | null, low: boolean | null): string {
   if (level <= 10) return "mdi:battery-alert-variant-outline";
   if (level >= 95) return "mdi:battery";
   return `mdi:battery-${Math.max(10, Math.floor(level / 10) * 10)}`;
+}
+
+/** Unsynced hand changes on single thermostats, e.g. "TRV left 23.0 °C · until 22:00". */
+export function deviations(room: RoomData, t: Strings, hass: HomeAssistant): string {
+  return (room.trv_deviations ?? [])
+    .map((d) =>
+      [d.name, fmtTemp(d.temperature), d.until ? `${t.until} ${fmtTime(d.until, hass)}` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    )
+    .join(", ");
 }

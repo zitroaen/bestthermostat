@@ -48,6 +48,11 @@ There is no per-room override; periods cover that need.
 
 Configurable per room: switch to manual, keep until the next slot (default), or ignore
 and restore. With "sync" on, the change is written to the other TRVs of the room.
+With "sync" off, the change is a per-thermostat deviation (`RoomState.trv_deviations`):
+the room target stays, the deviation ends with the next slot (or, in manual/off mode,
+with an explicit room change or a period boundary), and the global override still
+applies to all thermostats. "Switch to manual" with sync off switches the room to
+manual at its current target and keeps only the changed thermostat at the new value.
 A temperature set on the room thermostat itself always behaves like "until next slot"
 when the room is in `auto`.
 

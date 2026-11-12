@@ -61,12 +61,14 @@ from .schedule import (
     MODE_HEAT,
     MODE_OFF,
     MODES,
+    SOURCE_OVERRIDE,
     Effective,
     Period,
     RoomState,
     Schedule,
     ScheduleError,
     Target,
+    TrvDeviation,
     Week,
     clamp,
     compute_target,
@@ -118,6 +120,13 @@ def state_from_dict(
     if mode not in MODES:
         mode = MODE_AUTO
     hand_until = dt_util.parse_datetime(raw["hand_until"]) if raw.get("hand_until") else None
+    deviations: dict[str, TrvDeviation] = {}
+    for entity_id, item in (raw.get("trv_deviations") or {}).items():
+        try:
+            until = dt_util.parse_datetime(item["until"]) if item.get("until") else None
+            deviations[entity_id] = TrvDeviation(float(item["temperature"]), until)
+        except (KeyError, TypeError, ValueError) as err:
+            _LOGGER.error("Dropping invalid stored deviation of %s: %s", entity_id, err)
     periods: list[Period] = []
     for item in raw.get("periods", []):
         try:
@@ -132,6 +141,7 @@ def state_from_dict(
         hand_temperature=_float(raw.get("hand_temperature")),
         hand_until=hand_until,
         periods=periods,
+        trv_deviations=deviations,
     )
 
 
@@ -145,6 +155,13 @@ def state_to_dict(state: RoomState) -> dict[str, Any]:
         "hand_temperature": state.hand_temperature,
         "hand_until": state.hand_until.isoformat() if state.hand_until else None,
         "periods": [p.to_dict() for p in state.periods],
+        "trv_deviations": {
+            entity_id: {
+                "temperature": d.temperature,
+                "until": d.until.isoformat() if d.until else None,
+            }
+            for entity_id, d in state.trv_deviations.items()
+        },
     }
 
 
@@ -167,6 +184,11 @@ class RoomController:
         self.state = state_from_dict(
             hub.rooms_data.get(entry.entry_id), text(hass, "default_schedule")
         )
+        if self.sync_trvs:
+            self.state.trv_deviations.clear()
+        else:  # drop deviations of thermostats that were removed from the room
+            for entity_id in set(self.state.trv_deviations) - set(self.trvs):
+                del self.state.trv_deviations[entity_id]
         self._unsubs: list[Callable[[], None]] = []
         self._timer: Callable[[], None] | None = None
         self._settle: dict[str, Callable[[], None]] = {}
@@ -287,6 +309,7 @@ class RoomController:
         if self.state.hand_until and not self.state.hand_active(now):
             self._clear_hand()
         self._drop_expired_periods(now)
+        self._drop_expired_deviations(now)
         period = self.state.active_period(now)
         self._last_period_id = period.id if period else None
         self._unsubs.append(
@@ -482,7 +505,7 @@ class RoomController:
             if not _available(state):
                 continue
             assert state is not None
-            want = self._for_trv(state, target.temperature)
+            want = self._want(state, target)
             current = _float(state.attributes.get(ATTR_TEMPERATURE))
             if (
                 current is None
@@ -490,6 +513,47 @@ class RoomController:
                 or self.hub.sender.is_pending(entity_id)
             ):
                 self.hub.sender.send(entity_id, want)
+
+    def deviation(self, entity_id: str) -> TrvDeviation | None:
+        """Active unsynced hand change of a thermostat (only with sync off)."""
+        deviation = self.state.trv_deviations.get(entity_id)
+        if deviation is None or not deviation.active(dt_util.utcnow()):
+            return None
+        return deviation
+
+    def _want(self, state: State, target: Target) -> float:
+        """Set-point a thermostat should have (its own deviation, unless overridden)."""
+        assert target.temperature is not None
+        deviation = self.deviation(state.entity_id)
+        if deviation is not None and target.source != SOURCE_OVERRIDE:
+            return self._for_trv(state, deviation.temperature)
+        return self._for_trv(state, target.temperature)
+
+    def deviations_list(self) -> list[dict[str, Any]]:
+        """Active unsynced thermostat changes for the API."""
+        result = []
+        for entity_id in self.trvs:
+            if (deviation := self.deviation(entity_id)) is None:
+                continue
+            state = self.hass.states.get(entity_id)
+            result.append(
+                {
+                    "entity_id": entity_id,
+                    "name": state.name if state else entity_id,
+                    "temperature": deviation.temperature,
+                    "until": deviation.until.isoformat() if deviation.until else None,
+                }
+            )
+        return result
+
+    def _drop_expired_deviations(self, now: datetime) -> bool:
+        expired = [e for e, d in self.state.trv_deviations.items() if not d.active(now)]
+        for entity_id in expired:
+            del self.state.trv_deviations[entity_id]
+        return bool(expired)
+
+    def _clear_deviations(self) -> None:
+        self.state.trv_deviations.clear()
 
     # ------------------------------------------------------------ listeners
 
@@ -526,7 +590,7 @@ class RoomController:
             new.context.id,
             new.context.parent_id,
         )
-        if target is not None and abs(new_t - self._for_trv(new, target)) <= TOLERANCE:
+        if target is not None and abs(new_t - self._want(new, self.target())) <= TOLERANCE:
             return
         if self.hub.sender.recently_sent(entity_id, SETTLE_SECONDS):
             # Probably a stale report right after our write - re-check later.
@@ -564,14 +628,43 @@ class RoomController:
             self.apply()
             return
         _LOGGER.info("%s: hand change on %s to %s °C", self.name, entity_id, temperature)
-        self._set_temperature(temperature, from_trv=True)
         if not self.sync_trvs:
-            # Only remember the new value, do not touch the other TRVs.
-            self.hub.save()
-            self._schedule_timer()
-            self.notify()
+            self._deviate(entity_id, temperature)
             return
+        self._set_temperature(temperature)
         self._changed()
+
+    def _deviate(self, entity_id: str, temperature: float) -> None:
+        """Sync off: keep the change on this thermostat only; the room target stays."""
+        state = self.state
+        now = dt_util.utcnow()
+        tz = dt_util.get_default_time_zone()
+        period = state.active_period(now)
+        eff = state.effective(now)
+        until: datetime | None = None
+        if eff.mode == MODE_AUTO:
+            if period is None and self.hand_change == HAND_MANUAL:
+                # The room switches to manual mode; the other thermostats keep their value.
+                current = self.target(now).temperature
+                state.mode = MODE_HEAT
+                if current is not None:
+                    state.manual_temperature = current
+                self._clear_hand()
+            else:
+                result = next_change(state.schedules[eff.schedule_id].week, now, tz)
+                candidates = [
+                    t for t in (result[0] if result else None, period and period.end) if t
+                ]
+                until = min(candidates) if candidates else None
+        elif period is not None:
+            until = period.end
+        target = self.target(now).temperature
+        if target is not None and abs(temperature - target) <= TOLERANCE:
+            state.trv_deviations.pop(entity_id, None)  # back to the room target
+        else:
+            state.trv_deviations[entity_id] = TrvDeviation(temperature, until)
+        self._changed()
+        self.notify()
 
     # ---------------------------------------------------------------- timer
 
@@ -587,6 +680,9 @@ class RoomController:
             candidates.append(result[0])
         if self.state.hand_until and self.state.hand_until > now:
             candidates.append(self.state.hand_until)
+        candidates.extend(
+            d.until for d in self.state.trv_deviations.values() if d.until and d.until > now
+        )
         for period in self.state.periods:
             candidates.extend(t for t in (period.start, period.end) if t is not None and t > now)
         if candidates:
@@ -609,10 +705,13 @@ class RoomController:
             # A period started or ended: a hand change from before no longer applies.
             self._last_period_id = period.id if period else None
             self._clear_hand()
+            self._clear_deviations()
             changed = True
             _LOGGER.info("%s: period %s", self.name, f"{period.id} started" if period else "ended")
         if self.state.hand_until and not self.state.hand_active(now):
             self._clear_hand()
+            changed = True
+        if self._drop_expired_deviations(now):
             changed = True
         if changed:
             self.hub.save()
@@ -632,7 +731,7 @@ class RoomController:
         except ScheduleError as err:
             raise HomeAssistantError(str(err)) from err
 
-    def _set_temperature(self, temperature: float, *, from_trv: bool) -> None:
+    def _set_temperature(self, temperature: float) -> None:
         state = self.state
         now = dt_util.utcnow()
         period = state.active_period(now)
@@ -669,7 +768,8 @@ class RoomController:
         temperature = round(float(temperature) * 2) / 2
         low, high = self.limits()
         temperature = min(max(temperature, low), high)
-        self._set_temperature(temperature, from_trv=False)
+        self._set_temperature(temperature)
+        self._clear_deviations()  # an explicit room temperature applies to every thermostat
         self._changed()
 
     def _end_active_period(self) -> None:
@@ -694,6 +794,7 @@ class RoomController:
                 self.state.manual_temperature = current
         self.state.mode = mode
         self._clear_hand()
+        self._clear_deviations()
         self._changed()
 
     # ------------------------------------------------------------ schedules
@@ -714,6 +815,7 @@ class RoomController:
         self._end_active_period()
         self.state.active_schedule = sched.id
         self._clear_hand()
+        self._clear_deviations()
         self._changed()
 
     def _check_name(self, name: str, ignore: str | None = None) -> str:
@@ -988,6 +1090,7 @@ class RoomController:
                 else None
             ),
             "override_active": self.override_active,
+            "trv_deviations": self.deviations_list(),
             "next_change": nxt[0].isoformat() if nxt else None,
             "next_temperature": nxt[1] if nxt else None,
             "schedules": [

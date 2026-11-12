@@ -32,7 +32,14 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
   - *Bis zum nächsten Slot halten* (Standard)
   - *Ignorieren und Plan wiederherstellen*: Gilt für Änderungen am Thermostat. Am
     Raumthermostat wirkt diese Einstellung wie „bis zum nächsten Slot“.
-- Änderungen auf die anderen Thermostate übertragen (an/aus)
+- Änderungen auf die anderen Thermostate übertragen (an/aus). Wenn aus, bleibt eine
+  Änderung am Thermostat nur an diesem Thermostat: Das Raumziel ändert sich nicht, die
+  anderen Thermostate behalten ihren Wert. Die Abweichung endet mit dem nächsten Slot
+  (bzw. im Modus Manuell/Aus, wenn Modus, Zeitplan oder Temperatur des Raums geändert
+  werden oder ein Zeitraum beginnt oder endet). Der globale Override gilt weiterhin für
+  alle Thermostate. Mit *Raum auf Manuell schalten* wird der Raum mit seinem aktuellen
+  Ziel manuell, nur das geänderte Thermostat behält den neuen Wert. Die
+  Prioritätsansicht der Raumkarte zeigt solche Abweichungen.
 - Thermostate verstecken (an/aus): blendet die einzelnen TRV-Entitäten in Dashboards und
   bei Sprachassistenten aus, das Raumthermostat ersetzt sie. Von dir selbst versteckte
   Entitäten bleiben unberührt. Beim Ausschalten der Option, beim Entfernen eines TRVs aus

@@ -34,7 +34,14 @@ language of Home Assistant.
   - *Keep until the next slot* (default)
   - *Ignore and restore schedule*: applies to changes on a thermostat. On the room
     thermostat this setting acts like "until the next slot".
-- Sync changes on one thermostat to the others (on/off)
+- Sync changes on one thermostat to the others (on/off). When off, a change on a
+  thermostat stays on that thermostat only: the room target does not change and the
+  other thermostats keep their value. The deviation ends with the next slot (or, if the
+  room is in manual/off mode, when the room's mode, schedule or temperature is changed
+  or a period starts or ends). The global override still applies to every thermostat.
+  With *Switch room to manual mode* the room becomes manual at its current target and
+  only the changed thermostat keeps the new value. The priority view of the room card
+  lists such deviations.
 - Hide the thermostats (on/off): hides the individual TRV entities from dashboards and
   voice assistants; the room thermostat replaces them. Entities you hid yourself are left
   untouched. They are shown again when the option is turned off, a TRV is removed from the

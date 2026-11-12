@@ -121,6 +121,7 @@ class RoomClimate(RoomEntity, ClimateEntity):
             "next_change": nxt[0] if nxt else None,
             "next_temperature": nxt[1] if nxt else None,
             "trvs": controller.trvs,
+            "trv_deviations": controller.deviations_list(),
         }
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
