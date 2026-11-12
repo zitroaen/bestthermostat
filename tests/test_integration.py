@@ -825,3 +825,82 @@ async def test_sync_off_manual_setting(
     await settle(hass)
     assert temps(hass) == (21.0, 19.0)
     assert entry.runtime_data.as_dict()["trv_deviations"][0]["temperature"] == 19.0
+
+
+async def test_battery_added_later_is_tracked(
+    hass: HomeAssistant, trvs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """A battery entity that appears after the room started is picked up."""
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    source = MockConfigEntry(domain="test")
+    source.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=source.entry_id, identifiers={("test", "trv1")}, name="TRV 1"
+    )
+    ent_reg = er.async_get(hass)
+    hass.states.async_remove("climate.trv1")
+    ent_reg.async_get_or_create(
+        "climate", "test", "trv1", suggested_object_id="trv1", device_id=device.id
+    )
+    hass.states.async_set("climate.trv1", "heat", TRV_ATTRS)
+    freezer.move_to(MONDAY_7)
+    room = (await create_room(hass)).runtime_data
+    assert room.as_dict()["batteries"] == []
+    ent_reg.async_get_or_create(
+        "sensor",
+        "test",
+        "trv1_bat",
+        suggested_object_id="trv1_battery",
+        device_id=device.id,
+        original_device_class="battery",
+    )
+    hass.states.async_set("sensor.trv1_battery", "50", {"unit_of_measurement": "%"})
+    await hass.async_block_till_done()
+    assert room.as_dict()["batteries"][0]["level"] == 50.0
+    notified = []
+    room.notify = lambda: notified.append(True)  # type: ignore[method-assign]
+    hass.states.async_set("sensor.trv1_battery", "40", {"unit_of_measurement": "%"})
+    await hass.async_block_till_done()
+    assert notified
+
+
+async def test_manual_mode_during_override_keeps_room_value(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """Switching to manual while the override runs uses the room's own target."""
+    get_hub(hass).set_override(active=True, temperature=15.0)
+    room.set_mode("heat")
+    assert room.state.manual_temperature == 21.0
+
+
+async def test_set_temperature_with_mode_rounds(hass: HomeAssistant, room: RoomController) -> None:
+    """climate.set_temperature with hvac_mode rounds like a plain temperature change."""
+    from homeassistant.components.climate import HVACMode
+
+    from custom_components.bestthermostat.climate import RoomClimate
+
+    # The tests replace climate.set_temperature (for the fake TRVs), so call the entity.
+    entity = next(
+        e
+        for e in hass.data["climate"].entities
+        if isinstance(e, RoomClimate) and e.controller is room
+    )
+    await entity.async_set_temperature(temperature=21.3, hvac_mode=HVACMode.HEAT)
+    assert room.mode == "heat"
+    assert room.state.manual_temperature == 21.5
+    await entity.async_set_temperature(temperature=23, hvac_mode=HVACMode.AUTO)
+    assert room.mode == "auto"
+    assert room.target().temperature == 23.0
+    assert room.target().source == "hand"
+
+
+async def test_variable_usage_names_unloaded_room(
+    hass: HomeAssistant, room: RoomController
+) -> None:
+    """Usage of a variable in an unloaded room names the room."""
+    entry = hass.config_entries.async_get_entry(room.entry_id)
+    assert entry is not None
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert get_hub(hass).variable_usage("comfort") == ["Arbeitszimmer: Default"]

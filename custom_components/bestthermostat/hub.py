@@ -184,10 +184,12 @@ class Hub:
                     if vid in sched.week.variables():
                         usages.append(f"{controller.name}: {sched.name}")
                 continue
+            entry = self.hass.config_entries.async_get_entry(entry_id)
+            room = entry.title if entry else "?"
             for sched in data.get("schedules", []):
                 for day in sched.get("week", {}).values():
                     if any(slot.get("variable") == vid for slot in day):
-                        usages.append(sched.get("name", "?"))
+                        usages.append(f"{room}: {sched.get('name', '?')}")
                         break
         if self.override.variable == vid:
             usages.append("Override")

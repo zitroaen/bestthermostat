@@ -57,6 +57,13 @@ ein kleines Batteriesymbol mit dem Stand bzw. den Ständen (unter 20 % rot); ant
 jedes Thermostat – jeder Eintrag führt direkt zum Gerät in Home Assistant. Die Übersicht
 markiert Räume mit schwacher Batterie. Option `show_battery`.
 
+## Einschränkungen
+
+- Temperaturen sind in **°C**. Home-Assistant-Systeme mit °F werden nicht unterstützt.
+- Zeitpläne laufen in der Zeitzone von Home Assistant. Die Karten nutzen sie für „heute“
+  und die Jetzt-Markierung; Uhrzeiten werden in der Zeitzone aus deinem Benutzerprofil
+  angezeigt.
+
 ## Apple Home, Google Home (Matter / HomeKit)
 
 Matter und HomeKit kennen für Thermostate nur Aus, Heizen, Kühlen und Auto (= Heizen/

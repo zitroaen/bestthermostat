@@ -523,7 +523,7 @@ export class BtWeekEditor extends LitElement {
   private _renderDay(key: string, d: number) {
     const vars = this.snap?.variables ?? [];
     const segs = segments(this._draft![key]);
-    const today = key === todayKey();
+    const today = key === todayKey(this.hass);
     return html`<div class="day ${this._sel?.day === d ? "active" : ""}">
       <span class="day-label ${today ? "today" : ""}">${this._t.days[d]}</span>
       <div class="bar">
@@ -542,7 +542,7 @@ export class BtWeekEditor extends LitElement {
           </button>`;
         })}
         <div class="hours"></div>
-        ${today ? html`<div class="now" style="left:${(nowMinutes() / DAY_MIN) * 100}%"></div>` : nothing}
+        ${today ? html`<div class="now" style="left:${(nowMinutes(this.hass) / DAY_MIN) * 100}%"></div>` : nothing}
         ${segs.slice(1).map((s, i) => {
           const dragging = this._drag?.day === d && this._drag.idx === i + 1;
           return html`<div class="handle ${dragging ? "dragging" : ""}"
