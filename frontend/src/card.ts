@@ -14,6 +14,8 @@ import {
   tempColor,
   todayKey,
   updateBanner,
+  onMinute,
+  hassRelevant,
 } from "./utils";
 import {
   batteryIcon,
@@ -62,6 +64,7 @@ export class BestThermostatCard extends LitElement {
     _batOpen: { state: true },
     _swipe: { state: true },
     _error: { state: true },
+    _unreachable: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -79,7 +82,8 @@ export class BestThermostatCard extends LitElement {
   _error?: string;
   private _unsub?: () => void;
   private _debounce?: number;
-  private _tick?: number;
+  private _untick?: () => void;
+  _unreachable = false;
   private _editor?: BtWeekEditor;
 
   static getConfigElement() {
@@ -109,8 +113,13 @@ export class BestThermostatCard extends LitElement {
 
   /** Property alternative to setConfig (used when embedded by the overview card). */
   set config(config: CardConfig) {
+    // Lit re-assigns object bindings on every render of the overview; same object = no-op.
+    if (config === this._rawConfig) return;
+    this._rawConfig = config;
     this.setConfig(config);
   }
+
+  private _rawConfig?: CardConfig;
 
   getCardSize() {
     return this._config?.compact ? 3 : 6;
@@ -124,7 +133,7 @@ export class BestThermostatCard extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._tick = window.setInterval(() => this.requestUpdate(), 60_000);
+    this._untick = onMinute(() => this.requestUpdate());
     if (this.hass) this._subscribe();
   }
 
@@ -132,13 +141,44 @@ export class BestThermostatCard extends LitElement {
     super.disconnectedCallback();
     this._unsub?.();
     this._unsub = undefined;
-    window.clearInterval(this._tick);
+    this._untick?.();
+    this._untick = undefined;
     this._editor?.remove();
     this._editor = undefined;
     this._editing = false;
     this._planner?.remove();
     this._planner = undefined;
     this._planning = false;
+  }
+
+  /**
+   * Skip renders that would not change anything: Home Assistant assigns a new ``hass``
+   * on every state change in the house, and other rooms' updates replace the snapshot.
+   */
+  protected shouldUpdate(changed: PropertyValues): boolean {
+    if (changed.size === 0 || this._editing || this._planning) return true;
+    for (const key of changed.keys()) {
+      if (key === "hass") {
+        if (hassRelevant(changed.get("hass") as HomeAssistant | undefined, this.hass)) return true;
+      } else if (key === "_snap") {
+        const old = changed.get("_snap") as Snapshot | undefined;
+        const now = this._snap;
+        if (
+          !old ||
+          !now ||
+          old.version !== now.version ||
+          old.variables !== now.variables ||
+          old.override !== now.override ||
+          findRoom(old, this._config?.entity) !== findRoom(now, this._config?.entity)
+        )
+          return true;
+      } else {
+        return true;
+      }
+    }
+    // Still subscribe when hass arrives for the first time (handled in willUpdate).
+    if (changed.has("hass") && !this._unsub && this.isConnected) this._subscribe();
+    return false;
   }
 
   protected willUpdate(changed: PropertyValues) {
@@ -181,7 +221,11 @@ export class BestThermostatCard extends LitElement {
 
   private _subscribe() {
     if (!this.hass) return;
-    this._unsub = subscribe(this.hass, (snap) => (this._snap = snap));
+    this._unsub = subscribe(
+      this.hass,
+      (snap) => (this._snap = snap),
+      (unreachable) => (this._unreachable = unreachable),
+    );
   }
 
   private get _room(): RoomData | undefined {
@@ -277,7 +321,8 @@ export class BestThermostatCard extends LitElement {
   protected render() {
     if (!this._config || !this.hass) return nothing;
     const t = strings(this.hass);
-    if (!this._snap) return html`<ha-card><div class="msg">${t.loading}</div></ha-card>`;
+    if (!this._snap)
+      return html`<ha-card><div class="msg">${this._unreachable ? t.unreachable : t.loading}</div></ha-card>`;
     const room = this._room;
     if (!room) return html`<ha-card><div class="msg">${t.not_found}</div></ha-card>`;
     const c = this._config;

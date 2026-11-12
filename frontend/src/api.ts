@@ -116,39 +116,113 @@ export const DOMAIN = "bestthermostat";
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type Listener = (snap: Snapshot) => void;
+/** Called with true while the integration cannot be reached, false once it can. */
+type StatusListener = (unreachable: boolean) => void;
 
 let current: Snapshot | undefined;
 let unsub: Promise<() => void> | undefined;
 let subscribedConnection: unknown;
+let lastHass: HomeAssistant | undefined;
+let unreachable = false;
+let retryTimer: number | undefined;
+let retryCount = 0;
 const listeners = new Set<Listener>();
+const statusListeners = new Set<StatusListener>();
+const RETRY_DELAYS = [2, 5, 10, 30]; // seconds, the last one repeats
+
+function same(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Keep the objects of the previous snapshot where nothing changed, so cards can
+ * skip rendering rooms (and whole cards) whose data is identical.
+ */
+function share(prev: Snapshot | undefined, next: Snapshot): Snapshot {
+  if (!prev) return next;
+  const old = new Map(prev.rooms.map((r) => [r.entry_id, r]));
+  return {
+    ...next,
+    rooms: next.rooms.map((r) => {
+      const o = old.get(r.entry_id);
+      return o && same(o, r) ? o : r;
+    }),
+    variables: same(prev.variables, next.variables) ? prev.variables : next.variables,
+    override: same(prev.override, next.override) ? prev.override : next.override,
+  };
+}
+
+function setUnreachable(value: boolean) {
+  if (unreachable === value) return;
+  unreachable = value;
+  statusListeners.forEach((l) => l(value));
+}
+
+function scheduleRetry() {
+  if (retryTimer !== undefined || listeners.size === 0) return;
+  const delay = RETRY_DELAYS[Math.min(retryCount, RETRY_DELAYS.length - 1)];
+  retryCount += 1;
+  retryTimer = window.setTimeout(() => {
+    retryTimer = undefined;
+    if (listeners.size && lastHass) connect(lastHass);
+  }, delay * 1000);
+}
+
+function connect(hass: HomeAssistant) {
+  subscribedConnection = hass.connection;
+  const promise = hass.connection
+    .subscribeMessage<Snapshot>(
+      (snap) => {
+        retryCount = 0;
+        setUnreachable(false);
+        current = share(current, snap);
+        const shared = current;
+        listeners.forEach((l) => l(shared));
+      },
+      { type: `${DOMAIN}/subscribe` },
+    )
+    .catch((err) => {
+      // e.g. Home Assistant is still starting and the integration is not loaded yet
+      console.warn("Best Thermostat: subscription failed, retrying", err);
+      if (unsub === promise) unsub = undefined;
+      setUnreachable(true);
+      scheduleRetry();
+      return () => undefined;
+    });
+  unsub = promise;
+}
 
 /** Subscribe to state updates; one websocket subscription is shared by all cards. */
-export function subscribe(hass: HomeAssistant, listener: Listener): () => void {
+export function subscribe(
+  hass: HomeAssistant,
+  listener: Listener,
+  status?: StatusListener,
+): () => void {
   listeners.add(listener);
+  if (status) {
+    statusListeners.add(status);
+    if (unreachable) status(true);
+  }
+  lastHass = hass;
   if (current) listener(current);
-  if (!unsub || subscribedConnection !== hass.connection) {
-    subscribedConnection = hass.connection;
-    unsub = hass.connection
-      .subscribeMessage<Snapshot>(
-        (snap) => {
-          current = snap;
-          listeners.forEach((l) => l(snap));
-        },
-        { type: `${DOMAIN}/subscribe` },
-      )
-      .catch((err) => {
-        console.error("Best Thermostat: subscription failed", err);
-        unsub = undefined;
-        return () => undefined;
-      });
+  if ((!unsub && retryTimer === undefined) || subscribedConnection !== hass.connection) {
+    window.clearTimeout(retryTimer);
+    retryTimer = undefined;
+    connect(hass);
   }
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0 && unsub) {
-      const u = unsub;
-      unsub = undefined;
+    if (status) statusListeners.delete(status);
+    if (listeners.size === 0) {
+      window.clearTimeout(retryTimer);
+      retryTimer = undefined;
+      retryCount = 0;
+      if (unsub) {
+        const u = unsub;
+        unsub = undefined;
+        u.then((f) => f());
+      }
       current = undefined;
-      u.then((f) => f());
     }
   };
 }

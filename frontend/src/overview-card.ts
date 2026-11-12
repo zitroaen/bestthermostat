@@ -12,7 +12,15 @@ import {
 import { shared } from "./styles";
 import { startSwipe } from "./swipe";
 import { CARD_VERSION } from "./version";
-import { fmtTemp, fmtTime, strings, tempColor, updateBanner, tempGradient } from "./utils";
+import {
+  fmtTemp,
+  fmtTime,
+  hassRelevant,
+  strings,
+  tempColor,
+  updateBanner,
+  tempGradient,
+} from "./utils";
 
 /** Options applied to every room (same as the room card's options). */
 export interface RoomOptions {
@@ -68,6 +76,7 @@ export class BestThermostatOverviewCard extends LitElement {
     _open: { state: true },
     _ovOpen: { state: true },
     _varsOpen: { state: true },
+    _unreachable: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -77,6 +86,7 @@ export class BestThermostatOverviewCard extends LitElement {
   _open?: string;
   _ovOpen = false;
   _varsOpen = false;
+  _unreachable = false;
   private _unsub?: () => void;
 
   static getConfigElement() {
@@ -130,9 +140,26 @@ export class BestThermostatOverviewCard extends LitElement {
     return 2 + (this._snap?.rooms.length ?? 2);
   }
 
+  private _subscribe() {
+    this._unsub = subscribe(
+      this.hass!,
+      (s) => (this._snap = s),
+      (unreachable) => (this._unreachable = unreachable),
+    );
+  }
+
   connectedCallback() {
     super.connectedCallback();
-    if (this.hass) this._unsub = subscribe(this.hass, (s) => (this._snap = s));
+    if (this.hass) this._subscribe();
+  }
+
+  /** Home Assistant assigns a new ``hass`` on every state change; only a few parts matter. */
+  protected shouldUpdate(changed: PropertyValues): boolean {
+    if (changed.size === 1 && changed.has("hass")) {
+      if (!this._unsub && this.hass && this.isConnected) this._subscribe();
+      return hassRelevant(changed.get("hass") as HomeAssistant | undefined, this.hass);
+    }
+    return true;
   }
 
   disconnectedCallback() {
@@ -142,9 +169,7 @@ export class BestThermostatOverviewCard extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues) {
-    if (changed.has("hass") && this.hass && !this._unsub && this.isConnected) {
-      this._unsub = subscribe(this.hass, (s) => (this._snap = s));
-    }
+    if (changed.has("hass") && this.hass && !this._unsub && this.isConnected) this._subscribe();
   }
 
   private async _call(type: string, data: Record<string, unknown>) {
@@ -310,7 +335,8 @@ export class BestThermostatOverviewCard extends LitElement {
     if (!this._config || !this.hass) return nothing;
     const t = strings(this.hass);
     const snap = this._snap;
-    if (!snap) return html`<ha-card><div class="pad">${t.loading}</div></ha-card>`;
+    if (!snap)
+      return html`<ha-card><div class="pad">${this._unreachable ? t.unreachable : t.loading}</div></ha-card>`;
     const heating = snap.rooms.filter((r) => r.hvac_action === "heating").length;
     const temps = snap.rooms.map((r) => r.current_temperature).filter((v): v is number => v != null);
     const avg = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;

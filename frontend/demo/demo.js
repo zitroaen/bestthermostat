@@ -172,6 +172,8 @@ const snapshot = {
   ],
 };
 
+let failures = Number(params.get("fail") || 0);
+
 // --- fake hass ----------------------------------------------------------------
 const listeners = new Set();
 const push = () => listeners.forEach((cb) => cb(structuredClone(snapshot)));
@@ -183,6 +185,11 @@ const hass = {
   ),
   connection: {
     async subscribeMessage(cb) {
+      // ?fail=N: the first N subscriptions fail (integration not loaded yet)
+      if (failures > 0) {
+        failures -= 1;
+        throw new Error("Unknown command.");
+      }
       listeners.add(cb);
       cb(structuredClone(snapshot));
       return () => listeners.delete(cb);
@@ -196,6 +203,13 @@ const hass = {
     if (type === "room/mode") Object.assign(r, { mode: msg.mode, base_mode: msg.mode, target_source: { auto: "schedule", heat: "manual", off: "off" }[msg.mode] });
     if (type === "schedule/activate") Object.assign(r, { active_schedule: msg.schedule_id, base_schedule: msg.schedule_id });
     if (type === "schedule/save") r.schedules.find((s) => s.id === msg.schedule_id).week = msg.week;
+    if (type === "schedule/create") {
+      const from = r.schedules.find((s) => s.id === msg.copy_from) ?? r.schedules[0];
+      const created = { id: `s${Date.now()}`, name: msg.name, week: structuredClone(from.week) };
+      r.schedules.push(created);
+      push();
+      return created;
+    }
     if (type === "override/set") {
       Object.assign(snapshot.override, msg, msg.temperature ? { value: msg.temperature } : {});
       snapshot.rooms.forEach((x) => (x.override_active = snapshot.override.active && x.mode === "auto"));

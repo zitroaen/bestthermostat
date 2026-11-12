@@ -205,6 +205,7 @@ const STRINGS = {
     confirm_delete: "Zeitplan wirklich löschen?",
     tap_hint: "Abschnitt antippen zum Bearbeiten, Grenzen ziehen zum Verschieben.",
     days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    unreachable: "Best Thermostat ist nicht erreichbar. Neuer Versuch läuft …",
     not_found: "Raum nicht gefunden. Bitte in der Kartenkonfiguration einen Best-Thermostat-Raum wählen.",
     loading: "Lade …",
     override: "Globaler Override",
@@ -316,6 +317,7 @@ const STRINGS = {
     confirm_delete: "Really delete this schedule?",
     tap_hint: "Tap a block to edit it, drag the borders to move them.",
     days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    unreachable: "Cannot reach Best Thermostat. Retrying …",
     not_found: "Room not found. Please select a Best Thermostat room in the card configuration.",
     loading: "Loading …",
     override: "Global override",
@@ -351,4 +353,33 @@ export function tempGradient(min: number, max: number): string {
     stops.push(`${tempColor(t)} ${(((t - min) / (max - min)) * 100).toFixed(1)}%`);
   }
   return `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
+const minuteListeners = new Set<() => void>();
+let minuteTimer: number | undefined;
+
+/** One shared timer for all cards that refresh once per minute (e.g. the now marker). */
+export function onMinute(cb: () => void): () => void {
+  minuteListeners.add(cb);
+  if (minuteTimer === undefined) {
+    minuteTimer = window.setInterval(() => minuteListeners.forEach((l) => l()), 60_000);
+  }
+  return () => {
+    minuteListeners.delete(cb);
+    if (!minuteListeners.size) {
+      window.clearInterval(minuteTimer);
+      minuteTimer = undefined;
+    }
+  };
+}
+
+/** True if a new ``hass`` object matters to the cards (they only use language and connection). */
+export function hassRelevant(oldHass: HomeAssistant | undefined, hass: HomeAssistant | undefined) {
+  return (
+    !oldHass ||
+    !hass ||
+    oldHass.connection !== hass.connection ||
+    oldHass.language !== hass.language ||
+    oldHass.locale?.language !== hass.locale?.language
+  );
 }
