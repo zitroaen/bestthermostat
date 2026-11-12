@@ -68,6 +68,12 @@ A TRV state change is ignored when its context matches our write or the value eq
 value we sent within a time window. Reports shortly after our own write are re-checked
 later. Remaining changes are treated as hand changes according to the room setting.
 
+A TRV switching to `auto` (from another available state) is handled separately
+(`RoomController._on_trv_auto`): room → auto, the TRV's previous hvac mode is restored
+and that write is registered with the sender (`note_write`) so reports right after it
+are re-checked instead of becoming hand changes. The sender remembers the contexts of
+the last writes per TRV, so a late echo of an earlier write is still recognised.
+
 ## Translations
 
 Config flow, entities and services: `translations/*.json` (`en.json` is the reference,

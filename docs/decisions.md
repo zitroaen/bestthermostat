@@ -53,6 +53,12 @@ the room target stays, the deviation ends with the next slot (or, in manual/off 
 with an explicit room change or a period boundary), and the global override still
 applies to all thermostats. "Switch to manual" with sync off switches the room to
 manual at its current target and keeps only the changed thermostat at the new value.
+Switching a thermostat itself to `auto` is read as "follow the schedule": the room
+switches to `auto` (ending manual/off, a hand change and a running period) and the
+thermostat is put back into its previous hvac mode, because a device in `auto` usually
+runs its own internal schedule. This is the only case in which the integration writes
+an hvac mode to a thermostat.
+
 A temperature set on the room thermostat itself always behaves like "until next slot"
 when the room is in `auto`.
 
