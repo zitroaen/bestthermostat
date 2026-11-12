@@ -140,6 +140,12 @@ export class BtWeekEditor extends LitElement {
   }
 
   private _startName(action: NameAction) {
+    // A new schedule starts from the saved plan: ask before dropping unsaved edits.
+    // "Duplicate" copies what is on screen, unsaved edits included.
+    if (action === "new" && this._dirty) {
+      if (!confirm(this._t.unsaved)) return;
+      this._discard();
+    }
     const current = this.room?.schedules.find((s) => s.id === this._sid)?.name ?? "";
     this._sel = undefined;
     this._vars = false;
@@ -155,12 +161,17 @@ export class BtWeekEditor extends LitElement {
     if (this._nameAction === "rename") {
       await this._call("schedule/rename", { entry_id, schedule_id: this._sid, name });
     } else {
+      const draft = this._nameAction === "duplicate" && this._dirty ? this._draft : undefined;
       const res = await this._call<{ id: string }>("schedule/create", {
         entry_id,
         name,
         copy_from: this._sid,
       });
+      if (res && draft) {
+        await this._call("schedule/save", { entry_id, schedule_id: res.id, week: draft });
+      }
       if (res) {
+        // The schedule we came from keeps its saved state.
         this._sid = res.id;
         this._draft = undefined;
       }

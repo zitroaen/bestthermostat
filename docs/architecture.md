@@ -119,7 +119,14 @@ frontend/src/
   version.ts        CARD_VERSION, must equal the manifest version
 ```
 
-The cards hold no business logic: they render the snapshot and send commands. Values the
+The cards hold no business logic: they render the snapshot and send commands. `api.ts`
+keeps the objects of the previous snapshot where nothing changed (rooms, variables,
+override), so a card whose room did not change skips rendering (`shouldUpdate`); new
+`hass` objects are ignored unless language or connection changed. A failed subscription
+(integration not loaded yet) is retried with backoff and the cards say so. One shared
+minute timer (`onMinute`) refreshes time-dependent parts. Lit re-assigns object
+bindings on every render, so setters such as the room card's `config` ignore the same
+object. Values the
 user is changing are kept as "pending" locally and sent debounced. The cards use only
 Home Assistant theme variables, `ha-card`, `ha-icon` and (in the editors) `ha-form`.
 
