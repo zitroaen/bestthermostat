@@ -89,6 +89,24 @@ def _available(state: State | None) -> bool:
     return state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
 
 
+# TRV attributes the room uses; changes of anything else are ignored.
+RELEVANT_ATTRIBUTES = (
+    ATTR_TEMPERATURE,
+    ATTR_CURRENT_TEMPERATURE,
+    ATTR_HVAC_ACTION,
+    ATTR_MIN_TEMP,
+    ATTR_MAX_TEMP,
+    ATTR_TARGET_TEMP_STEP,
+    "friendly_name",
+)
+
+
+def _relevant(state: State | None) -> tuple[Any, ...] | None:
+    if state is None:
+        return None
+    return (state.state, *(state.attributes.get(a) for a in RELEVANT_ATTRIBUTES))
+
+
 def _float(value: Any) -> float | None:
     try:
         return None if value is None else float(value)
@@ -562,6 +580,8 @@ class RoomController:
         entity_id = event.data["entity_id"]
         new = event.data["new_state"]
         old = event.data["old_state"]
+        if _relevant(old) == _relevant(new):
+            return  # e.g. only link quality or "last seen" changed
         self.notify()
         if not _available(new):
             return

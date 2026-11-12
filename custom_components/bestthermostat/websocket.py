@@ -23,7 +23,19 @@ Connection = websocket_api.ActiveConnection
 SNAPSHOT_DELAY = 0.15
 
 
+SNAPSHOT_CACHE = f"{DOMAIN}_snapshot"
+
+
 def _snapshot(hass: HomeAssistant) -> dict[str, Any]:
+    """Full state for the cards, computed once per change for all subscribers."""
+    if (cached := hass.data.get(SNAPSHOT_CACHE)) is not None:
+        return cached  # type: ignore[no-any-return]
+    snapshot = _build_snapshot(hass)
+    hass.data[SNAPSHOT_CACHE] = snapshot
+    return snapshot
+
+
+def _build_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     hub = get_hub(hass)
     return {
         "version": VERSION,
@@ -316,6 +328,13 @@ def async_register_websocket(hass: HomeAssistant) -> None:
             lambda h, m: {"removed": _room(h, m["entry_id"]).cancel_period(m.get("period_id"))},
         ),
     ]
+
+    @callback
+    def _invalidate(_entry_id: str | None = None) -> None:
+        hass.data.pop(SNAPSHOT_CACHE, None)
+
+    # Registered before any subscriber, so the cache is cleared before they rebuild it.
+    async_dispatcher_connect(hass, SIGNAL_UPDATE, _invalidate)
     websocket_api.async_register_command(hass, ws_subscribe)
     for command in commands:
         websocket_api.async_register_command(hass, command)

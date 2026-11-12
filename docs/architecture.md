@@ -78,6 +78,8 @@ Config flow, entities and services: `translations/*.json` (`en.json` is the refe
 - `Hub.notify(entry_id | None)` sends the dispatcher signal `SIGNAL_UPDATE`. Websocket
   subscribers react to every signal; entities of a room react to the room-specific signal
   `SIGNAL_UPDATE_<entry_id>` and to global updates (`None`).
+- TRV state events only notify when something the room uses changed
+  (`room.RELEVANT_ATTRIBUTES`); link quality, last seen etc. are ignored.
 - `RoomController.notify()` = room entities + cards. `notify_entities()` = entities only
   (used by `Hub.apply_all()`, which then informs the cards once).
 
@@ -87,7 +89,7 @@ All commands are `bestthermostat/<name>` (see `websocket.py`):
 
 | Command | Purpose |
 |---|---|
-| `subscribe` | Full snapshot now and after every change (coalesced, `SNAPSHOT_DELAY`) |
+| `subscribe` | Full snapshot now and after every change (coalesced, `SNAPSHOT_DELAY`). The snapshot is built once per change and shared by all subscribers; any `SIGNAL_UPDATE` invalidates it |
 | `state` | One snapshot |
 | `room/mode`, `room/temperature` | Mode / temperature of a room |
 | `schedule/create`, `rename`, `delete`, `save`, `activate`, `copy_to_rooms` | Schedules |
@@ -122,6 +124,9 @@ user is changing are kept as "pending" locally and sent debounced. The cards use
 Home Assistant theme variables, `ha-card`, `ha-icon` and (in the editors) `ha-form`.
 
 ## Tests
+
+`tests/test_performance.py` prints the cost of a snapshot (20 rooms) and checks that an
+attribute-only TRV update causes no work. Run with `-s` to see the numbers.
 
 - `tests/test_schedule.py` – pure logic (slots, DST, periods, target priority)
 - `tests/test_integration.py` – running Home Assistant with two fake TRVs

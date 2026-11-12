@@ -91,7 +91,9 @@ publishes a release for a tag `vX.Y.Z` that matches the manifest version.
 - **Touch gestures** use touch events with `passive: false` (`swipe.ts`); pointer events
   alone do not work reliably in iOS Safari / the companion app.
 - **Performance:** the websocket subscription sends whole snapshots, coalesced by
-  `SNAPSHOT_DELAY`. Global changes call `Hub.apply_all()`, which notifies the cards once,
-  not once per room.
+  `SNAPSHOT_DELAY` and cached until the next `SIGNAL_UPDATE` - anything shown in the
+  cards must trigger a notify when it changes, or the cards show stale data. Global
+  changes call `Hub.apply_all()`, which notifies the cards once, not once per room.
+  `Week.to_dict()` is cached: never mutate its result.
 - **Timers:** one `async_track_point_in_time` per room (`RoomController._schedule_timer`).
   Never drop the handle without cancelling it.

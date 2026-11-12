@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from functools import cached_property
 import itertools
 from typing import Any
 
@@ -112,9 +113,13 @@ class Week:
 
     days: tuple[tuple[Slot, ...], ...]
 
-    def to_dict(self) -> dict[str, list[dict[str, Any]]]:
-        """Serialize."""
+    @cached_property
+    def _serialized(self) -> dict[str, list[dict[str, Any]]]:
         return {DAYS[i]: [slot.to_dict() for slot in day] for i, day in enumerate(self.days)}
+
+    def to_dict(self) -> dict[str, list[dict[str, Any]]]:
+        """Serialize. The week is immutable, so the result is cached - do not modify it."""
+        return self._serialized
 
     @classmethod
     def from_dict(cls, raw: Any) -> Week:
