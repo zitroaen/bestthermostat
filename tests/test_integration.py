@@ -499,7 +499,7 @@ async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None
     )
 
     floor = fr.async_get(hass).async_create("Obergeschoss", level=1)
-    area = ar.async_get(hass).async_create("Rotes Zimmer", floor_id=floor.floor_id)
+    area = ar.async_get(hass).async_create("Reading room", floor_id=floor.floor_id)
     assert room.area_and_floor() == (None, None)
 
     # TRV area as fallback
@@ -508,7 +508,7 @@ async def test_area_and_floor(hass: HomeAssistant, room: RoomController) -> None
     ent_reg.async_get_or_create("climate", "test", "trv1", suggested_object_id="trv1")
     ent_reg.async_update_entity("climate.trv1", area_id=area.id)
     area_info, floor_info = room.area_and_floor()
-    assert area_info == {"id": area.id, "name": "Rotes Zimmer", "icon": None}
+    assert area_info == {"id": area.id, "name": "Reading room", "icon": None}
     assert floor_info is not None and floor_info["name"] == "Obergeschoss"
     assert floor_info["level"] == 1
 

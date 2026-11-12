@@ -2,303 +2,81 @@
 
 *[Deutsche Version](README.de.md)*
 
-Room-based heating control for Home Assistant with switchable weekly schedules, global
-temperature variables, a global override and time-limited periods (e.g. guest mode). It
-runs fully locally and controls existing radiator thermostats (TRVs) through their
-`climate` entities (ZHA, Zigbee2MQTT, …). A Lovelace card with a weekly editor is included.
+Room-based heating control for Home Assistant. You group the radiator thermostats (TRVs)
+of a room, give the room one or more weekly schedules and control everything from two
+dashboard cards. It runs fully locally and works with any thermostat that Home Assistant
+exposes as a `climate` entity (ZHA, Zigbee2MQTT, …).
 
-It replaces a scheduler component, climate groups, template sensors and hand-made
-automations with a single integration.
+<p align="center">
+  <img src="docs/images/overview.png" alt="Overview card with all rooms grouped by floor" width="380">
+  <img src="docs/images/room-card.png" alt="Room card" width="380">
+</p>
 
-The UI is available in **English** and **German** and follows the language of your Home
-Assistant installation.
+## What you get
 
-## Features
+- **One thermostat per room**, no matter how many TRVs are in it. All of them are kept in
+  sync.
+- **Weekly schedules** with a visual editor. A room can have several (e.g. "Work" and
+  "Guest") and you switch between them with one tap.
+- **Variables** such as "Comfort" and "Eco": change the value once and every schedule
+  that uses it follows.
+- **Global override**, e.g. while nobody is home. Turn it off and everything is exactly
+  as before.
+- **Periods**: "guest schedule from Friday to Sunday" or "bathroom at 23 °C for three
+  hours". Afterwards the room continues as before.
+- **Three modes** per room: *Auto* (schedule), *Manual* (fixed temperature) and *Off*
+  (frost protection).
+- Changes made **directly on a thermostat** are picked up and handled the way you choose
+  per room.
+- Battery levels, floors and area icons are taken from Home Assistant automatically.
+- English and German, following the language of Home Assistant.
 
-- **Rooms** with 1..n thermostats. Every room is a device with its own room thermostat.
-- **Several schedules per room** (e.g. "Work" and "Guest"), switchable through a `select`
-  entity – so it also works from scenes, automations and voice assistants.
-- **Slots** on a 15-minute grid with a fixed temperature or a **variable**.
-- **Global variables** such as "Comfort" and "Eco" as `number` entities. A change is
-  applied to all affected rooms immediately.
-- **Global override**, e.g. while nobody is home: pauses the schedules. When it is turned
-  off, everything is exactly as before.
-- **Periods**: activate a schedule and/or mode for a time range (now or later, until an
-  end or until cancelled). Afterwards the room continues as before. Also as a calendar.
-- **Modes** via `hvac_mode`: `auto` follows the schedule, `heat` means manual (fixed
-  temperature), `off` means frost protection.
-- **Changes made directly on a thermostat** are handled per room (switch to manual / keep
-  until the next slot / ignore) and synced to the other thermostats of the room.
-- Robust against restarts, daylight saving time, unavailable thermostats and different
-  device limits. Writes are staggered to protect the Zigbee network.
+<p align="center">
+  <img src="docs/images/week-editor.png" alt="Weekly editor" width="380">
+</p>
 
 ## Installation
 
-1. HACS → Integrations → ⋮ → *Custom repositories* →
-   `https://github.com/zitroaen/bestthermostat`, category *Integration*.
+1. HACS → ⋮ → *Custom repositories* → `https://github.com/zitroaen/bestthermostat`,
+   type *Integration*.
 2. Install "Best Thermostat" and restart Home Assistant.
-3. *Settings → Devices & services → Add integration → Best Thermostat*, then create a
-   room. The "Best Thermostat" entry for the global settings is created automatically.
+3. *Settings → Devices & services → Add integration → Best Thermostat* and create your
+   first room: give it a name and pick its thermostats.
+4. Edit a dashboard, add a card and search for "Best Thermostat". There are two cards:
+   one for a single room and an overview of all rooms.
 
-The card is registered automatically as a dashboard resource
-(*Settings → Dashboards → Resources*); adding it manually is **not** necessary. A resource
-you added by hand is adopted and updated to the new version on every update. With
-resources in YAML mode the card is loaded as an extra frontend module instead. The
-integration only loads once at least one room exists.
-The integration icon is shown from `brand/` starting with Home Assistant 2026.3.
+The cards are registered automatically; you do not have to add a dashboard resource.
 
-> **Important:** Disable internal schedules, open-window detection and similar features
-> directly on the thermostats. Otherwise they change the set-point on their own and cause
-> conflicts. A warning is logged when a room is set to "ignore" and this happens.
+> **Important:** turn off internal schedules, open-window detection and similar features
+> on the thermostats themselves. Otherwise they change the set-point on their own and
+> work against the integration.
 
-## Entities
+## First steps
 
-| Entity | Example | Purpose |
-|---|---|---|
-| `climate` | `climate.office` | Room thermostat. Current temperature = average, heating if one TRV heats |
-| `select` | `select.office_schedule` | Active schedule |
-| `calendar` | `calendar.office_periods` | Planned periods (create, change, delete) |
-| `sensor` | `sensor.office_next_change` | Next slot change (attribute `next_temperature`) |
-| `binary_sensor` | `binary_sensor.office_schedule_paused` | The schedule is currently not in control (attribute `reason`) |
-| `number` | `number.best_thermostat_comfort` | Global variable (one per variable) |
-| `number` | `number.best_thermostat_override_temperature` | Temperature of the global override |
-| `switch` | `switch.best_thermostat_global_override` | Global override on/off |
-| `switch` | `switch.best_thermostat_override_also_for_manual` | The override also applies to rooms in manual mode |
-| `switch` | `switch.best_thermostat_override_also_for_off` | The override also applies to rooms in off mode (frost protection) |
+- **Edit a schedule:** tap the small pencil next to today's timeline. Tap a block to
+  change its time and temperature, drag the borders to move them, then *Save*.
+- **Change the temperature:** use −/+ or swipe sideways on the target temperature.
+- **Away from home:** flip the *Global override* switch in the overview card.
+- **Guests:** open *Periods* in the room card and plan a period.
 
-Entity IDs depend on the language Home Assistant used when the room was created.
-Default names (schedule "Default", variables "Comfort"/"Eco") are also created in the
-language of Home Assistant.
+The overview card can also show every room as a tile, which works well as the main
+heating view:
 
-## Settings
+<p align="center">
+  <img src="docs/images/overview-tiles.png" alt="Overview card in tiles layout" width="760">
+</p>
 
-**Room** (when creating it and later via *Configure*):
+## More
 
-- Thermostats of the room
-- Frost protection temperature for off mode (default 5 °C)
-- Behaviour on manual changes in auto mode:
-  - *Switch room to manual mode*
-  - *Keep until the next slot* (default)
-  - *Ignore and restore schedule*: applies to changes on a thermostat. On the room
-    thermostat this setting acts like "until the next slot".
-- Sync changes on one thermostat to the others (on/off)
-- Hide the thermostats (on/off): hides the individual TRV entities from dashboards and
-  voice assistants; the room thermostat replaces them. Entities you hid yourself are left
-  untouched. They are shown again when the option is turned off, a TRV is removed from the
-  room or the room is deleted.
-
-**Global** (entry "Best Thermostat" → *Configure*): add, edit and delete variables. A
-variable that is still used in a schedule cannot be deleted. Variables can also be
-managed in the card.
-
-## Battery levels
-
-The integration finds the battery entities of the thermostats automatically (a battery
-sensor in % or a "battery low" binary sensor on the same device). The room card shows a
-small battery indicator with the level(s) in the top right corner (red below 20 %); tap it
-to see every thermostat – each entry links to the device in Home Assistant. The overview
-marks rooms with a weak battery. Option `show_battery`.
-
-## Apple Home, Google Home (Matter / HomeKit)
-
-Matter and HomeKit only know the thermostat modes off, heat, cool and auto (= heat/cool).
-The room thermostat's `auto` (schedule) is therefore not shown there, and choosing
-"Heat" would switch the room to manual mode.
-
-Enable **"Apple Home / Matter compatible modes"** (entry "Best Thermostat" →
-*Configure* → *Settings*). Room thermostats then only offer **Heat** and **Off**:
-
-- **Heat** = follow the schedule (a room in manual mode is shown as Heat)
-- **Off** = frost protection
-- **Changing the temperature** is handled like a hand change (room setting, e.g. until
-  the next slot)
-- Manual mode stays fully available in the cards
-
-No extra entities are created. The global override switch can be exposed as well.
-
-## Priority of the set-point
-
-| Priority | Layer |
-|---|---|
-| 1 | Global override (rooms in auto always; rooms in manual/off only if the respective switch is on) |
-| 2 | Hand change "until next slot" (ends with the next slot or the period at the latest) |
-| 3 | Period (on overlap the **most recently created** one wins) |
-| 4 | Room: off → frost protection, manual → manual temperature, auto → slot of the active schedule |
-
-The room card can show these layers and which one is in control (card option
-`show_priorities`).
-
-The override and periods never modify the room's own state, they are layers on top of it
-(like a BACnet priority array). That is why everything is exactly as before once they end,
-even across restarts.
-
-## Periods (e.g. guest mode)
-
-A **period** activates a schedule and/or mode for a while, e.g. "Office: schedule *Guest*
-from Fri 14:00 to Sun 18:00" or "Bathroom: off, until cancelled". Afterwards the room
-continues **exactly as before**.
-
-- **Start** optional (default: now), **end** optional (default: until cancelled), or a
-  **duration** instead of an end.
-- Periods are stored and keep running across restarts.
-- **Hand changes** during a period follow the room setting and end with the period at the
-  latest. If a period sets manual/off, a temperature change adjusts the period's
-  temperature.
-- **Explicitly choosing a mode or schedule** on the room (card, room thermostat, select)
-  ends the running period.
-- A schedule used by a planned period cannot be deleted.
-
-**In the card:** "Plan period" in the room card opens a dialog: choose a schedule, manual
-(with temperature) or off, a start (now or a date/time), an end (until cancelled or a
-date/time) and an optional title. Active and planned periods are listed; tap one to edit
-it (all settings, or end/delete it). "+N more" expands the full list.
-
-**Calendar:** every room has a `calendar.<room>_periods` entity. It shows all periods and
-lets you create, change and delete them. The event title defines what happens: a schedule
-name ("Guest"), "Off", "Auto" or a temperature ("Manual 22"). German titles ("Aus",
-"Manuell 22") work as well. Recurring events are not supported.
-
-**Services** (also for AI agents, e.g. through an MCP server):
-
-```yaml
-# Guest mode now, until cancelled
-action: bestthermostat.add_period
-data:
-  entity_id: climate.office
-  schedule: Guest
-response_variable: result   # result.periods[0].id to end it later
-
-# Guest mode from Friday 14:00 to Sunday 18:00
-action: bestthermostat.add_period
-data:
-  entity_id: climate.office
-  schedule: Guest
-  start: "2026-11-13 14:00:00"
-  end: "2026-11-15 18:00:00"
-
-# Bathroom at 23 °C for 3 hours
-action: bestthermostat.add_period
-data:
-  entity_id: climate.bathroom
-  temperature: 23
-  duration: {hours: 3}
-
-# End a period (without period_id: all periods of the room)
-action: bestthermostat.cancel_period
-data:
-  entity_id: climate.office
-  period_id: 1a2b3c4d5e6f
-```
-
-`bestthermostat.get_schedule` also returns `period` (active) and `periods` (all planned)
-for each room.
-
-## Cards
-
-```yaml
-type: custom:bestthermostat-card
-entity: climate.office
-compact: false        # true for small wall displays (e.g. Shelly Wall Display)
-show_modes: true
-show_schedules: true
-show_timeline: true
-show_editor: true
-show_periods: true    # list active/planned periods and the "Plan period" button
-show_priorities: true   # row showing which priority layer is in control (expandable)
-show_battery: true      # battery indicator top right (found automatically, < 20 % in red)
-```
-
-```yaml
-type: custom:bestthermostat-overview-card
-title: Heating
-layout: tiles          # list (tap a room to expand) or tiles (all rooms open)
-show_summary: true
-show_override: true
-show_variables: true
-group_by_floor: true
-exclude_rooms: [climate.basement]
-room:                  # applies to all rooms – same options as the room card
-  show_modes: true
-  show_schedules: true
-  show_timeline: true
-  show_periods: true
-  show_priorities: true
-  show_battery: true
-  show_editor: true
-  compact: false
-```
-
-**Room card:** icon, name and status at the top; current temperature large with the
-target next to it (−/+ or **swipe horizontally** on the target; below it the variable and
-source in effect, e.g. "Comfort · Schedule"); mode and schedule selectors; a thin
-timeline for today with a small pencil that opens the weekly editor; below that calm rows
-– periods, priority – that expand when tapped.
-
-**Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
-as a single switch (tap the temperature to open a slider with a temperature-coloured
-track, −/+ and quick picks for your variables), the variables as one line (tap to
-edit) and all rooms – collected automatically. Everything the room card can show is
-available for the rooms of the overview; the `room` options apply to all rooms.
-`layout: list` shows calm rows and expands a room on tap, `layout: tiles` shows every
-room as a tile in as many columns as fit – ideal as the main view.
-
-**Floors:** rooms are grouped by the floors configured in Home Assistant, ordered by the
-floor level. Tap a floor header to collapse it (remembered per device). If several rooms
-of a floor share the next change, it is shown once in the floor header. Swipe horizontally on a
-room's temperature (or on the override temperature) to change it. Rooms use the
-icon of their Home Assistant area; the target is only shown when it differs from the
-current temperature by 0.5° or more. The area of the Best Thermostat room device is used; if it has none, the
-area of its thermostats. New room devices get that area suggested automatically. Rooms
-without a floor are listed under "Other".
-
-Both cards have a visual editor. The weekly editor opens via the pencil next to the
-timeline (or in the header when the timeline is hidden):
-
-- Switch between schedules at the top (the one in effect has a green dot, "+" adds one);
-  a schedule that is not active can be activated right there
-- Tap a block to edit it in a sheet: start/end with −/+ (15-minute grid), fixed
-  temperature or a variable, split, copy the day (Mon–Fri / weekend / all), delete
-- Drag the borders to move them (the time is shown while dragging)
-- The legend explains the colours; "Edit" opens the variables
-- ⋮ menu: rename, duplicate, **copy to other rooms** (an existing schedule with the same
-  name is replaced, otherwise it is created), manage variables, delete schedule
-- Changes are only applied with **Save** – the bar appears as soon as something changed
-
-## Services
-
-| Service | Purpose |
-|---|---|
-| `bestthermostat.set_active_schedule` | Activate a schedule (`entity_id`, `schedule`: name or ID) |
-| `bestthermostat.set_mode` | `auto` / `heat` / `off`, optional `temperature` |
-| `bestthermostat.get_schedule` | Returns state and weekly plans as response data |
-| `bestthermostat.set_schedule` | Set a weekly plan as JSON (creates the schedule if needed) |
-| `bestthermostat.set_variable` | Change a variable (`variable`: ID or name, `value`, `name`) |
-| `bestthermostat.add_period` | Plan a period: `schedule` and/or `mode`/`temperature`, optional `start`, `end` or `duration`, `summary`. Returns the ID |
-| `bestthermostat.update_period` | Change a period in place (`period_id`; only given fields change, `open_end` removes the end). ID and priority are kept |
-| `bestthermostat.cancel_period` | End/delete a period (`period_id`; without ID: all periods of the room) |
-| `bestthermostat.set_global_override` | `active`, `temperature`, `variable`, `include_manual`, `include_off` (`all_modes` sets both) |
-
-Weekly plan format:
-
-```json
-{
-  "mon": [
-    {"start": "00:00", "variable": "eco"},
-    {"start": "06:00", "variable": "comfort"},
-    {"start": "22:00", "temperature": 17.5}
-  ],
-  "tue": [...], "wed": [...], "thu": [...], "fri": [...], "sat": [...], "sun": [...]
-}
-```
-
-Every day needs a slot starting at `00:00`. A slot is valid until the next slot starts,
-also across midnight. Times must be on the 15-minute grid, temperatures in 0.5 °C steps.
+- **[Reference](docs/reference.md)**: entities, room and global settings, priority of the
+  set-point, periods and the calendar, Apple Home / Matter, card options and services.
+- **[Architecture](docs/architecture.md)** and **[design decisions](docs/decisions.md)**
+  for contributors.
 
 ## Updating
 
-After an update via HACS restart Home Assistant. Open dashboards show a hint
-"A new version of the card is available – Reload"; a reload is enough, clearing the
-frontend cache is not necessary.
+Update through HACS and restart Home Assistant. Open dashboards show "A new version of
+the card is available – Reload"; a reload is enough.
 
 ## Development
 
@@ -306,16 +84,14 @@ frontend cache is not necessary.
 pip install -r requirements_test.txt
 ruff check . && mypy custom_components/bestthermostat && pytest
 
-cd frontend && npm ci && npm run build   # builds custom_components/bestthermostat/frontend/bestthermostat-card.js
+cd frontend
+npm ci
+npm run build         # writes custom_components/bestthermostat/frontend/bestthermostat-card.js
+npm run demo          # preview the cards with fake data, no Home Assistant needed
 ```
 
-The built card is committed so that installing through HACS works without a build step.
-A release is created by a tag `vX.Y.Z`, which must match `version` in `manifest.json`
-(and `CARD_VERSION` in `frontend/src/version.ts`; a test checks this).
-
-Translations live in `custom_components/bestthermostat/translations/` (`en.json` is the
-reference, `strings.json` is identical) and, for the cards, in `frontend/src/utils.ts`.
-New languages are welcome.
+See [CLAUDE.md](CLAUDE.md) for the conventions of this repository (it is written for AI
+coding agents, but it is the shortest complete guide for humans too).
 
 ## License
 
