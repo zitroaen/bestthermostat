@@ -19,6 +19,8 @@ import {
   toMin,
   weekEqual,
   define,
+  limitsOf,
+  clampTemp,
 } from "./utils";
 
 interface Sel {
@@ -232,7 +234,8 @@ export class BtWeekEditor extends LitElement {
     this._mutate((w) => {
       const slot = w[DAYS[sel.day]][sel.idx];
       const base = resolveSlot(slot, vars) ?? 20;
-      const temperature = Math.min(30, Math.max(5, Math.round((base + delta) * 2) / 2));
+      const { min, max } = limitsOf(this.snap);
+      const temperature = clampTemp(base + delta, min, max);
       w[DAYS[sel.day]][sel.idx] = { start: slot.start, temperature };
     });
   }
@@ -352,7 +355,8 @@ export class BtWeekEditor extends LitElement {
   // ----------------------------------------------------------- variables
 
   private _varStep(id: string, value: number, delta: number) {
-    const next = Math.min(30, Math.max(5, Math.round((value + delta) * 2) / 2));
+    const { min, max } = limitsOf(this.snap);
+    const next = clampTemp(value + delta, min, max);
     this._call("variable/update", { variable_id: id, value: next });
   }
 
@@ -661,7 +665,7 @@ export class BtWeekEditor extends LitElement {
       <div class="var-add">
         <input type="text" placeholder=${t.name} .value=${this._newVarName}
           @input=${(e: Event) => (this._newVarName = (e.target as HTMLInputElement).value)} />
-        <input type="number" class="num" min="5" max="30" step="0.5" .value=${String(this._newVarValue)}
+        <input type="number" class="num" min=${limitsOf(this.snap).min} max=${limitsOf(this.snap).max} step="0.5" .value=${String(this._newVarValue)}
           @input=${(e: Event) => (this._newVarValue = Number((e.target as HTMLInputElement).value))} />
         <button class="primary-btn" @click=${this._addVar}>${t.add}</button>
       </div>

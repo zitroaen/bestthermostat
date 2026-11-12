@@ -252,5 +252,7 @@ Weekly plan format:
 ```
 
 Every day needs a slot starting at `00:00`. A slot is valid until the next slot starts,
-also across midnight. Times must be on the 15-minute grid, temperatures in 0.5 °C steps.
+also across midnight. Times must be on the 15-minute grid, temperatures in 0.5 °C steps
+between 4 and 35 °C (this range applies to every temperature you configure; what is
+sent to a thermostat is additionally limited to its own min/max).
 

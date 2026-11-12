@@ -105,8 +105,16 @@ export interface OverrideData {
   value: number | null;
 }
 
+export interface Limits {
+  min: number;
+  max: number;
+  step: number;
+}
+
 export interface Snapshot {
   version: string;
+  /** Allowed range for configured temperatures (slots, variables, override). */
+  limits?: Limits;
   rooms: RoomData[];
   variables: VariableData[];
   override: OverrideData;

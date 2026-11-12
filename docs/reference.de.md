@@ -256,5 +256,6 @@ Format eines Wochenplans:
 
 Jeder Tag braucht einen Slot ab `00:00`. Ein Slot gilt bis zum Start des nächsten Slots,
 über Mitternacht hinweg. Erlaubt sind Zeiten im 15-Minuten-Raster und Temperaturen in
-0,5-°C-Schritten.
+0,5-°C-Schritten zwischen 4 und 35 °C (dieser Bereich gilt für alle Temperaturen, die du
+einstellst; an ein Thermostat wird zusätzlich höchstens sein eigenes Min/Max gesendet).
 
