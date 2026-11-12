@@ -78,13 +78,27 @@ def _room_schema(defaults: dict[str, Any], *, with_name: bool) -> vol.Schema:
     return vol.Schema(fields)
 
 
-def _validate_trvs(hass: HomeAssistant, trvs: list[str]) -> str | None:
+def _validate_trvs(
+    hass: HomeAssistant,
+    trvs: list[str],
+    placeholders: dict[str, str],
+    current_entry_id: str | None = None,
+) -> str | None:
+    """Return an error key (and fill ``placeholders``) if the selection is invalid."""
     if not trvs:
         return "no_trvs"
     registry = er.async_get(hass)
     for entity_id in trvs:
         if (entry := registry.async_get(entity_id)) and entry.platform == DOMAIN:
             return "own_entity"
+    for other in hass.config_entries.async_entries(DOMAIN):
+        if other.entry_id == current_entry_id or other.data.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_ROOM:
+            continue
+        if used := [t for t in trvs if t in other.options.get(CONF_TRVS, [])]:
+            state = hass.states.get(used[0])
+            placeholders["trv"] = state.name if state else used[0]
+            placeholders["room"] = other.title
+            return "trv_in_use"
     return None
 
 
@@ -106,6 +120,7 @@ class BestThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Create a room."""
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {"trv": "", "room": ""}
         if user_input is not None:
             name = user_input[CONF_NAME].strip()
             if not name:
@@ -116,7 +131,7 @@ class BestThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
                 if e.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_ROOM
             ):
                 errors[CONF_NAME] = "name_exists"
-            elif error := _validate_trvs(self.hass, user_input[CONF_TRVS]):
+            elif error := _validate_trvs(self.hass, user_input[CONF_TRVS], placeholders):
                 errors[CONF_TRVS] = error
             if not errors:
                 return self.async_create_entry(
@@ -128,6 +143,7 @@ class BestThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_room_schema(user_input or {}, with_name=True),
             errors=errors,
+            description_placeholders=placeholders,
         )
 
     async def async_step_import(self, import_data: dict[str, Any]) -> ConfigFlowResult:
@@ -151,8 +167,11 @@ class RoomOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Edit the room."""
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {"trv": "", "room": ""}
         if user_input is not None:
-            if error := _validate_trvs(self.hass, user_input[CONF_TRVS]):
+            if error := _validate_trvs(
+                self.hass, user_input[CONF_TRVS], placeholders, self.config_entry.entry_id
+            ):
                 errors[CONF_TRVS] = error
             else:
                 removed = set(self.config_entry.options.get(CONF_TRVS, [])) - set(
@@ -162,7 +181,10 @@ class RoomOptionsFlow(OptionsFlow):
                 return self.async_create_entry(data=_options(user_input))
         defaults = {**self.config_entry.options, **(user_input or {})}
         return self.async_show_form(
-            step_id="init", data_schema=_room_schema(defaults, with_name=False), errors=errors
+            step_id="init",
+            data_schema=_room_schema(defaults, with_name=False),
+            errors=errors,
+            description_placeholders=placeholders,
         )
 
 

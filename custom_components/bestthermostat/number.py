@@ -6,6 +6,7 @@ from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import GlobalEntity
@@ -18,9 +19,23 @@ async def async_setup_entry(
 ) -> None:
     """Set up number entities."""
     hub = get_hub(hass)
+    _remove_deleted_variables(hass, entry, hub)
     entities: list[NumberEntity] = [OverrideTemperature(hub)]
     entities.extend(VariableNumber(hub, vid) for vid in hub.variables)
     async_add_entities(entities)
+
+
+def _remove_deleted_variables(hass: HomeAssistant, entry: ConfigEntry, hub: Hub) -> None:
+    """Remove the entities of variables that no longer exist."""
+    registry = er.async_get(hass)
+    known = {f"global_variable_{vid}" for vid in hub.variables}
+    for item in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if (
+            item.domain == "number"
+            and item.unique_id.startswith("global_variable_")
+            and item.unique_id not in known
+        ):
+            registry.async_remove(item.entity_id)
 
 
 class _TemperatureNumber(GlobalEntity, NumberEntity):
