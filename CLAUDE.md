@@ -38,11 +38,10 @@ publishes a release for a tag `vX.Y.Z` that matches the manifest version.
 1. **The built card is committed.** After any change in `frontend/src` run
    `npm run build` and commit `custom_components/bestthermostat/frontend/bestthermostat-card.js`.
    CI fails otherwise. HACS installs without a build step.
-2. **Version bump with every user-visible change**, in all of these places (a test checks
-   manifest ↔ card ↔ built file):
-   `custom_components/bestthermostat/manifest.json`, `custom_components/bestthermostat/const.py`
-   (`VERSION`), `frontend/src/version.ts` (`CARD_VERSION`), `frontend/package.json`,
-   `pyproject.toml`. Then rebuild the card.
+2. **Version bump with every user-visible change:** `python scripts/bump_version.py X.Y.Z`
+   updates manifest, `const.py`, `frontend/src/version.ts`, `package.json`,
+   `package-lock.json` and `pyproject.toml` and rebuilds the card. A test checks that all
+   of them agree.
 3. **`schedule.py` stays pure Python** (no Home Assistant imports). All schedule, period,
    override and target logic lives there and is unit-tested in `tests/test_schedule.py`.
 4. **English is the primary language, German is maintained too.** Texts live in three
