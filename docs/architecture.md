@@ -24,6 +24,7 @@ custom_components/bestthermostat/
   services.py websocket.py
   frontend/bestthermostat-card.js   built card (committed)
 frontend/src/          TypeScript/Lit sources of the cards (esbuild)
+frontend/demo/         stand-alone preview with fake data + screenshot script
 tests/                 pytest + pytest-homeassistant-custom-component
 ```
 
@@ -71,3 +72,66 @@ later. Remaining changes are treated as hand changes according to the room setti
 
 Config flow, entities and services: `translations/*.json` (`en.json` is the reference,
 `strings.json` is identical). Runtime texts: `i18n.py`. Cards: `frontend/src/utils.ts`.
+
+## Notifications
+
+- `Hub.notify(entry_id | None)` sends the dispatcher signal `SIGNAL_UPDATE`. Websocket
+  subscribers react to every signal; entities of a room react to the room-specific signal
+  `SIGNAL_UPDATE_<entry_id>` and to global updates (`None`).
+- `RoomController.notify()` = room entities + cards. `notify_entities()` = entities only
+  (used by `Hub.apply_all()`, which then informs the cards once).
+
+## WebSocket API (used by the cards)
+
+All commands are `bestthermostat/<name>` (see `websocket.py`):
+
+| Command | Purpose |
+|---|---|
+| `subscribe` | Full snapshot now and after every change (coalesced, `SNAPSHOT_DELAY`) |
+| `state` | One snapshot |
+| `room/mode`, `room/temperature` | Mode / temperature of a room |
+| `schedule/create`, `rename`, `delete`, `save`, `activate`, `copy_to_rooms` | Schedules |
+| `variable/create`, `update`, `delete` | Global variables |
+| `override/set` | Global override |
+| `period/add`, `update`, `cancel` | Periods |
+
+A snapshot is `{version, rooms[], variables[], override}`; a room is
+`RoomController.as_dict()` (typed in `frontend/src/api.ts` as `RoomData`). Errors are
+`HomeAssistantError`s and reach the card as the message text.
+
+## Frontend
+
+```
+frontend/src/
+  index.ts          registers the two cards and the card picker entries
+  api.ts            types, one shared websocket subscription for all cards, ws() helper
+  utils.ts          time/temperature helpers, colour scale, STRINGS (en/de), define()
+  room-view.ts      presentation helpers shared by both cards (status line, priorities, battery)
+  styles.ts         shared CSS
+  swipe.ts          horizontal swipe gesture (touch + pointer)
+  card.ts           <bestthermostat-card> room card (also embedded by the overview)
+  overview-card.ts  <bestthermostat-overview-card>
+  week-editor.ts    <bt-week-editor> full-screen weekly editor (appended to document.body)
+  period-dialog.ts  <bt-period-dialog> plan/edit a period (appended to document.body)
+  config-editor.ts  visual editors of both cards (ha-form schemas)
+  version.ts        CARD_VERSION, must equal the manifest version
+```
+
+The cards hold no business logic: they render the snapshot and send commands. Values the
+user is changing are kept as "pending" locally and sent debounced. The cards use only
+Home Assistant theme variables, `ha-card`, `ha-icon` and (in the editors) `ha-form`.
+
+## Tests
+
+- `tests/test_schedule.py` – pure logic (slots, DST, periods, target priority)
+- `tests/test_integration.py` – running Home Assistant with two fake TRVs
+  (`tests/conftest.py` records `climate.set_temperature` calls)
+- `tests/test_periods.py` – periods, calendar, services
+- `tests/test_frontend.py` – card registration and version consistency
+
+There are no automated frontend tests; use `npm run demo`.
+
+## Known limitations
+
+- Temperatures are assumed to be °C.
+- The cards use the browser's time zone for "today" and the now marker.
