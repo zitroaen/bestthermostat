@@ -65,15 +65,17 @@ async def test_duplicate_resources_removed(hass: HomeAssistant) -> None:
     assert urls[0].startswith(f"{CARD_URL}?v={VERSION}-")
 
 
-def test_card_version_matches_integration() -> None:
-    """The card shows a 'reload' hint if its version differs from the integration."""
-    import json
+def test_version_is_the_same_everywhere() -> None:
+    """Every place that carries the version agrees (scripts/bump_version.py sets them)."""
+    import importlib.util
     from pathlib import Path
-    import re
 
     root = Path(__file__).parent.parent
-    manifest = json.loads((root / "custom_components/bestthermostat/manifest.json").read_text())
-    card = (root / "frontend/src/version.ts").read_text()
+    spec = importlib.util.spec_from_file_location("bump", root / "scripts/bump_version.py")
+    assert spec and spec.loader
+    bump = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bump)
+    found = bump.versions()
+    assert set(found.values()) == {VERSION}, found
     built = (root / "custom_components/bestthermostat/frontend/bestthermostat-card.js").read_text()
-    assert re.search(r'CARD_VERSION = "([^"]+)"', card).group(1) == VERSION == manifest["version"]  # type: ignore[union-attr]
-    assert f'"{VERSION}"' in built
+    assert f'"{VERSION}"' in built, "rebuild the card (cd frontend && npm run build)"
