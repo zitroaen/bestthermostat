@@ -294,12 +294,15 @@ class RoomController:
         )
         if battery_entities := [e for ids in self._battery_entities().values() for e in ids]:
             self._unsubs.append(
-                async_track_state_change_event(
-                    self.hass, battery_entities, lambda _event: self.notify()
-                )
+                async_track_state_change_event(self.hass, battery_entities, self._on_battery_event)
             )
         self.apply()
         self._schedule_timer()
+
+    @callback
+    def _on_battery_event(self, _event: Event[EventStateChangedData]) -> None:
+        # Must be a callback: a plain function would run in a worker thread.
+        self.notify()
 
     @callback
     def async_stop(self) -> None:
@@ -467,6 +470,13 @@ class RoomController:
         if target.temperature is None:
             _LOGGER.warning("%s: no target temperature (unknown variable?)", self.name)
             return
+        _LOGGER.debug(
+            "%s: apply target %s °C (source %s, mode %s)",
+            self.name,
+            target.temperature,
+            target.source,
+            self.state.mode,
+        )
         for entity_id in self.trvs:
             state = self.hass.states.get(entity_id)
             if not _available(state):
@@ -502,12 +512,27 @@ class RoomController:
         if new_t is None or new_t == old_t:
             return
         if self.hub.sender.is_own(entity_id, new.context, new_t):
+            _LOGGER.debug("%s: %s %s -> %s °C (own write)", self.name, entity_id, old_t, new_t)
             return
         target = self.target().temperature
+        _LOGGER.debug(
+            "%s: %s reported %s -> %s °C (target %s, preset %s, context %s/%s)",
+            self.name,
+            entity_id,
+            old_t,
+            new_t,
+            target,
+            new.attributes.get("preset_mode"),
+            new.context.id,
+            new.context.parent_id,
+        )
         if target is not None and abs(new_t - self._for_trv(new, target)) <= TOLERANCE:
             return
         if self.hub.sender.recently_sent(entity_id, SETTLE_SECONDS):
             # Probably a stale report right after our write - re-check later.
+            _LOGGER.debug(
+                "%s: %s deviates right after our write, re-check later", self.name, entity_id
+            )
             self._recheck_later(entity_id)
             return
         self._handle_hand_change(entity_id, new_t)
@@ -570,6 +595,7 @@ class RoomController:
     @callback
     def _on_timer(self, _now: datetime) -> None:
         self._timer = None
+        _LOGGER.debug("%s: timer fired", self.name)
         now = dt_util.utcnow()
         changed = self._drop_expired_periods(now)
         period = self.state.active_period(now)
