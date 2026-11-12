@@ -59,6 +59,13 @@ small battery indicator with the level(s) in the top right corner (red below 20 
 to see every thermostat – each entry links to the device in Home Assistant. The overview
 marks rooms with a weak battery. Option `show_battery`.
 
+## Limitations
+
+- Temperatures are in **°C**. Home Assistant systems configured for °F are not
+  supported.
+- Schedules run in the time zone of Home Assistant. The cards use it for "today" and the
+  now marker; times are shown in the zone chosen in your user profile.
+
 ## Apple Home, Google Home (Matter / HomeKit)
 
 Matter and HomeKit only know the thermostat modes off, heat, cool and auto (= heat/cool).

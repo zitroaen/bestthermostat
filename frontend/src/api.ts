@@ -9,7 +9,9 @@ export interface HassEntity {
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
   language: string;
-  locale?: { language: string };
+  /** ``time_zone`` is "local" (browser) or "server" (Home Assistant's zone). */
+  locale?: { language: string; time_zone?: string };
+  config?: { time_zone?: string };
   connection: {
     subscribeMessage<T>(cb: (msg: T) => void, msg: Record<string, unknown>): Promise<() => void>;
   };

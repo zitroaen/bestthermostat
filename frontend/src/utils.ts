@@ -82,23 +82,60 @@ export function segments(day: SlotData[]): { start: number; end: number; slot: S
   }));
 }
 
-export function nowMinutes(): number {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
+/** Wall-clock parts of ``date`` in ``timeZone`` (undefined = browser zone). */
+function zoned(date: Date, timeZone?: string): { day: number; minutes: number; ymd: string } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const day = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(get("weekday"));
+  return {
+    day,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+    ymd: `${get("year")}-${get("month")}-${get("day")}`,
+  };
 }
 
-export function todayKey(): string {
-  return DAYS[(new Date().getDay() + 6) % 7];
+/** Schedules run in Home Assistant's time zone, whatever zone the browser is in. */
+function scheduleZone(hass?: HomeAssistant): string | undefined {
+  return hass?.config?.time_zone || undefined;
 }
 
+/** Zone for displaying times: the user's profile setting (browser or server zone). */
+function displayZone(hass?: HomeAssistant): string | undefined {
+  return hass?.locale?.time_zone === "server" ? scheduleZone(hass) : undefined;
+}
+
+/** Minutes since midnight in the schedule's time zone. */
+export function nowMinutes(hass?: HomeAssistant): number {
+  return zoned(new Date(), scheduleZone(hass)).minutes;
+}
+
+/** Day key (mon..sun) of today in the schedule's time zone. */
+export function todayKey(hass?: HomeAssistant): string {
+  return DAYS[zoned(new Date(), scheduleZone(hass)).day];
+}
+
+/** "14:30" today, "Fri 14:30" within a week, otherwise with the date. */
 export function fmtTime(iso: string | null, hass: HomeAssistant): string {
   if (!iso) return "";
   const d = new Date(iso);
   const lang = hass.locale?.language || hass.language;
-  const now = new Date();
-  const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
-  if (d.toDateString() === now.toDateString()) return time;
-  return `${d.toLocaleDateString(lang, { weekday: "short" })} ${time}`;
+  const timeZone = displayZone(hass);
+  const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", timeZone });
+  if (zoned(d, timeZone).ymd === zoned(new Date(), timeZone).ymd) return time;
+  const days = (d.getTime() - Date.now()) / 86_400_000;
+  if (days > -1 && days < 6) {
+    return `${d.toLocaleDateString(lang, { weekday: "short", timeZone })} ${time}`;
+  }
+  return `${d.toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short", timeZone })} ${time}`;
 }
 
 const STRINGS = {

@@ -63,6 +63,7 @@ from .schedule import (
     MODES,
     SOURCE_OVERRIDE,
     Effective,
+    GlobalOverride,
     Period,
     RoomState,
     Schedule,
@@ -211,6 +212,8 @@ class RoomController:
         self._timer: Callable[[], None] | None = None
         self._settle: dict[str, Callable[[], None]] = {}
         self.climate_entity_id: str | None = None
+        self._battery_unsub: Callable[[], None] | None = None
+        self._battery_ids: set[str] = set()
         self._last_period_id: str | None = None
 
     # ------------------------------------------------------------ lifecycle
@@ -333,12 +336,39 @@ class RoomController:
         self._unsubs.append(
             async_track_state_change_event(self.hass, self.trvs, self._on_trv_event)
         )
-        if battery_entities := [e for ids in self._battery_entities().values() for e in ids]:
-            self._unsubs.append(
-                async_track_state_change_event(self.hass, battery_entities, self._on_battery_event)
+        self._track_batteries()
+        self._unsubs.append(
+            self.hass.bus.async_listen(
+                er.EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated
             )
+        )
         self.apply()
         self._schedule_timer()
+
+    def _track_batteries(self) -> None:
+        """(Re)subscribe to the battery entities of the TRV devices."""
+        if self._battery_unsub:
+            self._battery_unsub()
+            self._battery_unsub = None
+        self._battery_ids = {e for ids in self._battery_entities().values() for e in ids}
+        if self._battery_ids:
+            self._battery_unsub = async_track_state_change_event(
+                self.hass, list(self._battery_ids), self._on_battery_event
+            )
+
+    @callback
+    def _on_entity_registry_updated(self, event: Event[er.EventEntityRegistryUpdatedData]) -> None:
+        """A battery entity of a TRV device may have appeared, changed or gone."""
+        entity_id = event.data["entity_id"]
+        if entity_id in self._battery_ids or entity_id in self.trvs:
+            relevant = True
+        else:
+            entry = er.async_get(self.hass).async_get(entity_id)
+            devices = {self._trv_device_id(t) for t in self.trvs} - {None}
+            relevant = entry is not None and entry.device_id in devices
+        if relevant:
+            self._track_batteries()
+            self.notify()
 
     @callback
     def _on_battery_event(self, _event: Event[EventStateChangedData]) -> None:
@@ -351,6 +381,9 @@ class RoomController:
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
+        if self._battery_unsub:
+            self._battery_unsub()
+            self._battery_unsub = None
         for unsub in self._settle.values():
             unsub()
         self._settle.clear()
@@ -381,12 +414,12 @@ class RoomController:
 
     # --------------------------------------------------------- computations
 
-    def target(self, now: datetime | None = None) -> Target:
+    def target(self, now: datetime | None = None, *, ignore_override: bool = False) -> Target:
         """Return the effective target."""
         return compute_target(
             self.state,
             frost_temperature=self.frost_temperature,
-            override=self.hub.override,
+            override=GlobalOverride() if ignore_override else self.hub.override,
             variables=self.hub.variable_values(),
             now=now or dt_util.utcnow(),
             tz=dt_util.get_default_time_zone(),
@@ -804,7 +837,8 @@ class RoomController:
         """Set the operating mode (ends a running period)."""
         if mode not in MODES:
             raise HomeAssistantError(f"Unknown mode {mode!r}")
-        current = self.target().temperature
+        # The room's own target: the global override must not leak into manual mode.
+        current = self.target(ignore_override=True).temperature
         current_mode = self.mode
         self._end_active_period()
         if mode == MODE_HEAT:

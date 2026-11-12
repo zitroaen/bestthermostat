@@ -103,7 +103,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     controller = RoomController(hass, hub, entry)
     entry.runtime_data = controller
     hub.controllers[entry.entry_id] = controller
-    await hass.config_entries.async_forward_entry_setups(entry, ROOM_PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, ROOM_PLATFORMS)
+    except Exception:
+        hub.controllers.pop(entry.entry_id, None)
+        raise
     controller.async_start()
     hub.save()
     hub.notify(None)

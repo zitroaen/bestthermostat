@@ -145,5 +145,6 @@ There are no automated frontend tests; use `npm run demo`.
 
 ## Known limitations
 
-- Temperatures are assumed to be °C.
-- The cards use the browser's time zone for "today" and the now marker.
+- Temperatures are assumed to be °C (documented in the reference).
+- The cards use Home Assistant's time zone (`hass.config.time_zone`) for "today" and
+  the now marker; times are displayed in the zone of the user profile.

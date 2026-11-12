@@ -464,10 +464,10 @@ export class BestThermostatCard extends LitElement {
     const sched = room.schedules.find((s) => s.id === room.active_schedule);
     if (!sched) return nothing;
     const vars = this._snap!.variables;
-    const day = sched.week?.[todayKey()] ?? sched.week?.[DAYS[0]];
+    const day = sched.week?.[todayKey(this.hass)] ?? sched.week?.[DAYS[0]];
     if (!day?.length) return nothing;
     const segs = segments(day);
-    const now = nowMinutes();
+    const now = nowMinutes(this.hass);
     const paused = room.mode !== "auto" || room.override_active;
     return html`<div class="timeline ${paused ? "paused" : ""}">
       <div class="cap muted">

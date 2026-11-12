@@ -137,13 +137,21 @@ class RoomClimate(RoomEntity, ClimateEntity):
         }
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set a temperature for the room."""
+        """Set a temperature (optionally together with a mode) for the room."""
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        if temperature is not None:
+            # Same rounding and limits as a plain temperature change.
+            low, high = self.controller.limits()
+            temperature = min(max(round(float(temperature) * 2) / 2, low), high)
         if (mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
-            if not self._simple:
-                self.controller.set_mode(HVAC_TO_MODE[HVACMode(mode)], kwargs.get(ATTR_TEMPERATURE))
+            hvac_mode = HVACMode(mode)
+            if not self._simple and hvac_mode == HVACMode.HEAT:
+                self.controller.set_mode(MODE_HEAT, temperature)
                 return
-            self._apply_hvac_mode(HVACMode(mode))
-        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
+            self._apply_hvac_mode(hvac_mode)
+            if hvac_mode == HVACMode.OFF:
+                return  # a temperature makes no sense for frost protection
+        if temperature is not None:
             self.controller.set_temperature(temperature)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
