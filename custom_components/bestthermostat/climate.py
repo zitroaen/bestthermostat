@@ -42,6 +42,18 @@ class RoomClimate(RoomEntity, ClimateEntity):
     )
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
+    # Change often and are of no use in the history; keep the recorder small.
+    _unrecorded_attributes = frozenset(
+        {
+            "room_id",
+            "period",
+            "hand_until",
+            "next_change",
+            "next_temperature",
+            "trvs",
+            "trv_deviations",
+        }
+    )
 
     def __init__(self, controller: RoomController) -> None:
         """Initialize."""
