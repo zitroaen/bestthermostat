@@ -84,6 +84,7 @@ class Sender:
             temperature = self._pending.pop(entity_id)
             context = Context()
             self._last[entity_id] = (temperature, time.monotonic(), context.id)
+            _LOGGER.debug("Sending %s °C to %s (context %s)", temperature, entity_id, context.id)
             try:
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
