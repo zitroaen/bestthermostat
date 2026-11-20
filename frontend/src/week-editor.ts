@@ -42,6 +42,7 @@ export class BtWeekEditor extends LitElement {
     _vars: { state: true },
     _error: { state: true },
     _nameAction: { state: true },
+    _nameValue: { state: true },
     _busy: { state: true },
     _drag: { state: true },
     _menu: { state: true },
@@ -66,7 +67,8 @@ export class BtWeekEditor extends LitElement {
   private _drag?: { day: number; idx: number; bar: HTMLElement };
   private _newVarName = "";
   private _newVarValue = 20;
-  private _nameValue = "";
+  // Reactive: the OK button of the name sheet is enabled from it while typing.
+  _nameValue = "";
 
   private get _t() {
     return strings(this.hass);
