@@ -10,6 +10,10 @@ import {
   upcomingPeriods,
 } from "./room-view";
 import { shared } from "./styles";
+import "./period-dialog";
+import type { BtPeriodDialog } from "./period-dialog";
+import "./schedule-manager";
+import type { BtScheduleManager } from "./schedule-manager";
 import { startSwipe } from "./swipe";
 import { CARD_VERSION } from "./version";
 import {
@@ -43,6 +47,8 @@ interface OverviewConfig {
   show_summary?: boolean;
   show_override?: boolean;
   show_variables?: boolean;
+  /** Buttons for the schedule manager and periods for several rooms. */
+  show_actions?: boolean;
   show_periods?: boolean;
   group_by_floor?: boolean;
   exclude_rooms?: string[];
@@ -77,6 +83,8 @@ export class BestThermostatOverviewCard extends LitElement {
     _ovOpen: { state: true },
     _varsOpen: { state: true },
     _unreachable: { state: true },
+    _managing: { state: true },
+    _planning: { state: true },
   };
 
   hass?: HomeAssistant;
@@ -87,6 +95,10 @@ export class BestThermostatOverviewCard extends LitElement {
   _ovOpen = false;
   _varsOpen = false;
   _unreachable = false;
+  _managing = false;
+  _planning = false;
+  private _manager?: BtScheduleManager;
+  private _planner?: BtPeriodDialog;
   private _unsub?: () => void;
 
   static getConfigElement() {
@@ -103,6 +115,7 @@ export class BestThermostatOverviewCard extends LitElement {
       show_summary: true,
       show_override: true,
       show_variables: true,
+      show_actions: true,
       show_periods: true,
       group_by_floor: true,
       ...config,
@@ -166,6 +179,40 @@ export class BestThermostatOverviewCard extends LitElement {
     super.disconnectedCallback();
     this._unsub?.();
     this._unsub = undefined;
+    this._manager?.remove();
+    this._manager = undefined;
+    this._managing = false;
+    this._planner?.remove();
+    this._planner = undefined;
+    this._planning = false;
+  }
+
+  protected updated() {
+    // Dialogs live in document.body so dashboard layouts cannot clip them.
+    if (this._managing && this.hass && this._snap) {
+      if (!this._manager) {
+        this._manager = document.createElement("bt-schedule-manager") as BtScheduleManager;
+        this._manager.addEventListener("close", () => (this._managing = false));
+        document.body.appendChild(this._manager);
+      }
+      this._manager.hass = this.hass;
+      this._manager.snap = this._snap;
+    } else if (this._manager) {
+      this._manager.remove();
+      this._manager = undefined;
+    }
+    if (this._planning && this.hass && this._snap) {
+      if (!this._planner) {
+        this._planner = document.createElement("bt-period-dialog") as BtPeriodDialog;
+        this._planner.addEventListener("close", () => (this._planning = false));
+        document.body.appendChild(this._planner);
+      }
+      this._planner.hass = this.hass;
+      this._planner.snap = this._snap;
+    } else if (this._planner) {
+      this._planner.remove();
+      this._planner = undefined;
+    }
   }
 
   protected willUpdate(changed: PropertyValues) {
@@ -368,6 +415,16 @@ export class BestThermostatOverviewCard extends LitElement {
         <div class="top">
           ${this._config.show_override ? this._renderOverride() : nothing}
           ${this._config.show_variables && snap.variables.length ? this._renderVariables() : nothing}
+          ${this._config.show_actions
+            ? html`<div class="actions">
+                <button class="mini act" @click=${() => (this._managing = true)}>
+                  <ha-icon icon="mdi:calendar-multiple"></ha-icon>${t.global_schedules}
+                </button>
+                <button class="mini act" @click=${() => (this._planning = true)}>
+                  <ha-icon icon="mdi:calendar-plus"></ha-icon>${t.period_plan}
+                </button>
+              </div>`
+            : nothing}
         </div>
         <div class="rooms">
           ${groups.map(
@@ -619,6 +676,9 @@ export class BestThermostatOverviewCard extends LitElement {
         }
         .top .vars-line {
           min-height: 48px;
+        }
+        .top .actions {
+          grid-column: 1 / -1;
         }
         .grid {
           display: grid;
@@ -901,6 +961,25 @@ export class BestThermostatOverviewCard extends LitElement {
       .mini.on {
         background: var(--bt-accent);
         color: var(--text-primary-color, #fff);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .mini.act {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 16px;
+        background: var(--bt-surface);
+        color: var(--primary-text-color);
+      }
+      .mini.act ha-icon {
+        --mdc-icon-size: 16px;
+        color: var(--bt-muted);
       }
       .vars-line {
         display: flex;

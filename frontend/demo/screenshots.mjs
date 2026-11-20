@@ -32,6 +32,12 @@ await shot("week-editor", "view=room", {
   clip: null,
   action: (page) => page.locator("bestthermostat-card").locator("button.pencil").first().click(),
 });
+await shot("schedule-manager", "view=overview", {
+  width: 520,
+  height: 760,
+  clip: null,
+  action: (page) => page.locator("bestthermostat-overview-card").locator("button.act").first().click(),
+});
 await browser.close();
 server.close();
 console.log("Screenshots written to docs/images/");

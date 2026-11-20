@@ -112,3 +112,92 @@ export const shared = css`
     font-size: 13px;
   }
 `;
+
+/** Centered dialog (full screen on phones) with header, scrolling content and footer. */
+export const dialogFrame = css`
+      :host {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-text-color);
+      }
+      .backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      .dialog {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: min(520px, 100vw);
+        max-height: min(760px, 100dvh);
+        background: var(--card-background-color, var(--primary-background-color));
+        border-radius: var(--bt-radius);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      @media (max-width: 600px) {
+        .dialog {
+          width: 100vw;
+          height: 100dvh;
+          max-height: none;
+          border-radius: 0;
+        }
+      }
+      header,
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
+      header {
+        border-bottom: 1px solid var(--divider-color);
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      footer {
+        justify-content: flex-end;
+        border-top: 1px solid var(--divider-color);
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      .h-title {
+        flex: 1;
+      }
+      .h-name {
+        font-weight: 600;
+        font-size: 17px;
+      }
+      .h-sub {
+        font-size: 13px;
+      }
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--bt-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .label .muted {
+        text-transform: none;
+        font-weight: 400;
+      }
+`;

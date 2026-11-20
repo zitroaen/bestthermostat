@@ -1,6 +1,6 @@
-var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Me=Symbol(),st=new WeakMap,X=class{constructor(i,e,t){if(this._$cssResult$=!0,t!==Me)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=i,this.t=e}get styleSheet(){let i=this.o,e=this.t;if(fe&&i===void 0){let t=e!==void 0&&e.length===1;t&&(i=st.get(e)),i===void 0&&((this.o=i=new CSSStyleSheet).replaceSync(this.cssText),t&&st.set(e,i))}return i}toString(){return this.cssText}},rt=s=>new X(typeof s=="string"?s:s+"",void 0,Me),k=(s,...i)=>{let e=s.length===1?s[0]:i.reduce((t,n,r)=>t+(a=>{if(a._$cssResult$===!0)return a.cssText;if(typeof a=="number")return a;throw Error("Value passed to 'css' function must be a 'css' function result: "+a+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(n)+s[r+1],s[0]);return new X(e,s,Me)},at=(s,i)=>{if(fe)s.adoptedStyleSheets=i.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let e of i){let t=document.createElement("style"),n=me.litNonce;n!==void 0&&t.setAttribute("nonce",n),t.textContent=e.cssText,s.appendChild(t)}},Pe=fe?s=>s:s=>s instanceof CSSStyleSheet?(i=>{let e="";for(let t of i.cssRules)e+=t.cssText;return rt(e)})(s):s;var{is:Ot,defineProperty:Nt,getOwnPropertyDescriptor:Lt,getOwnPropertyNames:Ht,getOwnPropertySymbols:Ut,getPrototypeOf:Vt}=Object,_e=globalThis,ot=_e.trustedTypes,Wt=ot?ot.emptyScript:"",It=_e.reactiveElementPolyfillSupport,Q=(s,i)=>s,Oe={toAttribute(s,i){switch(i){case Boolean:s=s?Wt:null;break;case Object:case Array:s=s==null?s:JSON.stringify(s)}return s},fromAttribute(s,i){let e=s;switch(i){case Boolean:e=s!==null;break;case Number:e=s===null?null:Number(s);break;case Object:case Array:try{e=JSON.parse(s)}catch{e=null}}return e}},lt=(s,i)=>!Ot(s,i),dt={attribute:!0,type:String,converter:Oe,reflect:!1,useDefault:!1,hasChanged:lt};Symbol.metadata??=Symbol("metadata"),_e.litPropertyMetadata??=new WeakMap;var C=class extends HTMLElement{static addInitializer(i){this._$Ei(),(this.l??=[]).push(i)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(i,e=dt){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(i)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(i,e),!e.noAccessor){let t=Symbol(),n=this.getPropertyDescriptor(i,t,e);n!==void 0&&Nt(this.prototype,i,n)}}static getPropertyDescriptor(i,e,t){let{get:n,set:r}=Lt(this.prototype,i)??{get(){return this[e]},set(a){this[e]=a}};return{get:n,set(a){let o=n?.call(this);r?.call(this,a),this.requestUpdate(i,o,t)},configurable:!0,enumerable:!0}}static getPropertyOptions(i){return this.elementProperties.get(i)??dt}static _$Ei(){if(this.hasOwnProperty(Q("elementProperties")))return;let i=Vt(this);i.finalize(),i.l!==void 0&&(this.l=[...i.l]),this.elementProperties=new Map(i.elementProperties)}static finalize(){if(this.hasOwnProperty(Q("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(Q("properties"))){let e=this.properties,t=[...Ht(e),...Ut(e)];for(let n of t)this.createProperty(n,e[n])}let i=this[Symbol.metadata];if(i!==null){let e=litPropertyMetadata.get(i);if(e!==void 0)for(let[t,n]of e)this.elementProperties.set(t,n)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let n=this._$Eu(e,t);n!==void 0&&this._$Eh.set(n,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(i){let e=[];if(Array.isArray(i)){let t=new Set(i.flat(1/0).reverse());for(let n of t)e.unshift(Pe(n))}else i!==void 0&&e.push(Pe(i));return e}static _$Eu(i,e){let t=e.attribute;return t===!1?void 0:typeof t=="string"?t:typeof i=="string"?i.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(i=>this.enableUpdating=i),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(i=>i(this))}addController(i){(this._$EO??=new Set).add(i),this.renderRoot!==void 0&&this.isConnected&&i.hostConnected?.()}removeController(i){this._$EO?.delete(i)}_$E_(){let i=new Map,e=this.constructor.elementProperties;for(let t of e.keys())this.hasOwnProperty(t)&&(i.set(t,this[t]),delete this[t]);i.size>0&&(this._$Ep=i)}createRenderRoot(){let i=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return at(i,this.constructor.elementStyles),i}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(i=>i.hostConnected?.())}enableUpdating(i){}disconnectedCallback(){this._$EO?.forEach(i=>i.hostDisconnected?.())}attributeChangedCallback(i,e,t){this._$AK(i,t)}_$ET(i,e){let t=this.constructor.elementProperties.get(i),n=this.constructor._$Eu(i,t);if(n!==void 0&&t.reflect===!0){let r=(t.converter?.toAttribute!==void 0?t.converter:Oe).toAttribute(e,t.type);this._$Em=i,r==null?this.removeAttribute(n):this.setAttribute(n,r),this._$Em=null}}_$AK(i,e){let t=this.constructor,n=t._$Eh.get(i);if(n!==void 0&&this._$Em!==n){let r=t.getPropertyOptions(n),a=typeof r.converter=="function"?{fromAttribute:r.converter}:r.converter?.fromAttribute!==void 0?r.converter:Oe;this._$Em=n;let o=a.fromAttribute(e,r.type);this[n]=o??this._$Ej?.get(n)??o,this._$Em=null}}requestUpdate(i,e,t,n=!1,r){if(i!==void 0){let a=this.constructor;if(n===!1&&(r=this[i]),t??=a.getPropertyOptions(i),!((t.hasChanged??lt)(r,e)||t.useDefault&&t.reflect&&r===this._$Ej?.get(i)&&!this.hasAttribute(a._$Eu(i,t))))return;this.C(i,e,t)}this.isUpdatePending===!1&&(this._$ES=this._$EP())}C(i,e,{useDefault:t,reflect:n,wrapped:r},a){t&&!(this._$Ej??=new Map).has(i)&&(this._$Ej.set(i,a??e??this[i]),r!==!0||a!==void 0)||(this._$AL.has(i)||(this.hasUpdated||t||(e=void 0),this._$AL.set(i,e)),n===!0&&this._$Em!==i&&(this._$Eq??=new Set).add(i))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let i=this.scheduleUpdate();return i!=null&&await i,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[n,r]of this._$Ep)this[n]=r;this._$Ep=void 0}let t=this.constructor.elementProperties;if(t.size>0)for(let[n,r]of t){let{wrapped:a}=r,o=this[n];a!==!0||this._$AL.has(n)||o===void 0||this.C(n,void 0,r,o)}}let i=!1,e=this._$AL;try{i=this.shouldUpdate(e),i?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(t){throw i=!1,this._$EM(),t}i&&this._$AE(e)}willUpdate(i){}_$AE(i){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(i)),this.updated(i)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(i){return!0}update(i){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(i){}firstUpdated(i){}};C.elementStyles=[],C.shadowRootOptions={mode:"open"},C[Q("elementProperties")]=new Map,C[Q("finalized")]=new Map,It?.({ReactiveElement:C}),(_e.reactiveElementVersions??=[]).push("2.1.2");var Ie=globalThis,ct=s=>s,ge=Ie.trustedTypes,pt=ge?ge.createPolicy("lit-html",{createHTML:s=>s}):void 0,gt="$lit$",T=`lit$${Math.random().toFixed(9).slice(2)}$`,bt="?"+T,jt=`<${bt}>`,H=document,te=()=>H.createComment(""),ie=s=>s===null||typeof s!="object"&&typeof s!="function",je=Array.isArray,Bt=s=>je(s)||typeof s?.[Symbol.iterator]=="function",Ne=`[ 	
-\f\r]`,ee=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,ht=/-->/g,ut=/>/g,N=RegExp(`>|${Ne}(?:([^\\s"'>=/]+)(${Ne}*=${Ne}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,"g"),mt=/'/g,ft=/"/g,vt=/^(?:script|style|textarea|title)$/i,Be=s=>(i,...e)=>({_$litType$:s,strings:i,values:e}),d=Be(1),li=Be(2),ci=Be(3),U=Symbol.for("lit-noChange"),c=Symbol.for("lit-nothing"),_t=new WeakMap,L=H.createTreeWalker(H,129);function xt(s,i){if(!je(s)||!s.hasOwnProperty("raw"))throw Error("invalid template strings array");return pt!==void 0?pt.createHTML(i):i}var Ft=(s,i)=>{let e=s.length-1,t=[],n,r=i===2?"<svg>":i===3?"<math>":"",a=ee;for(let o=0;o<e;o++){let l=s[o],p,h,u=-1,m=0;for(;m<l.length&&(a.lastIndex=m,h=a.exec(l),h!==null);)m=a.lastIndex,a===ee?h[1]==="!--"?a=ht:h[1]!==void 0?a=ut:h[2]!==void 0?(vt.test(h[2])&&(n=RegExp("</"+h[2],"g")),a=N):h[3]!==void 0&&(a=N):a===N?h[0]===">"?(a=n??ee,u=-1):h[1]===void 0?u=-2:(u=a.lastIndex-h[2].length,p=h[1],a=h[3]===void 0?N:h[3]==='"'?ft:mt):a===ft||a===mt?a=N:a===ht||a===ut?a=ee:(a=N,n=void 0);let f=a===N&&s[o+1].startsWith("/>")?" ":"";r+=a===ee?l+jt:u>=0?(t.push(p),l.slice(0,u)+gt+l.slice(u)+T+f):l+T+(u===-2?o:f)}return[xt(s,r+(s[e]||"<?>")+(i===2?"</svg>":i===3?"</math>":"")),t]},ne=class s{constructor({strings:i,_$litType$:e},t){let n;this.parts=[];let r=0,a=0,o=i.length-1,l=this.parts,[p,h]=Ft(i,e);if(this.el=s.createElement(p,t),L.currentNode=this.el.content,e===2||e===3){let u=this.el.content.firstChild;u.replaceWith(...u.childNodes)}for(;(n=L.nextNode())!==null&&l.length<o;){if(n.nodeType===1){if(n.hasAttributes())for(let u of n.getAttributeNames())if(u.endsWith(gt)){let m=h[a++],f=n.getAttribute(u).split(T),v=/([.?@])?(.*)/.exec(m);l.push({type:1,index:r,name:v[2],strings:f,ctor:v[1]==="."?He:v[1]==="?"?Ue:v[1]==="@"?Ve:F}),n.removeAttribute(u)}else u.startsWith(T)&&(l.push({type:6,index:r}),n.removeAttribute(u));if(vt.test(n.tagName)){let u=n.textContent.split(T),m=u.length-1;if(m>0){n.textContent=ge?ge.emptyScript:"";for(let f=0;f<m;f++)n.append(u[f],te()),L.nextNode(),l.push({type:2,index:++r});n.append(u[m],te())}}}else if(n.nodeType===8)if(n.data===bt)l.push({type:2,index:r});else{let u=-1;for(;(u=n.data.indexOf(T,u+1))!==-1;)l.push({type:7,index:r}),u+=T.length-1}r++}}static createElement(i,e){let t=H.createElement("template");return t.innerHTML=i,t}};function B(s,i,e=s,t){if(i===U)return i;let n=t!==void 0?e._$Co?.[t]:e._$Cl,r=ie(i)?void 0:i._$litDirective$;return n?.constructor!==r&&(n?._$AO?.(!1),r===void 0?n=void 0:(n=new r(s),n._$AT(s,e,t)),t!==void 0?(e._$Co??=[])[t]=n:e._$Cl=n),n!==void 0&&(i=B(s,n._$AS(s,i.values),n,t)),i}var Le=class{constructor(i,e){this._$AV=[],this._$AN=void 0,this._$AD=i,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(i){let{el:{content:e},parts:t}=this._$AD,n=(i?.creationScope??H).importNode(e,!0);L.currentNode=n;let r=L.nextNode(),a=0,o=0,l=t[0];for(;l!==void 0;){if(a===l.index){let p;l.type===2?p=new se(r,r.nextSibling,this,i):l.type===1?p=new l.ctor(r,l.name,l.strings,this,i):l.type===6&&(p=new We(r,this,i)),this._$AV.push(p),l=t[++o]}a!==l?.index&&(r=L.nextNode(),a++)}return L.currentNode=H,n}p(i){let e=0;for(let t of this._$AV)t!==void 0&&(t.strings!==void 0?(t._$AI(i,t,e),e+=t.strings.length-2):t._$AI(i[e])),e++}},se=class s{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(i,e,t,n){this.type=2,this._$AH=c,this._$AN=void 0,this._$AA=i,this._$AB=e,this._$AM=t,this.options=n,this._$Cv=n?.isConnected??!0}get parentNode(){let i=this._$AA.parentNode,e=this._$AM;return e!==void 0&&i?.nodeType===11&&(i=e.parentNode),i}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(i,e=this){i=B(this,i,e),ie(i)?i===c||i==null||i===""?(this._$AH!==c&&this._$AR(),this._$AH=c):i!==this._$AH&&i!==U&&this._(i):i._$litType$!==void 0?this.$(i):i.nodeType!==void 0?this.T(i):Bt(i)?this.k(i):this._(i)}O(i){return this._$AA.parentNode.insertBefore(i,this._$AB)}T(i){this._$AH!==i&&(this._$AR(),this._$AH=this.O(i))}_(i){this._$AH!==c&&ie(this._$AH)?this._$AA.nextSibling.data=i:this.T(H.createTextNode(i)),this._$AH=i}$(i){let{values:e,_$litType$:t}=i,n=typeof t=="number"?this._$AC(i):(t.el===void 0&&(t.el=ne.createElement(xt(t.h,t.h[0]),this.options)),t);if(this._$AH?._$AD===n)this._$AH.p(e);else{let r=new Le(n,this),a=r.u(this.options);r.p(e),this.T(a),this._$AH=r}}_$AC(i){let e=_t.get(i.strings);return e===void 0&&_t.set(i.strings,e=new ne(i)),e}k(i){je(this._$AH)||(this._$AH=[],this._$AR());let e=this._$AH,t,n=0;for(let r of i)n===e.length?e.push(t=new s(this.O(te()),this.O(te()),this,this.options)):t=e[n],t._$AI(r),n++;n<e.length&&(this._$AR(t&&t._$AB.nextSibling,n),e.length=n)}_$AR(i=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);i!==this._$AB;){let t=ct(i).nextSibling;ct(i).remove(),i=t}}setConnected(i){this._$AM===void 0&&(this._$Cv=i,this._$AP?.(i))}},F=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(i,e,t,n,r){this.type=1,this._$AH=c,this._$AN=void 0,this.element=i,this.name=e,this._$AM=n,this.options=r,t.length>2||t[0]!==""||t[1]!==""?(this._$AH=Array(t.length-1).fill(new String),this.strings=t):this._$AH=c}_$AI(i,e=this,t,n){let r=this.strings,a=!1;if(r===void 0)i=B(this,i,e,0),a=!ie(i)||i!==this._$AH&&i!==U,a&&(this._$AH=i);else{let o=i,l,p;for(i=r[0],l=0;l<r.length-1;l++)p=B(this,o[t+l],e,l),p===U&&(p=this._$AH[l]),a||=!ie(p)||p!==this._$AH[l],p===c?i=c:i!==c&&(i+=(p??"")+r[l+1]),this._$AH[l]=p}a&&!n&&this.j(i)}j(i){i===c?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,i??"")}},He=class extends F{constructor(){super(...arguments),this.type=3}j(i){this.element[this.name]=i===c?void 0:i}},Ue=class extends F{constructor(){super(...arguments),this.type=4}j(i){this.element.toggleAttribute(this.name,!!i&&i!==c)}},Ve=class extends F{constructor(i,e,t,n,r){super(i,e,t,n,r),this.type=5}_$AI(i,e=this){if((i=B(this,i,e,0)??c)===U)return;let t=this._$AH,n=i===c&&t!==c||i.capture!==t.capture||i.once!==t.once||i.passive!==t.passive,r=i!==c&&(t===c||n);n&&this.element.removeEventListener(this.name,this,t),r&&this.element.addEventListener(this.name,this,i),this._$AH=i}handleEvent(i){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,i):this._$AH.handleEvent(i)}},We=class{constructor(i,e,t){this.element=i,this.type=6,this._$AN=void 0,this._$AM=e,this.options=t}get _$AU(){return this._$AM._$AU}_$AI(i){B(this,i)}};var qt=Ie.litHtmlPolyfillSupport;qt?.(ne,se),(Ie.litHtmlVersions??=[]).push("3.3.3");var wt=(s,i,e)=>{let t=e?.renderBefore??i,n=t._$litPart$;if(n===void 0){let r=e?.renderBefore??null;t._$litPart$=n=new se(i.insertBefore(te(),r),r,void 0,e??{})}return n._$AI(s),n};var Fe=globalThis,x=class extends C{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let i=super.createRenderRoot();return this.renderOptions.renderBefore??=i.firstChild,i}update(i){let e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(i),this._$Do=wt(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return U}};x._$litElement$=!0,x.finalized=!0,Fe.litElementHydrateSupport?.({LitElement:x});var Kt=Fe.litElementPolyfillSupport;Kt?.({LitElement:x});(Fe.litElementVersions??=[]).push("4.2.2");var kt="bestthermostat",g=["mon","tue","wed","thu","fri","sat","sun"],q,V,St,Ke,Ze=!1,M,be=0,K=new Set,Ge=new Set,yt=[2,5,10,30];function qe(s,i){return JSON.stringify(s)===JSON.stringify(i)}function Zt(s,i){if(!s)return i;let e=new Map(s.rooms.map(t=>[t.entry_id,t]));return{...i,rooms:i.rooms.map(t=>{let n=e.get(t.entry_id);return n&&qe(n,t)?n:t}),variables:qe(s.variables,i.variables)?s.variables:i.variables,override:qe(s.override,i.override)?s.override:i.override}}function $t(s){Ze!==s&&(Ze=s,Ge.forEach(i=>i(s)))}function Gt(){if(M!==void 0||K.size===0)return;let s=yt[Math.min(be,yt.length-1)];be+=1,M=window.setTimeout(()=>{M=void 0,K.size&&Ke&&Et(Ke)},s*1e3)}function Et(s){St=s.connection;let i=s.connection.subscribeMessage(e=>{be=0,$t(!1),q=Zt(q,e);let t=q;K.forEach(n=>n(t))},{type:`${kt}/subscribe`}).catch(e=>(console.warn("Best Thermostat: subscription failed, retrying",e),V===i&&(V=void 0),$t(!0),Gt(),()=>{}));V=i}function ve(s,i,e){return K.add(i),e&&(Ge.add(e),Ze&&e(!0)),Ke=s,q&&i(q),(!V&&M===void 0||St!==s.connection)&&(window.clearTimeout(M),M=void 0,Et(s)),()=>{if(K.delete(i),e&&Ge.delete(e),K.size===0){if(window.clearTimeout(M),M=void 0,be=0,V){let t=V;V=void 0,t.then(n=>n())}q=void 0}}}function R(s,i,e={}){return s.callWS({type:`${kt}/${i}`,...e})}function xe(s,i){if(!(!s||!i))return s.rooms.find(e=>e.climate_entity_id===i||e.entry_id===i)}var P=k`
+var fe=globalThis,be=fe.ShadowRoot&&(fe.ShadyCSS===void 0||fe.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,He=Symbol(),lt=new WeakMap,Q=class{constructor(n,e,t){if(this._$cssResult$=!0,t!==He)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=n,this.t=e}get styleSheet(){let n=this.o,e=this.t;if(be&&n===void 0){let t=e!==void 0&&e.length===1;t&&(n=lt.get(e)),n===void 0&&((this.o=n=new CSSStyleSheet).replaceSync(this.cssText),t&&lt.set(e,n))}return n}toString(){return this.cssText}},dt=a=>new Q(typeof a=="string"?a:a+"",void 0,He),y=(a,...n)=>{let e=a.length===1?a[0]:n.reduce((t,i,s)=>t+(o=>{if(o._$cssResult$===!0)return o.cssText;if(typeof o=="number")return o;throw Error("Value passed to 'css' function must be a 'css' function result: "+o+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+a[s+1],a[0]);return new Q(e,a,He)},ct=(a,n)=>{if(be)a.adoptedStyleSheets=n.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let e of n){let t=document.createElement("style"),i=fe.litNonce;i!==void 0&&t.setAttribute("nonce",i),t.textContent=e.cssText,a.appendChild(t)}},Ue=be?a=>a:a=>a instanceof CSSStyleSheet?(n=>{let e="";for(let t of n.cssRules)e+=t.cssText;return dt(e)})(a):a;var{is:Ut,defineProperty:Vt,getOwnPropertyDescriptor:Wt,getOwnPropertyNames:It,getOwnPropertySymbols:Gt,getPrototypeOf:jt}=Object,ve=globalThis,pt=ve.trustedTypes,Bt=pt?pt.emptyScript:"",Zt=ve.reactiveElementPolyfillSupport,ee=(a,n)=>a,Ve={toAttribute(a,n){switch(n){case Boolean:a=a?Bt:null;break;case Object:case Array:a=a==null?a:JSON.stringify(a)}return a},fromAttribute(a,n){let e=a;switch(n){case Boolean:e=a!==null;break;case Number:e=a===null?null:Number(a);break;case Object:case Array:try{e=JSON.parse(a)}catch{e=null}}return e}},ut=(a,n)=>!Ut(a,n),ht={attribute:!0,type:String,converter:Ve,reflect:!1,useDefault:!1,hasChanged:ut};Symbol.metadata??=Symbol("metadata"),ve.litPropertyMetadata??=new WeakMap;var D=class extends HTMLElement{static addInitializer(n){this._$Ei(),(this.l??=[]).push(n)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(n,e=ht){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(n)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(n,e),!e.noAccessor){let t=Symbol(),i=this.getPropertyDescriptor(n,t,e);i!==void 0&&Vt(this.prototype,n,i)}}static getPropertyDescriptor(n,e,t){let{get:i,set:s}=Wt(this.prototype,n)??{get(){return this[e]},set(o){this[e]=o}};return{get:i,set(o){let r=i?.call(this);s?.call(this,o),this.requestUpdate(n,r,t)},configurable:!0,enumerable:!0}}static getPropertyOptions(n){return this.elementProperties.get(n)??ht}static _$Ei(){if(this.hasOwnProperty(ee("elementProperties")))return;let n=jt(this);n.finalize(),n.l!==void 0&&(this.l=[...n.l]),this.elementProperties=new Map(n.elementProperties)}static finalize(){if(this.hasOwnProperty(ee("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(ee("properties"))){let e=this.properties,t=[...It(e),...Gt(e)];for(let i of t)this.createProperty(i,e[i])}let n=this[Symbol.metadata];if(n!==null){let e=litPropertyMetadata.get(n);if(e!==void 0)for(let[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let i=this._$Eu(e,t);i!==void 0&&this._$Eh.set(i,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(n){let e=[];if(Array.isArray(n)){let t=new Set(n.flat(1/0).reverse());for(let i of t)e.unshift(Ue(i))}else n!==void 0&&e.push(Ue(n));return e}static _$Eu(n,e){let t=e.attribute;return t===!1?void 0:typeof t=="string"?t:typeof n=="string"?n.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(n=>this.enableUpdating=n),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(n=>n(this))}addController(n){(this._$EO??=new Set).add(n),this.renderRoot!==void 0&&this.isConnected&&n.hostConnected?.()}removeController(n){this._$EO?.delete(n)}_$E_(){let n=new Map,e=this.constructor.elementProperties;for(let t of e.keys())this.hasOwnProperty(t)&&(n.set(t,this[t]),delete this[t]);n.size>0&&(this._$Ep=n)}createRenderRoot(){let n=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return ct(n,this.constructor.elementStyles),n}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(n=>n.hostConnected?.())}enableUpdating(n){}disconnectedCallback(){this._$EO?.forEach(n=>n.hostDisconnected?.())}attributeChangedCallback(n,e,t){this._$AK(n,t)}_$ET(n,e){let t=this.constructor.elementProperties.get(n),i=this.constructor._$Eu(n,t);if(i!==void 0&&t.reflect===!0){let s=(t.converter?.toAttribute!==void 0?t.converter:Ve).toAttribute(e,t.type);this._$Em=n,s==null?this.removeAttribute(i):this.setAttribute(i,s),this._$Em=null}}_$AK(n,e){let t=this.constructor,i=t._$Eh.get(n);if(i!==void 0&&this._$Em!==i){let s=t.getPropertyOptions(i),o=typeof s.converter=="function"?{fromAttribute:s.converter}:s.converter?.fromAttribute!==void 0?s.converter:Ve;this._$Em=i;let r=o.fromAttribute(e,s.type);this[i]=r??this._$Ej?.get(i)??r,this._$Em=null}}requestUpdate(n,e,t,i=!1,s){if(n!==void 0){let o=this.constructor;if(i===!1&&(s=this[n]),t??=o.getPropertyOptions(n),!((t.hasChanged??ut)(s,e)||t.useDefault&&t.reflect&&s===this._$Ej?.get(n)&&!this.hasAttribute(o._$Eu(n,t))))return;this.C(n,e,t)}this.isUpdatePending===!1&&(this._$ES=this._$EP())}C(n,e,{useDefault:t,reflect:i,wrapped:s},o){t&&!(this._$Ej??=new Map).has(n)&&(this._$Ej.set(n,o??e??this[n]),s!==!0||o!==void 0)||(this._$AL.has(n)||(this.hasUpdated||t||(e=void 0),this._$AL.set(n,e)),i===!0&&this._$Em!==n&&(this._$Eq??=new Set).add(n))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let n=this.scheduleUpdate();return n!=null&&await n,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[i,s]of this._$Ep)this[i]=s;this._$Ep=void 0}let t=this.constructor.elementProperties;if(t.size>0)for(let[i,s]of t){let{wrapped:o}=s,r=this[i];o!==!0||this._$AL.has(i)||r===void 0||this.C(i,void 0,s,r)}}let n=!1,e=this._$AL;try{n=this.shouldUpdate(e),n?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(t){throw n=!1,this._$EM(),t}n&&this._$AE(e)}willUpdate(n){}_$AE(n){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(n)),this.updated(n)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(n){return!0}update(n){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(n){}firstUpdated(n){}};D.elementStyles=[],D.shadowRootOptions={mode:"open"},D[ee("elementProperties")]=new Map,D[ee("finalized")]=new Map,Zt?.({ReactiveElement:D}),(ve.reactiveElementVersions??=[]).push("2.1.2");var Ke=globalThis,mt=a=>a,xe=Ke.trustedTypes,_t=xe?xe.createPolicy("lit-html",{createHTML:a=>a}):void 0,wt="$lit$",P=`lit$${Math.random().toFixed(9).slice(2)}$`,yt="?"+P,Kt=`<${yt}>`,V=document,ie=()=>V.createComment(""),ne=a=>a===null||typeof a!="object"&&typeof a!="function",Fe=Array.isArray,Ft=a=>Fe(a)||typeof a?.[Symbol.iterator]=="function",We=`[ 	
+\f\r]`,te=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,gt=/-->/g,ft=/>/g,H=RegExp(`>|${We}(?:([^\\s"'>=/]+)(${We}*=${We}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`,"g"),bt=/'/g,vt=/"/g,$t=/^(?:script|style|textarea|title)$/i,qe=a=>(n,...e)=>({_$litType$:a,strings:n,values:e}),l=qe(1),mi=qe(2),_i=qe(3),W=Symbol.for("lit-noChange"),c=Symbol.for("lit-nothing"),xt=new WeakMap,U=V.createTreeWalker(V,129);function kt(a,n){if(!Fe(a)||!a.hasOwnProperty("raw"))throw Error("invalid template strings array");return _t!==void 0?_t.createHTML(n):n}var qt=(a,n)=>{let e=a.length-1,t=[],i,s=n===2?"<svg>":n===3?"<math>":"",o=te;for(let r=0;r<e;r++){let d=a[r],p,h,u=-1,m=0;for(;m<d.length&&(o.lastIndex=m,h=o.exec(d),h!==null);)m=o.lastIndex,o===te?h[1]==="!--"?o=gt:h[1]!==void 0?o=ft:h[2]!==void 0?($t.test(h[2])&&(i=RegExp("</"+h[2],"g")),o=H):h[3]!==void 0&&(o=H):o===H?h[0]===">"?(o=i??te,u=-1):h[1]===void 0?u=-2:(u=o.lastIndex-h[2].length,p=h[1],o=h[3]===void 0?H:h[3]==='"'?vt:bt):o===vt||o===bt?o=H:o===gt||o===ft?o=te:(o=H,i=void 0);let _=o===H&&a[r+1].startsWith("/>")?" ":"";s+=o===te?d+Kt:u>=0?(t.push(p),d.slice(0,u)+wt+d.slice(u)+P+_):d+P+(u===-2?r:_)}return[kt(a,s+(a[e]||"<?>")+(n===2?"</svg>":n===3?"</math>":"")),t]},se=class a{constructor({strings:n,_$litType$:e},t){let i;this.parts=[];let s=0,o=0,r=n.length-1,d=this.parts,[p,h]=qt(n,e);if(this.el=a.createElement(p,t),U.currentNode=this.el.content,e===2||e===3){let u=this.el.content.firstChild;u.replaceWith(...u.childNodes)}for(;(i=U.nextNode())!==null&&d.length<r;){if(i.nodeType===1){if(i.hasAttributes())for(let u of i.getAttributeNames())if(u.endsWith(wt)){let m=h[o++],_=i.getAttribute(u).split(P),w=/([.?@])?(.*)/.exec(m);d.push({type:1,index:s,name:w[2],strings:_,ctor:w[1]==="."?Ge:w[1]==="?"?je:w[1]==="@"?Be:Z}),i.removeAttribute(u)}else u.startsWith(P)&&(d.push({type:6,index:s}),i.removeAttribute(u));if($t.test(i.tagName)){let u=i.textContent.split(P),m=u.length-1;if(m>0){i.textContent=xe?xe.emptyScript:"";for(let _=0;_<m;_++)i.append(u[_],ie()),U.nextNode(),d.push({type:2,index:++s});i.append(u[m],ie())}}}else if(i.nodeType===8)if(i.data===yt)d.push({type:2,index:s});else{let u=-1;for(;(u=i.data.indexOf(P,u+1))!==-1;)d.push({type:7,index:s}),u+=P.length-1}s++}}static createElement(n,e){let t=V.createElement("template");return t.innerHTML=n,t}};function B(a,n,e=a,t){if(n===W)return n;let i=t!==void 0?e._$Co?.[t]:e._$Cl,s=ne(n)?void 0:n._$litDirective$;return i?.constructor!==s&&(i?._$AO?.(!1),s===void 0?i=void 0:(i=new s(a),i._$AT(a,e,t)),t!==void 0?(e._$Co??=[])[t]=i:e._$Cl=i),i!==void 0&&(n=B(a,i._$AS(a,n.values),i,t)),n}var Ie=class{constructor(n,e){this._$AV=[],this._$AN=void 0,this._$AD=n,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(n){let{el:{content:e},parts:t}=this._$AD,i=(n?.creationScope??V).importNode(e,!0);U.currentNode=i;let s=U.nextNode(),o=0,r=0,d=t[0];for(;d!==void 0;){if(o===d.index){let p;d.type===2?p=new ae(s,s.nextSibling,this,n):d.type===1?p=new d.ctor(s,d.name,d.strings,this,n):d.type===6&&(p=new Ze(s,this,n)),this._$AV.push(p),d=t[++r]}o!==d?.index&&(s=U.nextNode(),o++)}return U.currentNode=V,i}p(n){let e=0;for(let t of this._$AV)t!==void 0&&(t.strings!==void 0?(t._$AI(n,t,e),e+=t.strings.length-2):t._$AI(n[e])),e++}},ae=class a{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(n,e,t,i){this.type=2,this._$AH=c,this._$AN=void 0,this._$AA=n,this._$AB=e,this._$AM=t,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let n=this._$AA.parentNode,e=this._$AM;return e!==void 0&&n?.nodeType===11&&(n=e.parentNode),n}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(n,e=this){n=B(this,n,e),ne(n)?n===c||n==null||n===""?(this._$AH!==c&&this._$AR(),this._$AH=c):n!==this._$AH&&n!==W&&this._(n):n._$litType$!==void 0?this.$(n):n.nodeType!==void 0?this.T(n):Ft(n)?this.k(n):this._(n)}O(n){return this._$AA.parentNode.insertBefore(n,this._$AB)}T(n){this._$AH!==n&&(this._$AR(),this._$AH=this.O(n))}_(n){this._$AH!==c&&ne(this._$AH)?this._$AA.nextSibling.data=n:this.T(V.createTextNode(n)),this._$AH=n}$(n){let{values:e,_$litType$:t}=n,i=typeof t=="number"?this._$AC(n):(t.el===void 0&&(t.el=se.createElement(kt(t.h,t.h[0]),this.options)),t);if(this._$AH?._$AD===i)this._$AH.p(e);else{let s=new Ie(i,this),o=s.u(this.options);s.p(e),this.T(o),this._$AH=s}}_$AC(n){let e=xt.get(n.strings);return e===void 0&&xt.set(n.strings,e=new se(n)),e}k(n){Fe(this._$AH)||(this._$AH=[],this._$AR());let e=this._$AH,t,i=0;for(let s of n)i===e.length?e.push(t=new a(this.O(ie()),this.O(ie()),this,this.options)):t=e[i],t._$AI(s),i++;i<e.length&&(this._$AR(t&&t._$AB.nextSibling,i),e.length=i)}_$AR(n=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);n!==this._$AB;){let t=mt(n).nextSibling;mt(n).remove(),n=t}}setConnected(n){this._$AM===void 0&&(this._$Cv=n,this._$AP?.(n))}},Z=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(n,e,t,i,s){this.type=1,this._$AH=c,this._$AN=void 0,this.element=n,this.name=e,this._$AM=i,this.options=s,t.length>2||t[0]!==""||t[1]!==""?(this._$AH=Array(t.length-1).fill(new String),this.strings=t):this._$AH=c}_$AI(n,e=this,t,i){let s=this.strings,o=!1;if(s===void 0)n=B(this,n,e,0),o=!ne(n)||n!==this._$AH&&n!==W,o&&(this._$AH=n);else{let r=n,d,p;for(n=s[0],d=0;d<s.length-1;d++)p=B(this,r[t+d],e,d),p===W&&(p=this._$AH[d]),o||=!ne(p)||p!==this._$AH[d],p===c?n=c:n!==c&&(n+=(p??"")+s[d+1]),this._$AH[d]=p}o&&!i&&this.j(n)}j(n){n===c?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,n??"")}},Ge=class extends Z{constructor(){super(...arguments),this.type=3}j(n){this.element[this.name]=n===c?void 0:n}},je=class extends Z{constructor(){super(...arguments),this.type=4}j(n){this.element.toggleAttribute(this.name,!!n&&n!==c)}},Be=class extends Z{constructor(n,e,t,i,s){super(n,e,t,i,s),this.type=5}_$AI(n,e=this){if((n=B(this,n,e,0)??c)===W)return;let t=this._$AH,i=n===c&&t!==c||n.capture!==t.capture||n.once!==t.once||n.passive!==t.passive,s=n!==c&&(t===c||i);i&&this.element.removeEventListener(this.name,this,t),s&&this.element.addEventListener(this.name,this,n),this._$AH=n}handleEvent(n){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,n):this._$AH.handleEvent(n)}},Ze=class{constructor(n,e,t){this.element=n,this.type=6,this._$AN=void 0,this._$AM=e,this.options=t}get _$AU(){return this._$AM._$AU}_$AI(n){B(this,n)}};var Yt=Ke.litHtmlPolyfillSupport;Yt?.(se,ae),(Ke.litHtmlVersions??=[]).push("3.3.3");var St=(a,n,e)=>{let t=e?.renderBefore??n,i=t._$litPart$;if(i===void 0){let s=e?.renderBefore??null;t._$litPart$=i=new ae(n.insertBefore(ie(),s),s,void 0,e??{})}return i._$AI(a),i};var Ye=globalThis,v=class extends D{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let n=super.createRenderRoot();return this.renderOptions.renderBefore??=n.firstChild,n}update(n){let e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(n),this._$Do=St(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return W}};v._$litElement$=!0,v.finalized=!0,Ye.litElementHydrateSupport?.({LitElement:v});var Jt=Ye.litElementPolyfillSupport;Jt?.({LitElement:v});(Ye.litElementVersions??=[]).push("4.2.2");var Rt="bestthermostat",f=["mon","tue","wed","thu","fri","sat","sun"],K,I,Ct,Je,Xe=!1,N,ye=0,F=new Set,Qe=new Set,Et=[2,5,10,30];function we(a,n){return JSON.stringify(a)===JSON.stringify(n)}function Xt(a,n){if(!a)return n;let e=new Map(a.rooms.map(t=>[t.entry_id,t]));return{...n,rooms:n.rooms.map(t=>{let i=e.get(t.entry_id);return i&&we(i,t)?i:t}),variables:we(a.variables,n.variables)?a.variables:n.variables,global_schedules:we(a.global_schedules,n.global_schedules)?a.global_schedules:n.global_schedules,override:we(a.override,n.override)?a.override:n.override}}function At(a){Xe!==a&&(Xe=a,Qe.forEach(n=>n(a)))}function Qt(){if(N!==void 0||F.size===0)return;let a=Et[Math.min(ye,Et.length-1)];ye+=1,N=window.setTimeout(()=>{N=void 0,F.size&&Je&&Dt(Je)},a*1e3)}function Dt(a){Ct=a.connection;let n=a.connection.subscribeMessage(e=>{ye=0,At(!1),K=Xt(K,e);let t=K;F.forEach(i=>i(t))},{type:`${Rt}/subscribe`}).catch(e=>(console.warn("Best Thermostat: subscription failed, retrying",e),I===n&&(I=void 0),At(!0),Qt(),()=>{}));I=n}function $e(a,n,e){return F.add(n),e&&(Qe.add(e),Xe&&e(!0)),Je=a,K&&n(K),(!I&&N===void 0||Ct!==a.connection)&&(window.clearTimeout(N),N=void 0,Dt(a)),()=>{if(F.delete(n),e&&Qe.delete(e),F.size===0){if(window.clearTimeout(N),N=void 0,ye=0,I){let t=I;I=void 0,t.then(i=>i())}K=void 0}}}function E(a,n,e={}){return a.callWS({type:`${Rt}/${n}`,...e})}function ke(a,n){if(!(!a||!n))return a.rooms.find(e=>e.climate_entity_id===n||e.entry_id===n)}var A=y`
   :host {
     --bt-radius: var(--ha-card-border-radius, 16px);
     --bt-chip-radius: 18px;
@@ -111,7 +111,94 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
     color: var(--error-color, #db4437);
     font-size: 13px;
   }
-`;var S=15,w=1440;function O(s){let[i,e]=s.split(":").map(Number);return i*60+e}function E(s){let i=Math.floor(s/60),e=s%60;return`${String(i).padStart(2,"0")}:${String(e).padStart(2,"0")}`}function Ye(s){return Math.round(s/S)*S}function I(s,i){return s.variable!==void 0?i.find(e=>e.id===s.variable)?.value:s.temperature}function re(s,i){if(s.variable!==void 0){let e=i.find(t=>t.id===s.variable);return e?e.name:s.variable}return _(s.temperature)}function _(s,i=!0){if(s==null||Number.isNaN(s))return"\u2013";let e=(Math.round(s*2)/2).toLocaleString(void 0,{minimumFractionDigits:1,maximumFractionDigits:1});return i?`${e} \xB0C`:e}var W=[[12,[90,140,220]],[16,[120,180,235]],[18,[150,210,200]],[19.5,[250,215,110]],[21,[255,175,85]],[23,[250,125,70]],[26,[225,75,60]]];function $(s){if(s===void 0)return"var(--disabled-color, #9e9e9e)";if(s<=W[0][0])return`rgb(${W[0][1].join(",")})`;for(let i=1;i<W.length;i++){let[e,t]=W[i];if(s<=e){let[n,r]=W[i-1],a=(s-n)/(e-n);return`rgb(${r.map((o,l)=>Math.round(o+(t[l]-o)*a)).join(",")})`}}return`rgb(${W[W.length-1][1].join(",")})`}function ae(s){return JSON.parse(JSON.stringify(s))}function Je(s,i){return JSON.stringify(s)===JSON.stringify(i)}function Z(s){return s.map((i,e)=>({start:O(i.start),end:e+1<s.length?O(s[e+1].start):w,slot:i}))}function $e(s,i){let e=new Intl.DateTimeFormat("en-US",{timeZone:i,weekday:"short",hour:"2-digit",minute:"2-digit",year:"numeric",month:"2-digit",day:"2-digit",hourCycle:"h23"}).formatToParts(s),t=r=>e.find(a=>a.type===r)?.value??"";return{day:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].indexOf(t("weekday")),minutes:Number(t("hour"))*60+Number(t("minute")),ymd:`${t("year")}-${t("month")}-${t("day")}`}}function Xe(s){return s?.config?.time_zone||void 0}function Yt(s){return s?.locale?.time_zone==="server"?Xe(s):void 0}function ke(s){return $e(new Date,Xe(s)).minutes}function Se(s){return g[$e(new Date,Xe(s)).day]}function y(s,i){if(!s)return"";let e=new Date(s),t=i.locale?.language||i.language,n=Yt(i),r=e.toLocaleTimeString(t,{hour:"2-digit",minute:"2-digit",timeZone:n});if($e(e,n).ymd===$e(new Date,n).ymd)return r;let a=(e.getTime()-Date.now())/864e5;return a>-1&&a<6?`${e.toLocaleDateString(t,{weekday:"short",timeZone:n})} ${r}`:`${e.toLocaleDateString(t,{weekday:"short",day:"numeric",month:"short",timeZone:n})} ${r}`}var At={de:{auto:"Auto",heat:"Manuell",off:"Aus",schedule:"Zeitplan",schedules:"Zeitpl\xE4ne",edit:"Wochenplan bearbeiten",schedule_paused:"pausiert",period:"Zeitraum",period_until:"bis",period_open:"bis auf Weiteres",period_planned:"Geplant",period_from:"ab",period_end:"Beenden",period_delete:"L\xF6schen",period_plan:"Zeitraum planen",period_edit:"Zeitraum bearbeiten",period_less:"weniger anzeigen",period_what:"Was soll gelten?",period_start:"Beginn",period_end_label:"Ende",period_now:"Jetzt",period_at:"Zeitpunkt",period_title:"Titel",period_title_hint:"z. B. Besuch von Oma",period_invalid:"Bitte g\xFCltigen Beginn und ein Ende in der Zukunft nach dem Beginn w\xE4hlen.",period_more:"weitere geplant",optional:"optional",prio_title:"Priorit\xE4ten",prio_short:"Priorit\xE4t",week_plan:"Wochenplan",new_version:"Neue Version der Karte verf\xFCgbar.",reload:"Neu laden",then:"dann",copy_to_rooms:"In andere R\xE4ume kopieren",copy_rooms_hint:"\u201E{name}\u201C wird in die gew\xE4hlten R\xE4ume kopiert. Gibt es dort schon einen gleichnamigen Zeitplan, wird er ersetzt.",will_replace:"wird ersetzt",will_create:"wird neu angelegt",all_rooms:"Alle R\xE4ume",copied_to:"Kopiert nach:",copy_unsaved:"Es wird der gespeicherte Stand kopiert, nicht deine ungespeicherten \xC4nderungen. Fortfahren?",battery:"Batterie",battery_low:"schwach",battery_ok:"OK",more:"Mehr",not_active:"Dieser Zeitplan ist gerade nicht aktiv.",unsaved_short:"Ungespeicherte \xC4nderungen",manage_variables:"Variablen verwalten",delete_schedule:"Zeitplan l\xF6schen",edit_short:"Bearbeiten",from:"Von",to:"Bis",days_long:["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"],weekend:"Wochenende",copy_day_short:"Tag kopieren",add:"Hinzuf\xFCgen",cancel:"Abbrechen",ok:"OK",swipe_hint:"Zum \xC4ndern waagerecht wischen",today:"Heute",period_plural:"Zeitr\xE4ume",period_planned_n:"geplant",heating_summary:"heizen",of:"von",rooms_word:"R\xE4umen",other_floor:"Weitere",open_details:"Details",prio_hand:"\xC4nderung von Hand",prio_room:"Raum",prio_inactive:"aus",prio_none:"keine",until:"bis",next:"N\xE4chster Wechsel",src_override:"Globaler Override",src_off:"Frostschutz",src_manual:"Manuell",src_hand:"Ge\xE4ndert",src_schedule:"Zeitplan",heating:"Heizt",idle:"Bereit",save:"Speichern",discard:"Verwerfen",close:"Schlie\xDFen",new_schedule:"Neuer Zeitplan",rename:"Umbenennen",duplicate:"Duplizieren",delete:"L\xF6schen",activate:"Aktivieren",active:"Aktiv",split:"Teilen",copy_day:"Tag kopieren auf \u2026",copy:"Kopieren",workdays:"Mo\u2013Fr",all_days:"Alle",fixed:"Fest",variables:"Variablen",add_variable:"Variable hinzuf\xFCgen",name:"Name",value:"Wert",unsaved:"Ungespeicherte \xC4nderungen verwerfen?",confirm_delete:"Zeitplan wirklich l\xF6schen?",tap_hint:"Abschnitt antippen zum Bearbeiten, Grenzen ziehen zum Verschieben.",days:["Mo","Di","Mi","Do","Fr","Sa","So"],unreachable:"Best Thermostat ist nicht erreichbar. Neuer Versuch l\xE4uft \u2026",not_found:"Raum nicht gefunden. Bitte in der Kartenkonfiguration einen Best-Thermostat-Raum w\xE4hlen.",loading:"Lade \u2026",override:"Globaler Override",override_also:"Gilt auch f\xFCr",override_not_applied:"Override gilt hier nicht",rooms:"R\xE4ume",variables_note:"Variablen gelten f\xFCr alle R\xE4ume und werden sofort gespeichert."},en:{auto:"Auto",heat:"Manual",off:"Off",schedule:"Schedule",schedules:"Schedules",edit:"Edit weekly plan",schedule_paused:"paused",period:"Period",period_until:"until",period_open:"until cancelled",period_planned:"Planned",period_from:"from",period_end:"End",period_delete:"Delete",period_plan:"Plan period",period_edit:"Edit period",period_less:"show less",period_what:"What should apply?",period_start:"Start",period_end_label:"End",period_now:"Now",period_at:"At",period_title:"Title",period_title_hint:"e.g. Grandma visiting",period_invalid:"Please choose a valid start and an end in the future after the start.",period_more:"more planned",optional:"optional",prio_title:"Priorities",prio_short:"Priority",week_plan:"Weekly plan",new_version:"A new version of the card is available.",reload:"Reload",then:"then",copy_to_rooms:"Copy to other rooms",copy_rooms_hint:'"{name}" is copied to the selected rooms. An existing schedule with the same name is replaced.',will_replace:"will be replaced",will_create:"will be created",all_rooms:"All rooms",copied_to:"Copied to:",copy_unsaved:"The saved version is copied, not your unsaved changes. Continue?",battery:"Battery",battery_low:"low",battery_ok:"OK",more:"More",not_active:"This schedule is currently not active.",unsaved_short:"Unsaved changes",manage_variables:"Manage variables",delete_schedule:"Delete schedule",edit_short:"Edit",from:"From",to:"To",days_long:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],weekend:"Weekend",copy_day_short:"Copy day",add:"Add",cancel:"Cancel",ok:"OK",swipe_hint:"Swipe horizontally to change",today:"Today",period_plural:"Periods",period_planned_n:"planned",heating_summary:"heating",of:"of",rooms_word:"rooms",other_floor:"Other",open_details:"Details",prio_hand:"Hand change",prio_room:"Room",prio_inactive:"off",prio_none:"none",until:"until",next:"Next change",src_override:"Global override",src_off:"Frost protection",src_manual:"Manual",src_hand:"Changed",src_schedule:"Schedule",heating:"Heating",idle:"Idle",save:"Save",discard:"Discard",close:"Close",new_schedule:"New schedule",rename:"Rename",duplicate:"Duplicate",delete:"Delete",activate:"Activate",active:"Active",split:"Split",copy_day:"Copy day to \u2026",copy:"Copy",workdays:"Mon\u2013Fri",all_days:"All",fixed:"Fixed",variables:"Variables",add_variable:"Add variable",name:"Name",value:"Value",unsaved:"Discard unsaved changes?",confirm_delete:"Really delete this schedule?",tap_hint:"Tap a block to edit it, drag the borders to move them.",days:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],unreachable:"Cannot reach Best Thermostat. Retrying \u2026",not_found:"Room not found. Please select a Best Thermostat room in the card configuration.",loading:"Loading \u2026",override:"Global override",override_also:"Also applies to",override_not_applied:"override not applied here",rooms:"Rooms",variables_note:"Variables apply to all rooms and are saved immediately."}};function b(s){return(s?.locale?.language||s?.language||"en").slice(0,2)==="de"?At.de:At.en}function A(s,i){customElements.get(s)||customElements.define(s,i)}function Ee(s,i,e){if(!(!s||s===i))return{text:e.new_version,action:e.reload}}function Ct(s,i){let e=[];for(let t=s;t<=i;t+=1)e.push(`${$(t)} ${((t-s)/(i-s)*100).toFixed(1)}%`);return`linear-gradient(to right, ${e.join(", ")})`}var we=new Set,ye;function Rt(s){return we.add(s),ye===void 0&&(ye=window.setInterval(()=>we.forEach(i=>i()),6e4)),()=>{we.delete(s),we.size||(window.clearInterval(ye),ye=void 0)}}function Ae(s,i){return!s||!i||s.connection!==i.connection||s.language!==i.language||s.locale?.language!==i.locale?.language}function D(s){return s?.limits??{min:4,max:35,step:.5}}function oe(s,i,e){return Math.min(e,Math.max(i,Math.round(s*2)/2))}function Dt(s,i){return s.schedules.find(e=>e.id===i)?.name??i}function Ce(s){return s.area?.icon?s.area.icon:s.override_active?"mdi:home-export-outline":s.period?"mdi:calendar-star":s.mode==="off"?"mdi:radiator-off":s.mode==="heat"||s.target_source==="hand"?"mdi:hand-back-right":"mdi:radiator"}function Qe(s){return s.target_source==="schedule"&&!s.period&&!s.override_active}function zt(s){let i=s.filter(n=>Qe(n)&&n.next_change);if(i.length<2)return;let e=i[0];return i.every(n=>n.next_change===e.next_change&&n.next_temperature===e.next_temperature)?{time:e.next_change,temp:e.next_temperature}:void 0}function Re(s,i,e,t=!1){if(s.override_active)return i.src_override;if(s.target_source==="hand"&&s.hand_until)return`${i.src_hand} \xB7 ${i.until} ${y(s.hand_until,e)}`;if(s.period){let r=s.period.end?`${i.period_until} ${y(s.period.end,e)}`:i.period_open;return`${s.period.title} \xB7 ${r}`}if(s.mode==="off")return i.src_off;if(s.mode==="heat")return i.src_manual;let n=Dt(s,s.active_schedule);return s.next_change&&!t?`${n} \xB7 ${y(s.next_change,e)} \u2192 ${_(s.next_temperature)}`:n}function Tt(s,i,e,t){let n=i.override,r=s.override_active?1:s.target_source==="hand"?2:s.period?3:4,a=s.base_mode==="off"?`${e.src_off} \xB7 ${_(s.frost_temperature)}`:s.base_mode==="heat"?`${e.heat} \xB7 ${_(s.base_manual_temperature)}`:`${e.auto} \xB7 ${Dt(s,s.base_schedule)}`;return{layers:[{n:1,icon:"mdi:home-export-outline",name:e.override,value:n.active?s.override_active?_(n.value):`${_(n.value)} \xB7 ${e.override_not_applied}`:e.prio_inactive},{n:2,icon:"mdi:hand-back-right",name:e.prio_hand,value:s.target_source==="hand"&&s.hand_until?`${_(s.target_temperature)} \xB7 ${e.until} ${y(s.hand_until,t)}`:Jt(s,e,t)||e.prio_none},{n:3,icon:"mdi:calendar-star",name:e.period,value:s.period?`${s.period.title} \xB7 ${s.period.end?`${e.period_until} ${y(s.period.end,t)}`:e.period_open}`:e.prio_none},{n:4,icon:"mdi:radiator",name:e.prio_room,value:a}],winner:r}}function de(s){let i=Date.now();return(s.periods??[]).filter(e=>new Date(e.start).getTime()>i).sort((e,t)=>new Date(e.start).getTime()-new Date(t.start).getTime())}function le(s){let i=s.batteries??[];if(!i.length)return;let e=i.filter(r=>r.level!=null),t=i.some(r=>r.low);return{level:e.length?Math.min(...e.map(r=>r.level)):null,low:t}}function et(s,i){return s==null?i?"mdi:battery-alert-variant-outline":"mdi:battery":s<=10?"mdi:battery-alert-variant-outline":s>=95?"mdi:battery":`mdi:battery-${Math.max(10,Math.floor(s/10)*10)}`}function Jt(s,i,e){return(s.trv_deviations??[]).map(t=>[t.name,_(t.temperature),t.until?`${i.until} ${y(t.until,e)}`:""].filter(Boolean).join(" \xB7 ")).join(", ")}function De(s,i){if("touches"in s){Xt(s,i);return}if(s.pointerType==="touch"||s.pointerType==="mouse"&&s.button!==0)return;let e=s.clientX,t=s.pointerId,n=!1,r=0,a=p=>{if(p.pointerId!==t)return;let h=p.clientX-e;if(!n&&Math.abs(h)<10)return;n=!0,p.preventDefault();let u=Math.round(h/24);u!==r?(r=u,i.onStep(u)):u===0&&i.onStep(0)},o=p=>{p.pointerId===t&&(l(),i.onEnd(n))},l=()=>{window.removeEventListener("pointermove",a),window.removeEventListener("pointerup",o),window.removeEventListener("pointercancel",o)};window.addEventListener("pointermove",a),window.addEventListener("pointerup",o),window.addEventListener("pointercancel",o)}function Xt(s,i){let e=s.changedTouches[0];if(!e)return;let t=e.identifier,n=e.clientX,r=e.clientY,a="undecided",o=0,l=m=>Array.from(m.changedTouches).find(f=>f.identifier===t),p=m=>{let f=l(m);if(!f)return;let v=f.clientX-n,j=f.clientY-r;if(a==="undecided"){if(Math.abs(v)<10&&Math.abs(j)<10)return;if(a=Math.abs(v)>Math.abs(j)?"swipe":"scroll",a==="scroll"){u();return}i.onStep(0)}m.preventDefault();let z=Math.round(v/24);z!==o&&(o=z,i.onStep(z))},h=m=>{l(m)&&(u(),a!=="scroll"&&i.onEnd(a==="swipe"))},u=()=>{window.removeEventListener("touchmove",p),window.removeEventListener("touchend",h),window.removeEventListener("touchcancel",h)};window.addEventListener("touchmove",p,{passive:!1}),window.addEventListener("touchend",h),window.addEventListener("touchcancel",h)}var G="0.8.5";var ce=class extends x{constructor(){super(...arguments);this._vars=!1;this._menu=!1;this._busy=!1;this._newVarName="";this._newVarValue=20;this._nameValue="";this._onKey=e=>{e.key==="Escape"&&this._close()};this._onWindowMove=e=>{this._drag&&(e.preventDefault(),this._dragMove(e))};this._onWindowUp=()=>{this._dragEnd(),window.removeEventListener("pointermove",this._onWindowMove),window.removeEventListener("pointerup",this._onWindowUp),window.removeEventListener("pointercancel",this._onWindowUp)}}get _t(){return b(this.hass)}get _server(){return this.room?.schedules.find(e=>e.id===this._sid)?.week}get _dirty(){return!!this._draft&&!!this._server&&!Je(this._draft,this._server)}connectedCallback(){super.connectedCallback(),document.addEventListener("keydown",this._onKey),document.documentElement.style.overflow="hidden"}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("keydown",this._onKey),document.documentElement.style.overflow=""}willUpdate(e){this.room&&(this._sid||(this._sid=this.room.active_schedule),(e.has("room")||!this._draft)&&this._server&&(!this._draft||!this._dirtyAgainst(e))&&(this._draft=ae(this._server)))}_dirtyAgainst(e){let n=e.get("room")?.schedules.find(r=>r.id===this._sid)?.week;return!!n&&!!this._draft&&!Je(this._draft,n)}_close(){this._dirty&&!confirm(this._t.unsaved)||this.dispatchEvent(new CustomEvent("close"))}async _call(e,t){if(this.hass){this._busy=!0,this._error=void 0;try{return await R(this.hass,e,t)}catch(n){this._error=n?.message??String(n);return}finally{this._busy=!1}}}_selectSchedule(e){e!==this._sid&&(this._dirty&&!confirm(this._t.unsaved)||(this._sid=e,this._draft=this._server?ae(this._server):void 0,this._sel=void 0,this._copy=void 0))}_startName(e){if(e==="new"&&this._dirty){if(!confirm(this._t.unsaved))return;this._discard()}let t=this.room?.schedules.find(n=>n.id===this._sid)?.name??"";this._sel=void 0,this._vars=!1,this._error=void 0,this._nameAction=e,this._nameValue=e==="rename"?t:e==="duplicate"?`${t} 2`:""}async _submitName(){let e=this._nameValue.trim();if(!e||!this.room||!this._nameAction)return;let t=this.room.entry_id;if(this._nameAction==="rename")await this._call("schedule/rename",{entry_id:t,schedule_id:this._sid,name:e});else{let n=this._nameAction==="duplicate"&&this._dirty?this._draft:void 0,r=await this._call("schedule/create",{entry_id:t,name:e,copy_from:this._sid});r&&n&&await this._call("schedule/save",{entry_id:t,schedule_id:r.id,week:n}),r&&(this._sid=r.id,this._draft=void 0)}this._error||(this._nameAction=void 0)}async _delete(){if(!this.room||!confirm(this._t.confirm_delete))return;await this._call("schedule/delete",{entry_id:this.room.entry_id,schedule_id:this._sid})&&(this._sid=this.room.active_schedule,this._draft=void 0)}_activate(){this.room&&this._call("schedule/activate",{entry_id:this.room.entry_id,schedule_id:this._sid})}async _save(){if(!this.room||!this._draft)return;await this._call("schedule/save",{entry_id:this.room.entry_id,schedule_id:this._sid,week:this._draft})&&(this._sel=void 0)}_discard(){this._server&&(this._draft=ae(this._server)),this._sel=void 0,this._copy=void 0}_mutate(e){if(!this._draft)return;let t=ae(this._draft);e(t),this._draft=t}_slot(e){return this._draft?.[g[e.day]]?.[e.idx]}_setTemp(e){let t=this._sel;if(!t)return;let n=this.snap?.variables??[];this._mutate(r=>{let a=r[g[t.day]][t.idx],o=I(a,n)??20,{min:l,max:p}=D(this.snap),h=oe(o+e,l,p);r[g[t.day]][t.idx]={start:a.start,temperature:h}})}_setVariable(e){let t=this._sel;if(!t)return;let n=this.snap?.variables??[];this._mutate(r=>{let a=r[g[t.day]][t.idx];r[g[t.day]][t.idx]=e===void 0?{start:a.start,temperature:I(a,n)??20}:{start:a.start,variable:e}})}_split(){let e=this._sel;if(!e||!this._draft)return;let t=Z(this._draft[g[e.day]])[e.idx],n=Ye((t.start+t.end)/2);n<=t.start||n>=t.end||(this._mutate(r=>{let a=r[g[e.day]];a.splice(e.idx+1,0,{...a[e.idx],start:E(n)})}),this._sel={day:e.day,idx:e.idx+1})}_remove(){let e=this._sel;!e||!this._draft||this._draft[g[e.day]].length<2||(this._mutate(n=>{let r=n[g[e.day]];e.idx===0?(r.splice(1,1,{...r[1],start:"00:00"}),r.splice(0,1)):r.splice(e.idx,1)}),this._sel={day:e.day,idx:Math.max(0,e.idx-1)})}_toggleCopy(e){let t=new Set(this._copy);t.has(e)?t.delete(e):t.add(e),this._copy=t}_applyCopy(){let e=this._sel;if(!e||!this._copy)return;let t=[...this._copy].filter(n=>n!==e.day);this._mutate(n=>{for(let r of t)n[g[r]]=JSON.parse(JSON.stringify(n[g[e.day]]))}),this._copy=void 0}_dragStart(e,t,n){e.preventDefault(),e.stopPropagation();let r=e.currentTarget;try{r.setPointerCapture(e.pointerId)}catch{}this._drag={day:t,idx:n,bar:r.parentElement},window.addEventListener("pointermove",this._onWindowMove),window.addEventListener("pointerup",this._onWindowUp),window.addEventListener("pointercancel",this._onWindowUp)}_dragMove(e){let t=this._drag;if(!t||!this._draft)return;let n=t.bar.getBoundingClientRect(),r=(e.clientX-n.left)/n.width*w,a=this._draft[g[t.day]],o=O(a[t.idx-1].start)+S,l=(t.idx+1<a.length?O(a[t.idx+1].start):w)-S,p=E(Math.min(l,Math.max(o,Ye(r))));p!==a[t.idx].start&&this._mutate(h=>{h[g[t.day]][t.idx]={...h[g[t.day]][t.idx],start:p}})}_dragEnd(){this._drag=void 0}_varStep(e,t,n){let{min:r,max:a}=D(this.snap),o=oe(t+n,r,a);this._call("variable/update",{variable_id:e,value:o})}async _addVar(){let e=this._newVarName.trim();if(!e)return;await this._call("variable/create",{name:e,value:this._newVarValue})&&(this._newVarName="",this.requestUpdate())}_deleteVar(e){this._call("variable/delete",{variable_id:e})}_shift(e,t){let n=this._sel;if(!n||!this._draft)return;let r=this._draft[g[n.day]],a=e==="start"?n.idx:n.idx+1;if(a<=0||a>=r.length)return;let o=O(r[a-1].start)+S,l=(a+1<r.length?O(r[a+1].start):w)-S,p=Math.min(l,Math.max(o,O(r[a].start)+t));E(p)!==r[a].start&&this._mutate(h=>{h[g[n.day]][a]={...h[g[n.day]][a],start:E(p)}})}_select(e,t){this._sel={day:e,idx:t},this._copy=void 0,this._menu=!1}render(){if(!this.room||!this._draft)return c;let e=this._t,t=this.room,n=t.schedules.find(o=>o.id===this._sid),r=n?.id===t.active_schedule,a=!!this._sel||this._vars||!!this._nameAction||!!this._copyRooms;return d`
+`,Se=y`
+      :host {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-text-color);
+      }
+      .backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      .dialog {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: min(520px, 100vw);
+        max-height: min(760px, 100dvh);
+        background: var(--card-background-color, var(--primary-background-color));
+        border-radius: var(--bt-radius);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      @media (max-width: 600px) {
+        .dialog {
+          width: 100vw;
+          height: 100dvh;
+          max-height: none;
+          border-radius: 0;
+        }
+      }
+      header,
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
+      header {
+        border-bottom: 1px solid var(--divider-color);
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      footer {
+        justify-content: flex-end;
+        border-top: 1px solid var(--divider-color);
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      .h-title {
+        flex: 1;
+      }
+      .h-name {
+        font-weight: 600;
+        font-size: 17px;
+      }
+      .h-sub {
+        font-size: 13px;
+      }
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--bt-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .label .muted {
+        text-transform: none;
+        font-weight: 400;
+      }
+`;var R=15,x=1440;function L(a){let[n,e]=a.split(":").map(Number);return n*60+e}function C(a){let n=Math.floor(a/60),e=a%60;return`${String(n).padStart(2,"0")}:${String(e).padStart(2,"0")}`}function et(a){return Math.round(a/R)*R}function z(a,n){return a.variable!==void 0?n.find(e=>e.id===a.variable)?.value:a.temperature}function oe(a,n){if(a.variable!==void 0){let e=n.find(t=>t.id===a.variable);return e?e.name:a.variable}return g(a.temperature)}function g(a,n=!0){if(a==null||Number.isNaN(a))return"\u2013";let e=(Math.round(a*2)/2).toLocaleString(void 0,{minimumFractionDigits:1,maximumFractionDigits:1});return n?`${e} \xB0C`:e}var G=[[12,[90,140,220]],[16,[120,180,235]],[18,[150,210,200]],[19.5,[250,215,110]],[21,[255,175,85]],[23,[250,125,70]],[26,[225,75,60]]];function $(a){if(a===void 0)return"var(--disabled-color, #9e9e9e)";if(a<=G[0][0])return`rgb(${G[0][1].join(",")})`;for(let n=1;n<G.length;n++){let[e,t]=G[n];if(a<=e){let[i,s]=G[n-1],o=(a-i)/(e-i);return`rgb(${s.map((r,d)=>Math.round(r+(t[d]-r)*o)).join(",")})`}}return`rgb(${G[G.length-1][1].join(",")})`}function re(a){return JSON.parse(JSON.stringify(a))}function Ce(a,n){return JSON.stringify(a)===JSON.stringify(n)}function O(a){return a.map((n,e)=>({start:L(n.start),end:e+1<a.length?L(a[e+1].start):x,slot:n}))}function Re(a,n){let e=new Intl.DateTimeFormat("en-US",{timeZone:n,weekday:"short",hour:"2-digit",minute:"2-digit",year:"numeric",month:"2-digit",day:"2-digit",hourCycle:"h23"}).formatToParts(a),t=s=>e.find(o=>o.type===s)?.value??"";return{day:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].indexOf(t("weekday")),minutes:Number(t("hour"))*60+Number(t("minute")),ymd:`${t("year")}-${t("month")}-${t("day")}`}}function tt(a){return a?.config?.time_zone||void 0}function ei(a){return a?.locale?.time_zone==="server"?tt(a):void 0}function De(a){return Re(new Date,tt(a)).minutes}function q(a){return f[Re(new Date,tt(a)).day]}function k(a,n){if(!a)return"";let e=new Date(a),t=n.locale?.language||n.language,i=ei(n),s=e.toLocaleTimeString(t,{hour:"2-digit",minute:"2-digit",timeZone:i});if(Re(e,i).ymd===Re(new Date,i).ymd)return s;let o=(e.getTime()-Date.now())/864e5;return o>-1&&o<6?`${e.toLocaleDateString(t,{weekday:"short",timeZone:i})} ${s}`:`${e.toLocaleDateString(t,{weekday:"short",day:"numeric",month:"short",timeZone:i})} ${s}`}var zt={de:{auto:"Auto",heat:"Manuell",off:"Aus",schedule:"Zeitplan",schedules:"Zeitpl\xE4ne",edit:"Wochenplan bearbeiten",schedule_paused:"pausiert",period:"Zeitraum",period_until:"bis",period_open:"bis auf Weiteres",period_planned:"Geplant",period_from:"ab",period_end:"Beenden",period_delete:"L\xF6schen",period_plan:"Zeitraum planen",period_edit:"Zeitraum bearbeiten",period_less:"weniger anzeigen",period_what:"Was soll gelten?",period_start:"Beginn",period_end_label:"Ende",period_now:"Jetzt",period_at:"Zeitpunkt",period_title:"Titel",period_title_hint:"z. B. Besuch von Oma",period_invalid:"Bitte g\xFCltigen Beginn und ein Ende in der Zukunft nach dem Beginn w\xE4hlen.",period_more:"weitere geplant",optional:"optional",prio_title:"Priorit\xE4ten",prio_short:"Priorit\xE4t",week_plan:"Wochenplan",new_version:"Neue Version der Karte verf\xFCgbar.",reload:"Neu laden",then:"dann",copy_to_rooms:"In andere R\xE4ume kopieren",copy_rooms_hint:"\u201E{name}\u201C wird in die gew\xE4hlten R\xE4ume kopiert. Gibt es dort schon einen gleichnamigen Zeitplan, wird er ersetzt.",will_replace:"wird ersetzt",will_create:"wird neu angelegt",all_rooms:"Alle R\xE4ume",copied_to:"Kopiert nach:",copy_unsaved:"Es wird der gespeicherte Stand kopiert, nicht deine ungespeicherten \xC4nderungen. Fortfahren?",battery:"Batterie",battery_low:"schwach",battery_ok:"OK",more:"Mehr",not_active:"Dieser Zeitplan ist gerade nicht aktiv.",unsaved_short:"Ungespeicherte \xC4nderungen",manage_variables:"Variablen verwalten",delete_schedule:"Zeitplan l\xF6schen",edit_short:"Bearbeiten",from:"Von",to:"Bis",days_long:["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"],weekend:"Wochenende",copy_day_short:"Tag kopieren",add:"Hinzuf\xFCgen",cancel:"Abbrechen",ok:"OK",swipe_hint:"Zum \xC4ndern waagerecht wischen",today:"Heute",period_plural:"Zeitr\xE4ume",period_planned_n:"geplant",heating_summary:"heizen",of:"von",rooms_word:"R\xE4umen",other_floor:"Weitere",open_details:"Details",prio_hand:"\xC4nderung von Hand",prio_room:"Raum",prio_inactive:"aus",prio_none:"keine",until:"bis",next:"N\xE4chster Wechsel",src_override:"Globaler Override",src_off:"Frostschutz",src_manual:"Manuell",src_hand:"Ge\xE4ndert",src_schedule:"Zeitplan",heating:"Heizt",idle:"Bereit",save:"Speichern",discard:"Verwerfen",close:"Schlie\xDFen",new_schedule:"Neuer Zeitplan",rename:"Umbenennen",duplicate:"Duplizieren",delete:"L\xF6schen",activate:"Aktivieren",active:"Aktiv",split:"Teilen",copy_day:"Tag kopieren auf \u2026",copy:"Kopieren",workdays:"Mo\u2013Fr",all_days:"Alle",fixed:"Fest",variables:"Variablen",add_variable:"Variable hinzuf\xFCgen",name:"Name",value:"Wert",unsaved:"Ungespeicherte \xC4nderungen verwerfen?",confirm_delete:"Zeitplan wirklich l\xF6schen?",tap_hint:"Abschnitt antippen zum Bearbeiten, Grenzen ziehen zum Verschieben.",days:["Mo","Di","Mi","Do","Fr","Sa","So"],unreachable:"Best Thermostat ist nicht erreichbar. Neuer Versuch l\xE4uft \u2026",not_found:"Raum nicht gefunden. Bitte in der Kartenkonfiguration einen Best-Thermostat-Raum w\xE4hlen.",loading:"Lade \u2026",override:"Globaler Override",override_also:"Gilt auch f\xFCr",override_not_applied:"Override gilt hier nicht",rooms:"R\xE4ume",variables_note:"Variablen gelten f\xFCr alle R\xE4ume und werden sofort gespeichert.",global_schedules:"Zeitpl\xE4ne",global_schedule:"Globaler Zeitplan",global_hint:"Globale Zeitpl\xE4ne gibt es nur einmal. \xC4nderungen gelten in allen R\xE4umen, die sie nutzen.",global_none:"Noch keine globalen Zeitpl\xE4ne. Lege einen neuen an oder mache im Wochenplan eines Raums einen Zeitplan global.",global_new:"Neuer globaler Zeitplan",global_active_in:"Aktiv in",global_active_none:"nirgends aktiv",global_offered:"Ausw\xE4hlbar in",global_all_rooms:"allen R\xE4umen",global_n_rooms:"{n} R\xE4umen",global_no_rooms:"keinem Raum",global_periods_in:"In Zeitr\xE4umen von",visibility:"Ausw\xE4hlbar in \u2026",visibility_hint:"Nur in diesen R\xE4umen steht der Zeitplan zur Auswahl. Zeitr\xE4ume k\xF6nnen ihn in jedem Raum nutzen.",assign:"Zuweisen \u2026",assign_hint:"Der Zeitplan wird in den gew\xE4hlten R\xE4umen aktiviert.",assign_action:"Aktivieren",make_global:"Global machen \u2026",make_global_hint:"\u201E{name}\u201C wird ein globaler Zeitplan. R\xE4ume mit gleichem Ablauf k\xF6nnen ihn statt ihrer eigenen Kopie nutzen:",make_global_none:"Kein anderer Raum hat einen eigenen Zeitplan mit gleichem Ablauf.",make_global_all:"In allen R\xE4umen ausw\xE4hlbar",make_global_action:"Global machen",local_copy:"Lokale Kopie",confirm_delete_global:"\u201E{name}\u201C wirklich l\xF6schen?",confirm_delete_global_used:"\u201E{name}\u201C ist aktiv in: {rooms}. Diese R\xE4ume werden ausgeschaltet (Frostschutz).",confirm_delete_global_periods:"Zeitr\xE4ume mit diesem Zeitplan werden gel\xF6scht.",deleted_switched_off:"Ausgeschaltet:",labels:"Labels",select_rooms:"R\xE4ume",group_scope:"Gilt f\xFCr",group_all:"Alle {n} R\xE4ume",group_here:"Nur hier",group_rooms:"Gemeinsam geplant f\xFCr",need_rooms:"Bitte mindestens einen Raum w\xE4hlen.",edit_week:"Wochenplan bearbeiten"},en:{auto:"Auto",heat:"Manual",off:"Off",schedule:"Schedule",schedules:"Schedules",edit:"Edit weekly plan",schedule_paused:"paused",period:"Period",period_until:"until",period_open:"until cancelled",period_planned:"Planned",period_from:"from",period_end:"End",period_delete:"Delete",period_plan:"Plan period",period_edit:"Edit period",period_less:"show less",period_what:"What should apply?",period_start:"Start",period_end_label:"End",period_now:"Now",period_at:"At",period_title:"Title",period_title_hint:"e.g. Grandma visiting",period_invalid:"Please choose a valid start and an end in the future after the start.",period_more:"more planned",optional:"optional",prio_title:"Priorities",prio_short:"Priority",week_plan:"Weekly plan",new_version:"A new version of the card is available.",reload:"Reload",then:"then",copy_to_rooms:"Copy to other rooms",copy_rooms_hint:'"{name}" is copied to the selected rooms. An existing schedule with the same name is replaced.',will_replace:"will be replaced",will_create:"will be created",all_rooms:"All rooms",copied_to:"Copied to:",copy_unsaved:"The saved version is copied, not your unsaved changes. Continue?",battery:"Battery",battery_low:"low",battery_ok:"OK",more:"More",not_active:"This schedule is currently not active.",unsaved_short:"Unsaved changes",manage_variables:"Manage variables",delete_schedule:"Delete schedule",edit_short:"Edit",from:"From",to:"To",days_long:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],weekend:"Weekend",copy_day_short:"Copy day",add:"Add",cancel:"Cancel",ok:"OK",swipe_hint:"Swipe horizontally to change",today:"Today",period_plural:"Periods",period_planned_n:"planned",heating_summary:"heating",of:"of",rooms_word:"rooms",other_floor:"Other",open_details:"Details",prio_hand:"Hand change",prio_room:"Room",prio_inactive:"off",prio_none:"none",until:"until",next:"Next change",src_override:"Global override",src_off:"Frost protection",src_manual:"Manual",src_hand:"Changed",src_schedule:"Schedule",heating:"Heating",idle:"Idle",save:"Save",discard:"Discard",close:"Close",new_schedule:"New schedule",rename:"Rename",duplicate:"Duplicate",delete:"Delete",activate:"Activate",active:"Active",split:"Split",copy_day:"Copy day to \u2026",copy:"Copy",workdays:"Mon\u2013Fri",all_days:"All",fixed:"Fixed",variables:"Variables",add_variable:"Add variable",name:"Name",value:"Value",unsaved:"Discard unsaved changes?",confirm_delete:"Really delete this schedule?",tap_hint:"Tap a block to edit it, drag the borders to move them.",days:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],unreachable:"Cannot reach Best Thermostat. Retrying \u2026",not_found:"Room not found. Please select a Best Thermostat room in the card configuration.",loading:"Loading \u2026",override:"Global override",override_also:"Also applies to",override_not_applied:"override not applied here",rooms:"Rooms",variables_note:"Variables apply to all rooms and are saved immediately.",global_schedules:"Schedules",global_schedule:"Global schedule",global_hint:"Global schedules exist only once. Changes apply to every room that uses them.",global_none:"No global schedules yet. Create one or make a schedule global in a room's weekly plan.",global_new:"New global schedule",global_active_in:"Active in",global_active_none:"not active anywhere",global_offered:"Offered in",global_all_rooms:"all rooms",global_n_rooms:"{n} rooms",global_no_rooms:"no room",global_periods_in:"In periods of",visibility:"Offered in \u2026",visibility_hint:"Only these rooms offer the schedule for selection. Periods can use it in any room.",assign:"Assign \u2026",assign_hint:"The schedule is activated in the selected rooms.",assign_action:"Activate",make_global:"Make global \u2026",make_global_hint:'"{name}" becomes a global schedule. Rooms with the same plan can use it instead of their own copy:',make_global_none:"No other room has an own schedule with the same plan.",make_global_all:"Offer in all rooms",make_global_action:"Make global",local_copy:"Local copy",confirm_delete_global:'Really delete "{name}"?',confirm_delete_global_used:'"{name}" is active in: {rooms}. These rooms will be switched off (frost protection).',confirm_delete_global_periods:"Periods using this schedule will be deleted.",deleted_switched_off:"Switched off:",labels:"Labels",select_rooms:"Rooms",group_scope:"Applies to",group_all:"All {n} rooms",group_here:"Only here",group_rooms:"Planned together for",need_rooms:"Please choose at least one room.",edit_week:"Edit weekly plan"}};function b(a){return(a?.locale?.language||a?.language||"en").slice(0,2)==="de"?zt.de:zt.en}function S(a,n){customElements.get(a)||customElements.define(a,n)}function ze(a,n,e){if(!(!a||a===n))return{text:e.new_version,action:e.reload}}function Tt(a,n){let e=[];for(let t=a;t<=n;t+=1)e.push(`${$(t)} ${((t-a)/(n-a)*100).toFixed(1)}%`);return`linear-gradient(to right, ${e.join(", ")})`}var Ee=new Set,Ae;function Mt(a){return Ee.add(a),Ae===void 0&&(Ae=window.setInterval(()=>Ee.forEach(n=>n()),6e4)),()=>{Ee.delete(a),Ee.size||(window.clearInterval(Ae),Ae=void 0)}}function Te(a,n){return!a||!n||a.connection!==n.connection||a.language!==n.language||a.locale?.language!==n.locale?.language}function T(a){return a?.limits??{min:4,max:35,step:.5}}function le(a,n,e){return Math.min(e,Math.max(n,Math.round(a*2)/2))}function Pt(a,n){return a.schedules.find(e=>e.id===n)?.name??n}function it(a){return a.schedules.filter(n=>!n.hidden)}function Me(a){return a.area?.icon?a.area.icon:a.override_active?"mdi:home-export-outline":a.period?"mdi:calendar-star":a.mode==="off"?"mdi:radiator-off":a.mode==="heat"||a.target_source==="hand"?"mdi:hand-back-right":"mdi:radiator"}function nt(a){return a.target_source==="schedule"&&!a.period&&!a.override_active}function Nt(a){let n=a.filter(i=>nt(i)&&i.next_change);if(n.length<2)return;let e=n[0];return n.every(i=>i.next_change===e.next_change&&i.next_temperature===e.next_temperature)?{time:e.next_change,temp:e.next_temperature}:void 0}function Pe(a,n,e,t=!1){if(a.override_active)return n.src_override;if(a.target_source==="hand"&&a.hand_until)return`${n.src_hand} \xB7 ${n.until} ${k(a.hand_until,e)}`;if(a.period){let s=a.period.end?`${n.period_until} ${k(a.period.end,e)}`:n.period_open;return`${a.period.title} \xB7 ${s}`}if(a.mode==="off")return n.src_off;if(a.mode==="heat")return n.src_manual;let i=Pt(a,a.active_schedule);return a.next_change&&!t?`${i} \xB7 ${k(a.next_change,e)} \u2192 ${g(a.next_temperature)}`:i}function Lt(a,n,e,t){let i=n.override,s=a.override_active?1:a.target_source==="hand"?2:a.period?3:4,o=a.base_mode==="off"?`${e.src_off} \xB7 ${g(a.frost_temperature)}`:a.base_mode==="heat"?`${e.heat} \xB7 ${g(a.base_manual_temperature)}`:`${e.auto} \xB7 ${Pt(a,a.base_schedule)}`;return{layers:[{n:1,icon:"mdi:home-export-outline",name:e.override,value:i.active?a.override_active?g(i.value):`${g(i.value)} \xB7 ${e.override_not_applied}`:e.prio_inactive},{n:2,icon:"mdi:hand-back-right",name:e.prio_hand,value:a.target_source==="hand"&&a.hand_until?`${g(a.target_temperature)} \xB7 ${e.until} ${k(a.hand_until,t)}`:ti(a,e,t)||e.prio_none},{n:3,icon:"mdi:calendar-star",name:e.period,value:a.period?`${a.period.title} \xB7 ${a.period.end?`${e.period_until} ${k(a.period.end,t)}`:e.period_open}`:e.prio_none},{n:4,icon:"mdi:radiator",name:e.prio_room,value:o}],winner:s}}function de(a){let n=Date.now();return(a.periods??[]).filter(e=>new Date(e.start).getTime()>n).sort((e,t)=>new Date(e.start).getTime()-new Date(t.start).getTime())}function ce(a){let n=a.batteries??[];if(!n.length)return;let e=n.filter(s=>s.level!=null),t=n.some(s=>s.low);return{level:e.length?Math.min(...e.map(s=>s.level)):null,low:t}}function st(a,n){return a==null?n?"mdi:battery-alert-variant-outline":"mdi:battery":a<=10?"mdi:battery-alert-variant-outline":a>=95?"mdi:battery":`mdi:battery-${Math.max(10,Math.floor(a/10)*10)}`}function ti(a,n,e){return(a.trv_deviations??[]).map(t=>[t.name,g(t.temperature),t.until?`${n.until} ${k(t.until,e)}`:""].filter(Boolean).join(" \xB7 ")).join(", ")}function Ne(a,n){if("touches"in a){ii(a,n);return}if(a.pointerType==="touch"||a.pointerType==="mouse"&&a.button!==0)return;let e=a.clientX,t=a.pointerId,i=!1,s=0,o=p=>{if(p.pointerId!==t)return;let h=p.clientX-e;if(!i&&Math.abs(h)<10)return;i=!0,p.preventDefault();let u=Math.round(h/24);u!==s?(s=u,n.onStep(u)):u===0&&n.onStep(0)},r=p=>{p.pointerId===t&&(d(),n.onEnd(i))},d=()=>{window.removeEventListener("pointermove",o),window.removeEventListener("pointerup",r),window.removeEventListener("pointercancel",r)};window.addEventListener("pointermove",o),window.addEventListener("pointerup",r),window.addEventListener("pointercancel",r)}function ii(a,n){let e=a.changedTouches[0];if(!e)return;let t=e.identifier,i=e.clientX,s=e.clientY,o="undecided",r=0,d=m=>Array.from(m.changedTouches).find(_=>_.identifier===t),p=m=>{let _=d(m);if(!_)return;let w=_.clientX-i,j=_.clientY-s;if(o==="undecided"){if(Math.abs(w)<10&&Math.abs(j)<10)return;if(o=Math.abs(w)>Math.abs(j)?"swipe":"scroll",o==="scroll"){u();return}n.onStep(0)}m.preventDefault();let M=Math.round(w/24);M!==r&&(r=M,n.onStep(M))},h=m=>{d(m)&&(u(),o!=="scroll"&&n.onEnd(o==="swipe"))},u=()=>{window.removeEventListener("touchmove",p),window.removeEventListener("touchend",h),window.removeEventListener("touchcancel",h)};window.addEventListener("touchmove",p,{passive:!1}),window.addEventListener("touchend",h),window.addEventListener("touchcancel",h)}var Y="0.9.0";var pe=class extends v{constructor(){super(...arguments);this._vars=!1;this._menu=!1;this._busy=!1;this._newVarName="";this._newVarValue=20;this._nameValue="";this._onKey=e=>{e.key==="Escape"&&this._close()};this._onWindowMove=e=>{this._drag&&(e.preventDefault(),this._dragMove(e))};this._onWindowUp=()=>{this._dragEnd(),window.removeEventListener("pointermove",this._onWindowMove),window.removeEventListener("pointerup",this._onWindowUp),window.removeEventListener("pointercancel",this._onWindowUp)}}get _t(){return b(this.hass)}get _server(){return this.room?.schedules.find(e=>e.id===this._sid)?.week}get _globalMode(){return!this.room?.entry_id}_isGlobal(e=this._sid){return!!this.room?.schedules.find(t=>t.id===e)?.global}get _dirty(){return!!this._draft&&!!this._server&&!Ce(this._draft,this._server)}connectedCallback(){super.connectedCallback(),document.addEventListener("keydown",this._onKey),document.documentElement.style.overflow="hidden"}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("keydown",this._onKey),document.documentElement.style.overflow=""}willUpdate(e){this.room&&(this._sid||(this._sid=this.room.active_schedule),(e.has("room")||!this._draft)&&this._server&&(!this._draft||!this._dirtyAgainst(e))&&(this._draft=re(this._server)))}_dirtyAgainst(e){let i=e.get("room")?.schedules.find(s=>s.id===this._sid)?.week;return!!i&&!!this._draft&&!Ce(this._draft,i)}_close(){this._dirty&&!confirm(this._t.unsaved)||this.dispatchEvent(new CustomEvent("close"))}async _call(e,t){if(this.hass){this._busy=!0,this._error=void 0;try{return await E(this.hass,e,t)}catch(i){this._error=i?.message??String(i);return}finally{this._busy=!1}}}_selectSchedule(e){e!==this._sid&&(this._dirty&&!confirm(this._t.unsaved)||(this._sid=e,this._draft=this._server?re(this._server):void 0,this._sel=void 0,this._copy=void 0))}_startName(e){if(e==="new"&&this._dirty){if(!confirm(this._t.unsaved))return;this._discard()}let t=this.room?.schedules.find(i=>i.id===this._sid)?.name??"";this._sel=void 0,this._vars=!1,this._error=void 0,this._nameAction=e,this._nameValue=e==="rename"?t:e==="duplicate"?`${t} 2`:""}async _submitName(){let e=this._nameValue.trim();if(!e||!this.room||!this._nameAction)return;let t=this.room.entry_id;if(this._nameAction==="rename")this._isGlobal()?await this._call("global_schedule/rename",{schedule_id:this._sid,name:e}):await this._call("schedule/rename",{entry_id:t,schedule_id:this._sid,name:e});else{let i=this._nameAction==="duplicate"&&this._dirty?this._draft:void 0,s=this._globalMode?await this._call("global_schedule/create",{name:e,copy_from:this._sid}):await this._call("schedule/create",{entry_id:t,name:e,copy_from:this._sid});s&&i&&(this._globalMode?await this._call("global_schedule/save",{schedule_id:s.id,week:i}):await this._call("schedule/save",{entry_id:t,schedule_id:s.id,week:i})),s&&(this._sid=s.id,this._draft=void 0)}this._error||(this._nameAction=void 0)}async _delete(){if(!this.room)return;let e=this._t;if(this._isGlobal()){let i=this.snap?.global_schedules?.find(d=>d.id===this._sid);if(!i)return;let s=i.active.map(d=>this.snap?.rooms.find(p=>p.entry_id===d)?.name??"?").join(", "),o=i.active.length?e.confirm_delete_global_used.replace("{name}",i.name).replace("{rooms}",s):e.confirm_delete_global.replace("{name}",i.name);if(i.periods.length&&(o+=`
+${e.confirm_delete_global_periods}`),!confirm(o))return;if(await this._call("global_schedule/delete",{schedule_id:this._sid})){let d=this.room.schedules.filter(p=>p.id!==this._sid&&!p.hidden);this._sid=this._globalMode?d[0]?.id:void 0,this._draft=void 0,this._globalMode&&!d.length&&this.dispatchEvent(new CustomEvent("close"))}return}if(!confirm(e.confirm_delete))return;await this._call("schedule/delete",{entry_id:this.room.entry_id,schedule_id:this._sid})&&(this._sid=this.room.active_schedule,this._draft=void 0)}_activate(){this.room&&this._call("schedule/activate",{entry_id:this.room.entry_id,schedule_id:this._sid})}async _save(){if(!this.room||!this._draft)return;(this._isGlobal()?await this._call("global_schedule/save",{schedule_id:this._sid,week:this._draft}):await this._call("schedule/save",{entry_id:this.room.entry_id,schedule_id:this._sid,week:this._draft}))&&(this._sel=void 0)}_discard(){this._server&&(this._draft=re(this._server)),this._sel=void 0,this._copy=void 0}_mutate(e){if(!this._draft)return;let t=re(this._draft);e(t),this._draft=t}_slot(e){return this._draft?.[f[e.day]]?.[e.idx]}_setTemp(e){let t=this._sel;if(!t)return;let i=this.snap?.variables??[];this._mutate(s=>{let o=s[f[t.day]][t.idx],r=z(o,i)??20,{min:d,max:p}=T(this.snap),h=le(r+e,d,p);s[f[t.day]][t.idx]={start:o.start,temperature:h}})}_setVariable(e){let t=this._sel;if(!t)return;let i=this.snap?.variables??[];this._mutate(s=>{let o=s[f[t.day]][t.idx];s[f[t.day]][t.idx]=e===void 0?{start:o.start,temperature:z(o,i)??20}:{start:o.start,variable:e}})}_split(){let e=this._sel;if(!e||!this._draft)return;let t=O(this._draft[f[e.day]])[e.idx],i=et((t.start+t.end)/2);i<=t.start||i>=t.end||(this._mutate(s=>{let o=s[f[e.day]];o.splice(e.idx+1,0,{...o[e.idx],start:C(i)})}),this._sel={day:e.day,idx:e.idx+1})}_remove(){let e=this._sel;!e||!this._draft||this._draft[f[e.day]].length<2||(this._mutate(i=>{let s=i[f[e.day]];e.idx===0?(s.splice(1,1,{...s[1],start:"00:00"}),s.splice(0,1)):s.splice(e.idx,1)}),this._sel={day:e.day,idx:Math.max(0,e.idx-1)})}_toggleCopy(e){let t=new Set(this._copy);t.has(e)?t.delete(e):t.add(e),this._copy=t}_applyCopy(){let e=this._sel;if(!e||!this._copy)return;let t=[...this._copy].filter(i=>i!==e.day);this._mutate(i=>{for(let s of t)i[f[s]]=JSON.parse(JSON.stringify(i[f[e.day]]))}),this._copy=void 0}_dragStart(e,t,i){e.preventDefault(),e.stopPropagation();let s=e.currentTarget;try{s.setPointerCapture(e.pointerId)}catch{}this._drag={day:t,idx:i,bar:s.parentElement},window.addEventListener("pointermove",this._onWindowMove),window.addEventListener("pointerup",this._onWindowUp),window.addEventListener("pointercancel",this._onWindowUp)}_dragMove(e){let t=this._drag;if(!t||!this._draft)return;let i=t.bar.getBoundingClientRect(),s=(e.clientX-i.left)/i.width*x,o=this._draft[f[t.day]],r=L(o[t.idx-1].start)+R,d=(t.idx+1<o.length?L(o[t.idx+1].start):x)-R,p=C(Math.min(d,Math.max(r,et(s))));p!==o[t.idx].start&&this._mutate(h=>{h[f[t.day]][t.idx]={...h[f[t.day]][t.idx],start:p}})}_dragEnd(){this._drag=void 0}_varStep(e,t,i){let{min:s,max:o}=T(this.snap),r=le(t+i,s,o);this._call("variable/update",{variable_id:e,value:r})}async _addVar(){let e=this._newVarName.trim();if(!e)return;await this._call("variable/create",{name:e,value:this._newVarValue})&&(this._newVarName="",this.requestUpdate())}_deleteVar(e){this._call("variable/delete",{variable_id:e})}_shift(e,t){let i=this._sel;if(!i||!this._draft)return;let s=this._draft[f[i.day]],o=e==="start"?i.idx:i.idx+1;if(o<=0||o>=s.length)return;let r=L(s[o-1].start)+R,d=(o+1<s.length?L(s[o+1].start):x)-R,p=Math.min(d,Math.max(r,L(s[o].start)+t));C(p)!==s[o].start&&this._mutate(h=>{h[f[i.day]][o]={...h[f[i.day]][o],start:C(p)}})}_select(e,t){this._sel={day:e,idx:t},this._copy=void 0,this._menu=!1}render(){if(!this.room||!this._draft)return c;let e=this._t,t=this.room,i=t.schedules.find(r=>r.id===this._sid),s=this._globalMode||i?.id===t.active_schedule,o=!!this._sel||this._vars||!!this._nameAction||!!this._copyRooms||!!this._mkGlobal;return l`
       <div class="backdrop" @click=${this._close}></div>
       <div class="dialog" role="dialog" aria-modal="true">
         <header>
@@ -128,19 +215,22 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
           ${this._menu?this._renderMenu(t):c}
         </header>
 
-        <div class="content ${a?"sheet-open":""} ${this._dirty?"dirty":""}"
+        <div class="content ${o?"sheet-open":""} ${this._dirty?"dirty":""}"
           @click=${()=>this._menu=!1}>
           <div class="seg" role="tablist">
-            ${t.schedules.map(o=>d`<button role="tab" aria-selected=${o.id===this._sid}
-                @click=${()=>this._selectSchedule(o.id)}>
-                ${o.name}${o.id===t.active_schedule?d`<i class="active-dot"></i>`:c}
-              </button>`)}
+            ${t.schedules.filter(r=>!r.hidden||r.id===this._sid).map(r=>l`<button role="tab" aria-selected=${r.id===this._sid}
+                  @click=${()=>this._selectSchedule(r.id)}>
+                  ${r.global&&!this._globalMode?l`<ha-icon class="globe" icon="mdi:earth" title=${this._t.global_schedule}></ha-icon>`:c}${r.name}${r.id===t.active_schedule&&!this._globalMode?l`<i class="active-dot"></i>`:c}
+                </button>`)}
             <button class="plus" aria-label=${e.new_schedule} @click=${()=>this._startName("new")}>
               <ha-icon icon="mdi:plus"></ha-icon>
             </button>
           </div>
 
-          ${n&&!r?d`<div class="notice">
+          ${i?.global&&!this._globalMode?l`<div class="notice global">
+                <ha-icon icon="mdi:earth"></ha-icon><span>${e.global_hint}</span>
+              </div>`:c}
+          ${i&&!s?l`<div class="notice">
                 <span>${e.not_active}</span>
                 <button class="text-btn" @click=${this._activate}>${e.activate}</button>
               </div>`:c}
@@ -148,21 +238,22 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
           <div class="week">
             <div class="ruler muted">
               <span></span>
-              <div>${[0,6,12,18,24].map(o=>d`<span style="left:${o/24*100}%">${o}</span>`)}</div>
+              <div>${[0,6,12,18,24].map(r=>l`<span style="left:${r/24*100}%">${r}</span>`)}</div>
             </div>
-            ${g.map((o,l)=>this._renderDay(o,l))}
+            ${f.map((r,d)=>this._renderDay(r,d))}
           </div>
           ${this._renderLegend()}
           <div class="muted hint">${e.tap_hint}</div>
-          ${this._error?d`<div class="error">${this._error}</div>`:c}
+          ${this._error?l`<div class="error">${this._error}</div>`:c}
         </div>
 
         ${this._sel?this._renderSlotSheet(this._sel):c}
         ${this._vars?this._renderVariablesSheet():c}
         ${this._nameAction?this._renderNameSheet():c}
         ${this._copyRooms?this._renderCopyRoomsSheet():c}
+        ${this._mkGlobal?this._renderMakeGlobalSheet():c}
 
-        ${this._dirty&&!a?d`<div class="savebar">
+        ${this._dirty&&!o?l`<div class="savebar">
               <span class="grow">${e.unsaved_short}</span>
               <button class="text-btn light" ?disabled=${this._busy} @click=${this._discard}>
                 ${e.discard}
@@ -170,73 +261,74 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
               <button class="primary-btn" ?disabled=${this._busy} @click=${this._save}>${e.save}</button>
             </div>`:c}
       </div>
-    `}_renderMenu(e){let t=this._t,n=this._sid!==e.base_schedule&&e.schedules.length>1,r=(a,o,l,p="",h=!1)=>d`<button class="menu-item ${p}" ?disabled=${h} @click=${()=>{this._menu=!1,l()}}><ha-icon icon=${a}></ha-icon>${o}</button>`;return d`<div class="menu" role="menu">
-      ${r("mdi:pencil-outline",t.rename,()=>this._startName("rename"))}
-      ${r("mdi:content-copy",t.duplicate,()=>this._startName("duplicate"))}
-      ${r("mdi:home-export-outline",t.copy_to_rooms,()=>{this._sel=void 0,this._vars=!1,this._info=void 0,this._copyRooms=new Set},"",(this.snap?.rooms.length??0)<2)}
-      ${r("mdi:thermometer-lines",t.manage_variables,()=>{this._sel=void 0,this._vars=!0})}
+    `}_renderMenu(e){let t=this._t,i=this._isGlobal(),s=i||this._sid!==e.base_schedule&&e.schedules.filter(r=>!r.hidden).length>1,o=(r,d,p,h="",u=!1)=>l`<button class="menu-item ${h}" ?disabled=${u} @click=${()=>{this._menu=!1,p()}}><ha-icon icon=${r}></ha-icon>${d}</button>`;return l`<div class="menu" role="menu">
+      ${o("mdi:pencil-outline",t.rename,()=>this._startName("rename"))}
+      ${o("mdi:content-copy",i&&!this._globalMode?t.local_copy:t.duplicate,()=>this._startName("duplicate"))}
+      ${this._globalMode||i?c:l`${o("mdi:earth",t.make_global,()=>this._startMakeGlobal())}
+          ${o("mdi:home-export-outline",t.copy_to_rooms,()=>{this._sel=void 0,this._vars=!1,this._info=void 0,this._copyRooms=new Set},"",(this.snap?.rooms.length??0)<2)}`}
+      ${o("mdi:thermometer-lines",t.manage_variables,()=>{this._sel=void 0,this._vars=!0})}
       <div class="menu-sep"></div>
-      ${r("mdi:delete-outline",t.delete_schedule,()=>this._delete(),"danger",!n)}
-    </div>`}_renderLegend(){let e=this._t,t=this.snap?.variables??[],n=new Set;for(let a of Object.values(this._draft??{}))for(let o of a)o.variable&&n.add(o.variable);let r=t.filter(a=>n.has(a.id));return d`<div class="legend">
-      ${(r.length?r:t).map(a=>d`<span><i class="sw" style="background:${$(a.value)}"></i>${a.name}
-          <b>${_(a.value,!1)}°</b></span>`)}
+      ${o("mdi:delete-outline",t.delete_schedule,()=>this._delete(),"danger",!s)}
+    </div>`}_renderLegend(){let e=this._t,t=this.snap?.variables??[],i=new Set;for(let o of Object.values(this._draft??{}))for(let r of o)r.variable&&i.add(r.variable);let s=t.filter(o=>i.has(o.id));return l`<div class="legend">
+      ${(s.length?s:t).map(o=>l`<span><i class="sw" style="background:${$(o.value)}"></i>${o.name}
+          <b>${g(o.value,!1)}°</b></span>`)}
       <button class="text-btn small" @click=${()=>{this._sel=void 0,this._vars=!0}}>${e.edit_short}</button>
-    </div>`}_renderDay(e,t){let n=this.snap?.variables??[],r=Z(this._draft[e]),a=e===Se(this.hass);return d`<div class="day ${this._sel?.day===t?"active":""}">
-      <span class="day-label ${a?"today":""}">${this._t.days[t]}</span>
+    </div>`}_renderDay(e,t){let i=this.snap?.variables??[],s=O(this._draft[e]),o=e===q(this.hass);return l`<div class="day ${this._sel?.day===t?"active":""}">
+      <span class="day-label ${o?"today":""}">${this._t.days[t]}</span>
       <div class="bar">
-        ${r.map((o,l)=>{let p=I(o.slot,n),h=(o.end-o.start)/w*100,u=this._sel?.day===t&&this._sel.idx===l;return d`<button class="seg-b ${u?"selected":""} ${o.slot.variable?"var":""}"
-            style="left:${o.start/w*100}%;width:${h}%;background:${$(p)}"
-            title="${E(o.start)}–${E(o.end%w)} · ${re(o.slot,n)}"
-            @click=${m=>{m.stopPropagation(),this._select(t,l)}}>
-            ${h>8?d`<span>${o.slot.variable?re(o.slot,n):`${_(p,!1)}\xB0`}</span>`:c}
+        ${s.map((r,d)=>{let p=z(r.slot,i),h=(r.end-r.start)/x*100,u=this._sel?.day===t&&this._sel.idx===d;return l`<button class="seg-b ${u?"selected":""} ${r.slot.variable?"var":""}"
+            style="left:${r.start/x*100}%;width:${h}%;background:${$(p)}"
+            title="${C(r.start)}–${C(r.end%x)} · ${oe(r.slot,i)}"
+            @click=${m=>{m.stopPropagation(),this._select(t,d)}}>
+            ${h>8?l`<span>${r.slot.variable?oe(r.slot,i):`${g(p,!1)}\xB0`}</span>`:c}
           </button>`})}
         <div class="hours"></div>
-        ${a?d`<div class="now" style="left:${ke(this.hass)/w*100}%"></div>`:c}
-        ${r.slice(1).map((o,l)=>{let p=this._drag?.day===t&&this._drag.idx===l+1;return d`<div class="handle ${p?"dragging":""}"
-            style="left:${o.start/w*100}%"
-            @pointerdown=${h=>this._dragStart(h,t,l+1)}>
+        ${o?l`<div class="now" style="left:${De(this.hass)/x*100}%"></div>`:c}
+        ${s.slice(1).map((r,d)=>{let p=this._drag?.day===t&&this._drag.idx===d+1;return l`<div class="handle ${p?"dragging":""}"
+            style="left:${r.start/x*100}%"
+            @pointerdown=${h=>this._dragStart(h,t,d+1)}>
             <span></span><i class="knob"></i>
-            ${p?d`<div class="time-tip">${E(o.start)}</div>`:c}
+            ${p?l`<div class="time-tip">${C(r.start)}</div>`:c}
           </div>`})}
       </div>
-    </div>`}_sheet(e,t,n){return d`<div class="scrim" @click=${n}></div>
+    </div>`}_sheet(e,t,i){return l`<div class="scrim" @click=${i}></div>
       <div class="sheet" role="dialog">
         <div class="grab"></div>
         <div class="sheet-head">
           <span class="sheet-title">${e}</span>
-          <button class="icon-btn small" aria-label=${this._t.close} @click=${n}>
+          <button class="icon-btn small" aria-label=${this._t.close} @click=${i}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
         </div>
         ${t}
-      </div>`}_renderSlotSheet(e){let t=this._t,n=this.snap?.variables??[],r=this._slot(e);if(!r)return c;let a=this._draft[g[e.day]],o=Z(a)[e.idx],l=I(r,n),p=(u,m,f,v)=>d`<div class="time ${v?"":"fixed"}">
+      </div>`}_renderSlotSheet(e){let t=this._t,i=this.snap?.variables??[],s=this._slot(e);if(!s)return c;let o=this._draft[f[e.day]],r=O(o)[e.idx],d=z(s,i),p=(u,m,_,w)=>l`<div class="time ${w?"":"fixed"}">
         <div><small>${u}</small><b>${m}</b></div>
-        ${v?d`<div class="st">
-              <button class="round tiny" @click=${()=>this._shift(f,-S)}>−</button>
-              <button class="round tiny" @click=${()=>this._shift(f,S)}>+</button>
+        ${w?l`<div class="st">
+              <button class="round tiny" @click=${()=>this._shift(_,-R)}>−</button>
+              <button class="round tiny" @click=${()=>this._shift(_,R)}>+</button>
             </div>`:c}
-      </div>`,h=d`
+      </div>`,h=l`
       <div class="times">
-        ${p(t.from,E(o.start),"start",e.idx>0)}
-        ${p(t.to,o.end===w?"24:00":E(o.end),"end",e.idx+1<a.length)}
+        ${p(t.from,C(r.start),"start",e.idx>0)}
+        ${p(t.to,r.end===x?"24:00":C(r.end),"end",e.idx+1<o.length)}
       </div>
       <div class="chips">
-        <button class="chip" aria-pressed=${r.variable===void 0}
+        <button class="chip" aria-pressed=${s.variable===void 0}
           @click=${()=>this._setVariable(void 0)}>${t.fixed}</button>
-        ${n.map(u=>d`<button class="chip" aria-pressed=${r.variable===u.id}
+        ${i.map(u=>l`<button class="chip" aria-pressed=${s.variable===u.id}
             @click=${()=>this._setVariable(u.id)}>
             <i class="sw" style="background:${$(u.value)}"></i>${u.name}
           </button>`)}
       </div>
       <div class="temp-row">
         <button class="round" @click=${()=>this._setTemp(-.5)}>−</button>
-        <span class="temp-val">${_(l)}</span>
+        <span class="temp-val">${g(d)}</span>
         <button class="round" @click=${()=>this._setTemp(.5)}>+</button>
       </div>
-      ${this._copy?d`<div class="copy">
+      ${this._copy?l`<div class="copy">
             <div class="muted small-text">${t.copy_day}</div>
             <div class="chips">
-              ${t.days.map((u,m)=>d`<button class="chip" ?disabled=${m===e.day}
+              ${t.days.map((u,m)=>l`<button class="chip" ?disabled=${m===e.day}
                   aria-pressed=${this._copy.has(m)} @click=${()=>this._toggleCopy(m)}>${u}</button>`)}
             </div>
             <div class="chips">
@@ -249,66 +341,84 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
             </div>
           </div>`:c}
       <div class="acts">
-        <button ?disabled=${o.end-o.start<2*S} @click=${this._split}>
+        <button ?disabled=${r.end-r.start<2*R} @click=${this._split}>
           <ha-icon icon="mdi:call-split"></ha-icon>${t.split}
         </button>
         <button aria-pressed=${!!this._copy} @click=${()=>this._copy=this._copy?void 0:new Set}>
           <ha-icon icon="mdi:content-copy"></ha-icon>${t.copy_day_short}
         </button>
-        <button ?disabled=${a.length<2} @click=${this._remove}>
+        <button ?disabled=${o.length<2} @click=${this._remove}>
           <ha-icon icon="mdi:delete-outline"></ha-icon>${t.delete}
         </button>
-      </div>`;return this._sheet(t.days_long[e.day],h,()=>{this._sel=void 0,this._copy=void 0})}_renderVariablesSheet(){let e=this._t,t=this.snap?.variables??[],n=d`
+      </div>`;return this._sheet(t.days_long[e.day],h,()=>{this._sel=void 0,this._copy=void 0})}_renderVariablesSheet(){let e=this._t,t=this.snap?.variables??[],i=l`
       <div class="var-list">
-        ${t.map(r=>d`<div class="var-row">
-            <i class="sw" style="background:${$(r.value)}"></i>
-            <span class="grow">${r.name}</span>
-            <button class="round tiny" @click=${()=>this._varStep(r.id,r.value,-.5)}>−</button>
-            <span class="var-val">${_(r.value)}</span>
-            <button class="round tiny" @click=${()=>this._varStep(r.id,r.value,.5)}>+</button>
-            <button class="icon-btn small" aria-label=${e.delete} @click=${()=>this._deleteVar(r.id)}>
+        ${t.map(s=>l`<div class="var-row">
+            <i class="sw" style="background:${$(s.value)}"></i>
+            <span class="grow">${s.name}</span>
+            <button class="round tiny" @click=${()=>this._varStep(s.id,s.value,-.5)}>−</button>
+            <span class="var-val">${g(s.value)}</span>
+            <button class="round tiny" @click=${()=>this._varStep(s.id,s.value,.5)}>+</button>
+            <button class="icon-btn small" aria-label=${e.delete} @click=${()=>this._deleteVar(s.id)}>
               <ha-icon icon="mdi:delete-outline"></ha-icon>
             </button>
           </div>`)}
       </div>
       <div class="var-add">
         <input type="text" placeholder=${e.name} .value=${this._newVarName}
-          @input=${r=>this._newVarName=r.target.value} />
-        <input type="number" class="num" min=${D(this.snap).min} max=${D(this.snap).max} step="0.5" .value=${String(this._newVarValue)}
-          @input=${r=>this._newVarValue=Number(r.target.value)} />
+          @input=${s=>this._newVarName=s.target.value} />
+        <input type="number" class="num" min=${T(this.snap).min} max=${T(this.snap).max} step="0.5" .value=${String(this._newVarValue)}
+          @input=${s=>this._newVarValue=Number(s.target.value)} />
         <button class="primary-btn" @click=${this._addVar}>${e.add}</button>
       </div>
       <div class="muted small-text">${e.variables_note}</div>
-      ${this._error?d`<div class="error">${this._error}</div>`:c}`;return this._sheet(e.variables,n,()=>this._vars=!1)}async _copyToRooms(){if(!this.room||!this._copyRooms?.size||this._dirty&&!confirm(this._t.copy_unsaved))return;let e=await this._call("schedule/copy_to_rooms",{entry_id:this.room.entry_id,schedule_id:this._sid,targets:[...this._copyRooms]});if(e){let t=[...e.created??[],...e.replaced??[]].join(", ");this._info=`${this._t.copied_to} ${t}`,this._copyRooms=new Set}}_renderCopyRoomsSheet(){let e=this._t,t=this.room?.schedules.find(o=>o.id===this._sid)?.name??"",n=(this.snap?.rooms??[]).filter(o=>o.entry_id!==this.room?.entry_id),r=o=>{let l=new Set(this._copyRooms);l.has(o)?l.delete(o):l.add(o),this._copyRooms=l},a=d`
+      ${this._error?l`<div class="error">${this._error}</div>`:c}`;return this._sheet(e.variables,i,()=>this._vars=!1)}async _copyToRooms(){if(!this.room||!this._copyRooms?.size||this._dirty&&!confirm(this._t.copy_unsaved))return;let e=await this._call("schedule/copy_to_rooms",{entry_id:this.room.entry_id,schedule_id:this._sid,targets:[...this._copyRooms]});if(e){let t=[...e.created??[],...e.replaced??[]].join(", ");this._info=`${this._t.copied_to} ${t}`,this._copyRooms=new Set}}_renderCopyRoomsSheet(){let e=this._t,t=this.room?.schedules.find(r=>r.id===this._sid)?.name??"",i=(this.snap?.rooms??[]).filter(r=>r.entry_id!==this.room?.entry_id),s=r=>{let d=new Set(this._copyRooms);d.has(r)?d.delete(r):d.add(r),this._copyRooms=d},o=l`
       <div class="muted small-text">${e.copy_rooms_hint.replace("{name}",t)}</div>
       <div class="room-list">
-        ${n.map(o=>{let l=this._copyRooms.has(o.entry_id),p=o.schedules.some(h=>h.name.toLowerCase()===t.toLowerCase());return d`<button class="room-pick ${l?"on":""}" @click=${()=>r(o.entry_id)}>
-            <ha-icon icon=${l?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}></ha-icon>
-            <span class="grow">${o.name}${o.floor?d` <span class="muted">· ${o.floor.name}</span>`:c}</span>
+        ${i.map(r=>{let d=this._copyRooms.has(r.entry_id),p=r.schedules.some(h=>h.name.toLowerCase()===t.toLowerCase());return l`<button class="room-pick ${d?"on":""}" @click=${()=>s(r.entry_id)}>
+            <ha-icon icon=${d?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}></ha-icon>
+            <span class="grow">${r.name}${r.floor?l` <span class="muted">· ${r.floor.name}</span>`:c}</span>
             <span class="muted small-text">${p?e.will_replace:e.will_create}</span>
           </button>`})}
       </div>
-      ${this._info?d`<div class="info">${this._info}</div>`:c}
-      ${this._error?d`<div class="error">${this._error}</div>`:c}
+      ${this._info?l`<div class="info">${this._info}</div>`:c}
+      ${this._error?l`<div class="error">${this._error}</div>`:c}
       <div class="sheet-actions">
-        <button class="text-btn" @click=${()=>this._copyRooms=new Set(n.map(o=>o.entry_id))}>
+        <button class="text-btn" @click=${()=>this._copyRooms=new Set(i.map(r=>r.entry_id))}>
           ${e.all_rooms}
         </button>
         <span class="grow"></span>
         <button class="primary-btn" ?disabled=${!this._copyRooms.size||this._busy} @click=${this._copyToRooms}>
           ${e.copy}
         </button>
-      </div>`;return this._sheet(`${e.copy_to_rooms}: ${t}`,a,()=>{this._copyRooms=void 0,this._info=void 0})}_renderNameSheet(){let e=this._t,t=this._nameAction==="rename"?e.rename:this._nameAction==="duplicate"?e.duplicate:e.new_schedule,n=d`
+      </div>`;return this._sheet(`${e.copy_to_rooms}: ${t}`,o,()=>{this._copyRooms=void 0,this._info=void 0})}_identical(){let e=this._server;if(!e||!this.room)return[];let t=[];for(let i of this.snap?.rooms??[]){if(i.entry_id===this.room.entry_id)continue;let s=i.schedules.find(o=>!o.global&&Ce(o.week,e));s&&t.push({room:i,id:s.id,name:s.name})}return t}_startMakeGlobal(){this._sel=void 0,this._vars=!1,this._error=void 0,this._mkGlobal={sel:new Set(this._identical().map(e=>e.room.entry_id)),all:!1}}async _makeGlobal(){if(!this.room||!this._mkGlobal||this._dirty&&!confirm(this._t.copy_unsaved))return;let e=this._identical().filter(i=>this._mkGlobal.sel.has(i.room.entry_id)).map(i=>({entry_id:i.room.entry_id,schedule_id:i.id})),t=await this._call("schedule/make_global",{entry_id:this.room.entry_id,schedule_id:this._sid,merge:e,all_rooms:this._mkGlobal.all});t&&(this._mkGlobal=void 0,this._sid=t.id,this._draft=void 0)}_renderMakeGlobalSheet(){let e=this._t,t=this._mkGlobal,i=this.room?.schedules.find(d=>d.id===this._sid)?.name??"",s=this._identical(),o=d=>{let p=new Set(t.sel);p.has(d)?p.delete(d):p.add(d),this._mkGlobal={...t,sel:p}},r=l`
+      <div class="muted small-text">${e.make_global_hint.replace("{name}",i)}</div>
+      <div class="room-list">
+        ${s.length?s.map(d=>{let p=t.sel.has(d.room.entry_id);return l`<button class="room-pick ${p?"on":""}" @click=${()=>o(d.room.entry_id)}>
+                <ha-icon icon=${p?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}></ha-icon>
+                <span class="grow">${d.room.name}</span>
+                <span class="muted small-text">${d.name}</span>
+              </button>`}):l`<div class="muted small-text">${e.make_global_none}</div>`}
+      </div>
+      <button class="room-pick ${t.all?"on":""}" @click=${()=>this._mkGlobal={...t,all:!t.all}}>
+        <ha-icon icon=${t.all?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}></ha-icon>
+        <span class="grow">${e.make_global_all}</span>
+      </button>
+      ${this._error?l`<div class="error">${this._error}</div>`:c}
+      <div class="sheet-actions">
+        <button class="text-btn" @click=${()=>this._mkGlobal=void 0}>${e.cancel}</button>
+        <span class="grow"></span>
+        <button class="primary-btn" ?disabled=${this._busy} @click=${this._makeGlobal}>${e.make_global_action}</button>
+      </div>`;return this._sheet(`${e.make_global_action}: ${i}`,r,()=>this._mkGlobal=void 0)}_renderNameSheet(){let e=this._t,t=this._nameAction==="rename"?e.rename:this._nameAction==="duplicate"?e.duplicate:e.new_schedule,i=l`
       <input type="text" .value=${this._nameValue} placeholder=${e.name} aria-label=${t}
-        @input=${r=>this._nameValue=r.target.value}
-        @keydown=${r=>r.key==="Enter"&&this._submitName()} />
-      ${this._error?d`<div class="error">${this._error}</div>`:c}
+        @input=${s=>this._nameValue=s.target.value}
+        @keydown=${s=>s.key==="Enter"&&this._submitName()} />
+      ${this._error?l`<div class="error">${this._error}</div>`:c}
       <div class="sheet-actions">
         <button class="text-btn" @click=${()=>this._nameAction=void 0}>${e.cancel}</button>
         <button class="primary-btn" ?disabled=${!this._nameValue.trim()||this._busy} @click=${this._submitName}>
           ${e.ok}
         </button>
-      </div>`;return this._sheet(t,n,()=>this._nameAction=void 0)}};ce.properties={hass:{attribute:!1},snap:{attribute:!1},room:{attribute:!1},_sid:{state:!0},_draft:{state:!0},_sel:{state:!0},_copy:{state:!0},_vars:{state:!0},_error:{state:!0},_nameAction:{state:!0},_nameValue:{state:!0},_busy:{state:!0},_drag:{state:!0},_menu:{state:!0},_copyRooms:{state:!0},_info:{state:!0}},ce.styles=[P,k`
+      </div>`;return this._sheet(t,i,()=>this._nameAction=void 0)}};pe.properties={hass:{attribute:!1},snap:{attribute:!1},room:{attribute:!1},_sid:{state:!0},_draft:{state:!0},_sel:{state:!0},_copy:{state:!0},_vars:{state:!0},_error:{state:!0},_nameAction:{state:!0},_nameValue:{state:!0},_busy:{state:!0},_drag:{state:!0},_menu:{state:!0},_copyRooms:{state:!0},_mkGlobal:{state:!0},_info:{state:!0}},pe.styles=[A,y`
       :host {
         position: fixed;
         inset: 0;
@@ -484,6 +594,21 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
         border-radius: 50%;
         background: var(--success-color, #3bb273);
         margin-left: 6px;
+      }
+      .notice.global {
+        justify-content: flex-start;
+        padding: 8px 12px;
+        background: color-mix(in srgb, var(--bt-accent) 12%, transparent);
+      }
+      .notice.global ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--bt-accent);
+        flex: none;
+      }
+      .globe {
+        --mdc-icon-size: 15px;
+        margin-right: 4px;
+        opacity: 0.75;
       }
       .notice {
         display: flex;
@@ -913,35 +1038,106 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
       .text-btn.light {
         color: #c8ccd4;
       }
-    `];A("bt-week-editor",ce);function pe(s){let i=e=>String(e).padStart(2,"0");return`${s.getFullYear()}-${i(s.getMonth()+1)}-${i(s.getDate())}T${i(s.getHours())}:${i(s.getMinutes())}`}function Mt(s){let i=new Date;return i.setMinutes(0,0,0),i.setHours(i.getHours()+s),i}var he=class extends x{constructor(){super(...arguments);this._initialized=!1;this._temp=21;this._startNow=!1;this._start=pe(Mt(1));this._openEnd=!1;this._end=pe(Mt(25));this._title="";this._busy=!1;this._onKey=e=>{e.key==="Escape"&&this._close()}}get _t(){return b(this.hass)}connectedCallback(){super.connectedCallback(),document.addEventListener("keydown",this._onKey)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("keydown",this._onKey)}willUpdate(){if(!this._initialized&&this.room&&this.period){this._initialized=!0;let e=this.period;e.schedule?this._what={kind:"schedule",id:e.schedule}:this._what={kind:"mode",mode:e.mode??"off"},e.temperature!=null&&(this._temp=e.temperature),this._startNow=!1,this._start=pe(new Date(e.start)),this._openEnd=!e.end,e.end&&(this._end=pe(new Date(e.end))),this._title=e.summary??""}if(!this._what&&this.room){let e=this.room.schedules.find(t=>t.id!==this.room.base_schedule);this._what=e?{kind:"schedule",id:e.id}:{kind:"mode",mode:"off"},this._temp=Math.round((this.room.target_temperature??21)*2)/2}}_close(){this.dispatchEvent(new CustomEvent("close"))}get _valid(){let e=this._t,t=this._startNow?new Date:new Date(this._start);if(!this._startNow&&Number.isNaN(t.getTime()))return e.period_invalid;if(!this._openEnd){let n=new Date(this._end);if(Number.isNaN(n.getTime())||n<=t||n<=new Date)return e.period_invalid}}async _save(){if(!this.hass||!this.room||!this._what)return;let e={entry_id:this.room.entry_id};this._what.kind==="schedule"?e.schedule_id=this._what.id:(e.mode=this._what.mode,this._what.mode==="heat"&&(e.temperature=this._temp));let t=!!this.period;this._startNow?t&&(e.start=pe(new Date)):e.start=this._start,this._openEnd?t&&(e.open_end=!0):e.end=this._end,t?(e.period_id=this.period.id,e.summary=this._title.trim()):this._title.trim()&&(e.summary=this._title.trim()),this._busy=!0,this._error=void 0;try{await R(this.hass,t?"period/update":"period/add",e),this._close()}catch(n){this._error=n?.message??String(n)}finally{this._busy=!1}}async _delete(){if(!(!this.hass||!this.room||!this.period)){this._busy=!0;try{await R(this.hass,"period/cancel",{entry_id:this.room.entry_id,period_id:this.period.id}),this._close()}catch(e){this._error=e?.message??String(e)}finally{this._busy=!1}}}_isWhat(e){let t=this._what;return!t||t.kind!==e.kind?!1:t.kind==="schedule"?t.id===e.id:t.mode===e.mode}render(){if(!this.room)return c;let e=this._t,t=this.room,n=this._valid,r=[["heat",e.heat],["off",e.off]];return d`
+    `];S("bt-week-editor",pe);var he=class extends v{constructor(){super(...arguments);this.rooms=[];this.selected=new Set}_emit(e){this.dispatchEvent(new CustomEvent("change",{detail:e}))}_toggle(e){let t=new Set(this.selected);t.has(e)?t.delete(e):t.add(e),this._emit(t)}_labels(){let e=new Map;for(let t of this.rooms)for(let i of t.labels??[])e.set(i.id,i);return[...e.values()].sort((t,i)=>t.name.localeCompare(i.name))}_toggleLabel(e){let t=this.rooms.filter(o=>o.labels?.some(r=>r.id===e.id)).map(o=>o.entry_id),i=new Set(this.selected),s=t.every(o=>i.has(o));for(let o of t)s?i.delete(o):i.add(o);this._emit(i)}render(){let e=b(this.hass),t=this._labels(),i=this.rooms.length>0&&this.rooms.every(s=>this.selected.has(s.entry_id));return l`
+      <div class="chips">
+        <button class="chip" aria-pressed=${i}
+          @click=${()=>this._emit(i?new Set:new Set(this.rooms.map(s=>s.entry_id)))}>
+          <ha-icon icon="mdi:home-outline"></ha-icon>${e.all_rooms}
+        </button>
+        ${t.map(s=>{let o=this.rooms.filter(d=>d.labels?.some(p=>p.id===s.id)),r=o.length>0&&o.every(d=>this.selected.has(d.entry_id));return l`<button class="chip" aria-pressed=${r} @click=${()=>this._toggleLabel(s)}>
+            <ha-icon icon=${s.icon||"mdi:label-outline"}></ha-icon>${s.name}
+          </button>`})}
+      </div>
+      <div class="list">
+        ${this.rooms.map(s=>{let o=this.selected.has(s.entry_id),r=this.notes?.[s.entry_id];return l`<button class="pick ${o?"on":""}" role="checkbox" aria-checked=${o}
+            @click=${()=>this._toggle(s.entry_id)}>
+            <ha-icon icon=${o?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}></ha-icon>
+            <span class="grow">${s.name}${s.floor?l` <span class="muted">· ${s.floor.name}</span>`:c}</span>
+            ${r?l`<span class="muted note">${r}</span>`:c}
+          </button>`})}
+      </div>
+    `}};he.properties={hass:{attribute:!1},rooms:{attribute:!1},selected:{attribute:!1},notes:{attribute:!1}},he.styles=[A,y`
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .chip ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .pick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 8px;
+        border-radius: 10px;
+        text-align: left;
+      }
+      .pick:hover {
+        background: var(--bt-surface);
+      }
+      .pick.on ha-icon {
+        color: var(--bt-accent);
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      .note {
+        font-size: 13px;
+      }
+    `];S("bt-room-picker",he);function ue(a){let n=e=>String(e).padStart(2,"0");return`${a.getFullYear()}-${n(a.getMonth()+1)}-${n(a.getDate())}T${n(a.getHours())}:${n(a.getMinutes())}`}function Ot(a){let n=new Date;return n.setMinutes(0,0,0),n.setHours(n.getHours()+a),n}var me=class extends v{constructor(){super(...arguments);this._rooms=new Set;this._scope="group";this._initialized=!1;this._temp=21;this._startNow=!1;this._start=ue(Ot(1));this._openEnd=!1;this._end=ue(Ot(25));this._title="";this._busy=!1;this._onKey=e=>{e.key==="Escape"&&this._close()}}get _t(){return b(this.hass)}connectedCallback(){super.connectedCallback(),document.addEventListener("keydown",this._onKey)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("keydown",this._onKey)}get _group(){return!this.room}get _groupRooms(){let e=this.period?.group;return!e||!this.snap?[]:this.snap.rooms.filter(t=>t.periods.some(i=>i.group===e))}get _schedules(){return this._group||this.period?.group&&this._scope==="group"&&this._groupRooms.length>1?(this.snap?.global_schedules??[]).map(e=>({id:e.id,name:e.name,week:e.week,global:!0})):(this.room?.schedules??[]).filter(e=>!e.hidden||e.id===this.period?.schedule)}willUpdate(){if(!this._initialized&&this._group&&this.snap){this._initialized=!0;let e=this.snap.global_schedules?.[0];this._what=e?{kind:"schedule",id:e.id}:{kind:"mode",mode:"off"},this._temp=21}if(!this._initialized&&this.room&&this.period){this._initialized=!0;let e=this.period;e.schedule?this._what={kind:"schedule",id:e.schedule}:this._what={kind:"mode",mode:e.mode??"off"},e.temperature!=null&&(this._temp=e.temperature),this._startNow=!1,this._start=ue(new Date(e.start)),this._openEnd=!e.end,e.end&&(this._end=ue(new Date(e.end))),this._title=e.summary??""}if(!this._what&&this.room){let e=this.room.schedules.find(t=>t.id!==this.room.base_schedule&&!t.hidden);this._what=e?{kind:"schedule",id:e.id}:{kind:"mode",mode:"off"},this._temp=Math.round((this.room.target_temperature??21)*2)/2}}_close(){this.dispatchEvent(new CustomEvent("close"))}get _valid(){let e=this._t;if(this._group&&!this._rooms.size)return e.need_rooms;let t=this._startNow?new Date:new Date(this._start);if(!this._startNow&&Number.isNaN(t.getTime()))return e.period_invalid;if(!this._openEnd){let i=new Date(this._end);if(Number.isNaN(i.getTime())||i<=t||i<=new Date)return e.period_invalid}}async _save(){if(!this.hass||!this._what||!this.room&&!this._group)return;let e=!!this.period?.group&&this._scope==="group"&&this._groupRooms.length>1,t=this.room?e?{group:this.period.group}:{entry_id:this.room.entry_id}:{entry_ids:[...this._rooms]};this._what.kind==="schedule"?t.schedule_id=this._what.id:(t.mode=this._what.mode,this._what.mode==="heat"&&(t.temperature=this._temp));let i=!!this.period;this._startNow?i&&(t.start=ue(new Date)):t.start=this._start,this._openEnd?i&&(t.open_end=!0):t.end=this._end,i?(e||(t.period_id=this.period.id),t.summary=this._title.trim()):this._title.trim()&&(t.summary=this._title.trim());let s=i?e?"period/update_group":"period/update":this._group?"period/add_group":"period/add";this._busy=!0,this._error=void 0;try{await E(this.hass,s,t),this._close()}catch(o){this._error=o?.message??String(o)}finally{this._busy=!1}}async _delete(){if(!(!this.hass||!this.room||!this.period)){this._busy=!0;try{this.period.group&&this._scope==="group"&&this._groupRooms.length>1?await E(this.hass,"period/cancel_group",{group:this.period.group}):await E(this.hass,"period/cancel",{entry_id:this.room.entry_id,period_id:this.period.id}),this._close()}catch(e){this._error=e?.message??String(e)}finally{this._busy=!1}}}_isWhat(e){let t=this._what;return!t||t.kind!==e.kind?!1:t.kind==="schedule"?t.id===e.id:t.mode===e.mode}render(){if(!this.room&&!(this._group&&this.snap))return c;let e=this._t,t=this.room,i=this._valid,s=this._groupRooms,o=t?.min_temp??this.snap?.limits?.min??4,r=t?.max_temp??this.snap?.limits?.max??35,d=[["heat",e.heat],["off",e.off]];return l`
       <div class="backdrop" @click=${this._close}></div>
       <div class="dialog" role="dialog" aria-modal="true">
         <header>
           <div class="h-title">
             <div class="h-name">${this.period?e.period_edit:e.period_plan}</div>
-            <div class="muted h-sub">${t.name}</div>
+            <div class="muted h-sub">${t?t.name:e.select_rooms}</div>
           </div>
           <button class="round small" @click=${this._close} aria-label=${e.close}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
         </header>
         <div class="content">
+          ${this._group?l`<section>
+                <div class="label">${e.select_rooms}</div>
+                <bt-room-picker .hass=${this.hass} .rooms=${this.snap.rooms} .selected=${this._rooms}
+                  @change=${p=>this._rooms=p.detail}></bt-room-picker>
+              </section>`:c}
+          ${s.length>1?l`<section>
+                <div class="label">${e.group_scope}</div>
+                <div class="chips">
+                  <button class="chip" aria-pressed=${this._scope==="group"} @click=${()=>this._scope="group"}>
+                    <ha-icon icon="mdi:home-group"></ha-icon>${e.group_all.replace("{n}",String(s.length))}
+                  </button>
+                  <button class="chip" aria-pressed=${this._scope==="room"} @click=${()=>this._scope="room"}>
+                    <ha-icon icon="mdi:home-outline"></ha-icon>${e.group_here}
+                  </button>
+                </div>
+                <div class="muted small">${e.group_rooms}: ${s.map(p=>p.name).join(", ")}</div>
+              </section>`:c}
           <section>
             <div class="label">${e.period_what}</div>
             <div class="chips">
-              ${t.schedules.map(a=>d`<button class="chip" aria-pressed=${this._isWhat({kind:"schedule",id:a.id})}
-                  @click=${()=>this._what={kind:"schedule",id:a.id}}>
-                  <ha-icon icon="mdi:calendar-clock"></ha-icon>${a.name}
+              ${this._schedules.map(p=>l`<button class="chip" aria-pressed=${this._isWhat({kind:"schedule",id:p.id})}
+                  @click=${()=>this._what={kind:"schedule",id:p.id}}>
+                  <ha-icon icon=${p.global?"mdi:earth":"mdi:calendar-clock"}></ha-icon>${p.name}
                 </button>`)}
-              ${r.map(([a,o])=>d`<button class="chip" aria-pressed=${this._isWhat({kind:"mode",mode:a})}
-                  @click=${()=>this._what={kind:"mode",mode:a}}>
-                  <ha-icon icon=${a==="off"?"mdi:snowflake":"mdi:hand-back-right"}></ha-icon>${o}
+              ${d.map(([p,h])=>l`<button class="chip" aria-pressed=${this._isWhat({kind:"mode",mode:p})}
+                  @click=${()=>this._what={kind:"mode",mode:p}}>
+                  <ha-icon icon=${p==="off"?"mdi:snowflake":"mdi:hand-back-right"}></ha-icon>${h}
                 </button>`)}
             </div>
-            ${this._what?.kind==="mode"&&this._what.mode==="heat"?d`<div class="temp-row">
-                  <button class="round" @click=${()=>this._temp=Math.max(this.room?.min_temp??4,this._temp-.5)}>−</button>
-                  <span class="temp-val">${_(this._temp)}</span>
-                  <button class="round" @click=${()=>this._temp=Math.min(this.room?.max_temp??35,this._temp+.5)}>+</button>
+            ${this._what?.kind==="mode"&&this._what.mode==="heat"?l`<div class="temp-row">
+                  <button class="round" @click=${()=>this._temp=Math.max(o,this._temp-.5)}>−</button>
+                  <span class="temp-val">${g(this._temp)}</span>
+                  <button class="round" @click=${()=>this._temp=Math.min(r,this._temp+.5)}>+</button>
                 </div>`:c}
           </section>
 
@@ -955,8 +1151,8 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
                 ${e.period_at}
               </button>
             </div>
-            ${this._startNow?c:d`<input type="datetime-local" step="900" .value=${this._start}
-                  @input=${a=>this._start=a.target.value} />`}
+            ${this._startNow?c:l`<input type="datetime-local" step="900" .value=${this._start}
+                  @input=${p=>this._start=p.target.value} />`}
           </section>
 
           <section>
@@ -969,115 +1165,30 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
                 ${e.period_at}
               </button>
             </div>
-            ${this._openEnd?c:d`<input type="datetime-local" step="900" .value=${this._end}
-                  @input=${a=>this._end=a.target.value} />`}
+            ${this._openEnd?c:l`<input type="datetime-local" step="900" .value=${this._end}
+                  @input=${p=>this._end=p.target.value} />`}
           </section>
 
           <section>
             <div class="label">${e.period_title} <span class="muted">(${e.optional})</span></div>
             <input type="text" .value=${this._title} placeholder=${e.period_title_hint}
-              @input=${a=>this._title=a.target.value} />
+              @input=${p=>this._title=p.target.value} />
           </section>
-          ${this._error?d`<div class="error">${this._error}</div>`:c}
-          ${n&&!this._error?d`<div class="muted small">${n}</div>`:c}
+          ${this._error?l`<div class="error">${this._error}</div>`:c}
+          ${i&&!this._error?l`<div class="muted small">${i}</div>`:c}
         </div>
         <footer>
-          ${this.period?d`<button class="text-btn danger" ?disabled=${this._busy} @click=${this._delete}>
-                <ha-icon icon="mdi:delete-outline"></ha-icon>${this.period&&this.room?.period?.id===this.period.id?e.period_end:e.period_delete}
+          ${this.period?l`<button class="text-btn danger" ?disabled=${this._busy} @click=${this._delete}>
+                <ha-icon icon="mdi:delete-outline"></ha-icon>${this.period&&t?.period?.id===this.period.id?e.period_end:e.period_delete}
               </button>`:c}
           <span class="spacer"></span>
           <button class="text-btn" @click=${this._close}>${e.close}</button>
-          <button class="primary-btn" ?disabled=${!!n||this._busy} @click=${this._save}>
+          <button class="primary-btn" ?disabled=${!!i||this._busy} @click=${this._save}>
             ${this.period?e.save:e.period_plan}
           </button>
         </footer>
       </div>
-    `}};he.properties={hass:{attribute:!1},room:{attribute:!1},period:{attribute:!1},_what:{state:!0},_temp:{state:!0},_startNow:{state:!0},_start:{state:!0},_openEnd:{state:!0},_end:{state:!0},_title:{state:!0},_error:{state:!0},_busy:{state:!0}},he.styles=[P,k`
-      :host {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary-text-color);
-      }
-      .backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-      }
-      .dialog {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        width: min(520px, 100vw);
-        max-height: min(760px, 100dvh);
-        background: var(--card-background-color, var(--primary-background-color));
-        border-radius: var(--bt-radius);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-      }
-      @media (max-width: 600px) {
-        .dialog {
-          width: 100vw;
-          height: 100dvh;
-          max-height: none;
-          border-radius: 0;
-        }
-      }
-      header,
-      footer {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        padding-left: max(16px, env(safe-area-inset-left));
-        padding-right: max(16px, env(safe-area-inset-right));
-      }
-      header {
-        border-bottom: 1px solid var(--divider-color);
-        padding-top: max(12px, env(safe-area-inset-top));
-      }
-      footer {
-        justify-content: flex-end;
-        border-top: 1px solid var(--divider-color);
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-      }
-      .h-title {
-        flex: 1;
-      }
-      .h-name {
-        font-weight: 600;
-        font-size: 17px;
-      }
-      .h-sub {
-        font-size: 13px;
-      }
-      .content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-      }
-      section {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .label {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--bt-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .label .muted {
-        text-transform: none;
-        font-weight: 400;
-      }
+    `}};me.properties={hass:{attribute:!1},room:{attribute:!1},period:{attribute:!1},snap:{attribute:!1},_what:{state:!0},_rooms:{state:!0},_scope:{state:!0},_temp:{state:!0},_startNow:{state:!0},_start:{state:!0},_openEnd:{state:!0},_end:{state:!0},_title:{state:!0},_error:{state:!0},_busy:{state:!0}},me.styles=[A,Se,y`
       .chip ha-icon,
       .round ha-icon {
         --mdc-icon-size: 18px;
@@ -1121,115 +1232,128 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
       .danger ha-icon {
         --mdc-icon-size: 18px;
       }
-    `];A("bt-period-dialog",he);var Y=class extends x{constructor(){super(...arguments);this._editing=!1;this._planning=!1;this._allPeriods=!1;this._batOpen=!1;this._unreachable=!1}static getConfigElement(){return document.createElement("bestthermostat-card-editor")}static getStubConfig(e){return{entity:Object.values(e.states).find(n=>n.entity_id.startsWith("climate.")&&n.attributes.room_id)?.entity_id??""}}setConfig(e){this._config={show_modes:!0,show_schedules:!0,show_timeline:!0,show_editor:!0,show_periods:!0,show_priorities:!0,show_battery:!0,show_header:!0,...e}}set config(e){e!==this._rawConfig&&(this._rawConfig=e,this.setConfig(e))}getCardSize(){return this._config?.compact?3:6}getGridOptions(){return this._config?.compact?{columns:6,rows:4,min_columns:4,min_rows:3}:{columns:12,min_columns:6}}connectedCallback(){super.connectedCallback(),this._untick=Rt(()=>this.requestUpdate()),this.hass&&this._subscribe()}disconnectedCallback(){super.disconnectedCallback(),this._unsub?.(),this._unsub=void 0,this._untick?.(),this._untick=void 0,this._editor?.remove(),this._editor=void 0,this._editing=!1,this._planner?.remove(),this._planner=void 0,this._planning=!1}shouldUpdate(e){if(e.size===0||this._editing||this._planning)return!0;for(let t of e.keys())if(t==="hass"){if(Ae(e.get("hass"),this.hass))return!0}else if(t==="_snap"){let n=e.get("_snap"),r=this._snap;if(!n||!r||n.version!==r.version||n.variables!==r.variables||n.override!==r.override||xe(n,this._config?.entity)!==xe(r,this._config?.entity))return!0}else return!0;return e.has("hass")&&!this._unsub&&this.isConnected&&this._subscribe(),!1}willUpdate(e){e.has("hass")&&this.hass&&!this._unsub&&this.isConnected&&this._subscribe()}updated(){let e=this._room;this._editing&&e&&this.hass?(this._editor||(this._editor=document.createElement("bt-week-editor"),this._editor.addEventListener("close",()=>this._editing=!1),document.body.appendChild(this._editor)),this._editor.hass=this.hass,this._editor.snap=this._snap,this._editor.room=e):this._editor&&(this._editor.remove(),this._editor=void 0),this._planning&&e&&this.hass?(this._planner||(this._planner=document.createElement("bt-period-dialog"),this._planner.addEventListener("close",()=>{this._planning=!1,this._editPeriod=void 0}),document.body.appendChild(this._planner)),this._planner.hass=this.hass,this._planner.room=e,this._planner.period=this._editPeriod):this._planner&&(this._planner.remove(),this._planner=void 0)}_subscribe(){this.hass&&(this._unsub=ve(this.hass,e=>this._snap=e,e=>this._unreachable=e))}get _room(){return xe(this._snap,this._config?.entity)}async _call(e,t){if(this.hass)try{this._error=void 0,await R(this.hass,e,t)}catch(n){this._error=n?.message??String(n)}}_clampTemp(e,t){return Math.min(e.max_temp,Math.max(e.min_temp,Math.round(t*2)/2))}_swipeStart(e,t){let n=this._pending??t.target_temperature??20;De(e,{onStep:r=>{this._swipe||(this._swipe={moved:!0});let a=this._clampTemp(t,n+r*.5);a!==this._pending&&(this._pending=a,window.clearTimeout(this._debounce),navigator.vibrate?.(5))},onEnd:r=>{this._swipe=void 0,r&&(this._pending!==void 0&&this._pending!==t.target_temperature?this._step(t,0):this._pending=void 0)}})}_step(e,t){let n=this._pending??e.target_temperature??20,r=this._clampTemp(e,n+t);this._pending=r,window.clearTimeout(this._debounce),this._debounce=window.setTimeout(async()=>{await this._call("room/temperature",{entry_id:e.entry_id,temperature:r}),this._pending=void 0},700)}_mode(e,t){this._call("room/mode",{entry_id:e.entry_id,mode:t})}_schedule(e,t){this._call("schedule/activate",{entry_id:e.entry_id,schedule_id:t})}_moreInfo(e){e.climate_entity_id&&this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:e.climate_entity_id},bubbles:!0,composed:!0}))}_openPeriod(e){this._editPeriod=e,this._planning=!0}_toggle(e){this._section=this._section===e?void 0:e}_renderUpdate(){let e=Ee(this._snap?.version,G,b(this.hass));return e?d`<div class="update"><span>${e.text}</span>
-          <button class="text-btn" @click=${()=>location.reload()}>${e.action}</button></div>`:c}render(){if(!this._config||!this.hass)return c;let e=b(this.hass);if(!this._snap)return d`<ha-card><div class="msg">${this._unreachable?e.unreachable:e.loading}</div></ha-card>`;let t=this._room;if(!t)return d`<ha-card><div class="msg">${e.not_found}</div></ha-card>`;let n=this._config,r=t.hvac_action==="heating",a=this._pending??t.target_temperature,o=n.name||t.name,l=[n.show_floor===!1?"":t.floor?.name,Re(t,e,this.hass),r?e.heating:""].filter(Boolean).join(" \xB7 ");return d`
-      <ha-card class="${n.compact?"compact":""} ${n.embedded?"embedded":""}">
-        ${n.embedded?c:this._renderUpdate()}
-        ${n.show_header===!1?c:d`<div class="head">
-          <button class="icon ${r?"heating":""} ${t.mode==="off"?"off":""}"
+    `];S("bt-period-dialog",me);var J=class extends v{constructor(){super(...arguments);this._editing=!1;this._planning=!1;this._allPeriods=!1;this._batOpen=!1;this._unreachable=!1}static getConfigElement(){return document.createElement("bestthermostat-card-editor")}static getStubConfig(e){return{entity:Object.values(e.states).find(i=>i.entity_id.startsWith("climate.")&&i.attributes.room_id)?.entity_id??""}}setConfig(e){this._config={show_modes:!0,show_schedules:!0,show_timeline:!0,show_editor:!0,show_periods:!0,show_priorities:!0,show_battery:!0,show_header:!0,...e}}set config(e){e!==this._rawConfig&&(this._rawConfig=e,this.setConfig(e))}getCardSize(){return this._config?.compact?3:6}getGridOptions(){return this._config?.compact?{columns:6,rows:4,min_columns:4,min_rows:3}:{columns:12,min_columns:6}}connectedCallback(){super.connectedCallback(),this._untick=Mt(()=>this.requestUpdate()),this.hass&&this._subscribe()}disconnectedCallback(){super.disconnectedCallback(),this._unsub?.(),this._unsub=void 0,this._untick?.(),this._untick=void 0,this._editor?.remove(),this._editor=void 0,this._editing=!1,this._planner?.remove(),this._planner=void 0,this._planning=!1}shouldUpdate(e){if(e.size===0||this._editing||this._planning)return!0;for(let t of e.keys())if(t==="hass"){if(Te(e.get("hass"),this.hass))return!0}else if(t==="_snap"){let i=e.get("_snap"),s=this._snap;if(!i||!s||i.version!==s.version||i.variables!==s.variables||i.override!==s.override||ke(i,this._config?.entity)!==ke(s,this._config?.entity))return!0}else return!0;return e.has("hass")&&!this._unsub&&this.isConnected&&this._subscribe(),!1}willUpdate(e){e.has("hass")&&this.hass&&!this._unsub&&this.isConnected&&this._subscribe()}updated(){let e=this._room;this._editing&&e&&this.hass?(this._editor||(this._editor=document.createElement("bt-week-editor"),this._editor.addEventListener("close",()=>this._editing=!1),document.body.appendChild(this._editor)),this._editor.hass=this.hass,this._editor.snap=this._snap,this._editor.room=e):this._editor&&(this._editor.remove(),this._editor=void 0),this._planning&&e&&this.hass?(this._planner||(this._planner=document.createElement("bt-period-dialog"),this._planner.addEventListener("close",()=>{this._planning=!1,this._editPeriod=void 0}),document.body.appendChild(this._planner)),this._planner.hass=this.hass,this._planner.snap=this._snap,this._planner.room=e,this._planner.period=this._editPeriod):this._planner&&(this._planner.remove(),this._planner=void 0)}_subscribe(){this.hass&&(this._unsub=$e(this.hass,e=>this._snap=e,e=>this._unreachable=e))}get _room(){return ke(this._snap,this._config?.entity)}async _call(e,t){if(this.hass)try{this._error=void 0,await E(this.hass,e,t)}catch(i){this._error=i?.message??String(i)}}_clampTemp(e,t){return Math.min(e.max_temp,Math.max(e.min_temp,Math.round(t*2)/2))}_swipeStart(e,t){let i=this._pending??t.target_temperature??20;Ne(e,{onStep:s=>{this._swipe||(this._swipe={moved:!0});let o=this._clampTemp(t,i+s*.5);o!==this._pending&&(this._pending=o,window.clearTimeout(this._debounce),navigator.vibrate?.(5))},onEnd:s=>{this._swipe=void 0,s&&(this._pending!==void 0&&this._pending!==t.target_temperature?this._step(t,0):this._pending=void 0)}})}_step(e,t){let i=this._pending??e.target_temperature??20,s=this._clampTemp(e,i+t);this._pending=s,window.clearTimeout(this._debounce),this._debounce=window.setTimeout(async()=>{await this._call("room/temperature",{entry_id:e.entry_id,temperature:s}),this._pending=void 0},700)}_mode(e,t){this._call("room/mode",{entry_id:e.entry_id,mode:t})}_schedule(e,t){this._call("schedule/activate",{entry_id:e.entry_id,schedule_id:t})}_moreInfo(e){e.climate_entity_id&&this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:e.climate_entity_id},bubbles:!0,composed:!0}))}_openPeriod(e){this._editPeriod=e,this._planning=!0}_toggle(e){this._section=this._section===e?void 0:e}_renderUpdate(){let e=ze(this._snap?.version,Y,b(this.hass));return e?l`<div class="update"><span>${e.text}</span>
+          <button class="text-btn" @click=${()=>location.reload()}>${e.action}</button></div>`:c}render(){if(!this._config||!this.hass)return c;let e=b(this.hass);if(!this._snap)return l`<ha-card><div class="msg">${this._unreachable?e.unreachable:e.loading}</div></ha-card>`;let t=this._room;if(!t)return l`<ha-card><div class="msg">${e.not_found}</div></ha-card>`;let i=this._config,s=t.hvac_action==="heating",o=this._pending??t.target_temperature,r=i.name||t.name,d=[i.show_floor===!1?"":t.floor?.name,Pe(t,e,this.hass),s?e.heating:""].filter(Boolean).join(" \xB7 ");return l`
+      <ha-card class="${i.compact?"compact":""} ${i.embedded?"embedded":""}">
+        ${i.embedded?c:this._renderUpdate()}
+        ${i.show_header===!1?c:l`<div class="head">
+          <button class="icon ${s?"heating":""} ${t.mode==="off"?"off":""}"
             @click=${()=>this._moreInfo(t)}
-            aria-label=${o}>
-            <ha-icon icon=${Ce(t)}></ha-icon>
+            aria-label=${r}>
+            <ha-icon icon=${Me(t)}></ha-icon>
           </button>
           <div class="title">
-            <div class="name">${o}</div>
-            <div class="sub muted">${l}</div>
+            <div class="name">${r}</div>
+            <div class="sub muted">${d}</div>
           </div>
-          ${n.show_battery?this._batteryChip(t):c}
-          ${n.show_editor&&!(n.show_timeline&&!n.compact)?this._pencil():c}
+          ${i.show_battery?this._batteryChip(t):c}
+          ${i.show_editor&&!(i.show_timeline&&!i.compact)?this._pencil():c}
         </div>`}
-        ${n.show_header===!1&&n.show_battery&&le(t)?d`<div class="bat-line">${this._batteryChip(t)}</div>`:c}
-        ${this._batOpen&&n.show_battery?this._batteryPanel(t):c}
+        ${i.show_header===!1&&i.show_battery&&ce(t)?l`<div class="bat-line">${this._batteryChip(t)}</div>`:c}
+        ${this._batOpen&&i.show_battery?this._batteryPanel(t):c}
 
         <div class="hero">
           <div class="current">
-            <span class="big">${_(t.current_temperature,!1)}</span><span class="unit">°C</span>
+            <span class="big">${g(t.current_temperature,!1)}</span><span class="unit">°C</span>
           </div>
           <div class="ctl">
             <button class="round" @click=${()=>this._step(t,-.5)} aria-label="-0.5">−</button>
             <div class="target ${this._swipe?.moved?"swiping":""}" title=${e.swipe_hint}
               @pointerdown=${p=>this._swipeStart(p,t)}
               @touchstart=${p=>this._swipeStart(p,t)}>
-              <div class="tv" style="--c:${$(a??void 0)}">${_(a,!1)}°</div>
+              <div class="tv" style="--c:${$(o??void 0)}">${g(o,!1)}°</div>
               <div class="muted src">${[t.target_variable,e[`src_${t.target_source}`]].filter(Boolean).join(" \xB7 ")}</div>
             </div>
             <button class="round" @click=${()=>this._step(t,.5)} aria-label="+0.5">+</button>
           </div>
         </div>
 
-        ${n.show_modes?this._renderModes(t):c}
-        ${n.show_timeline&&!n.compact?this._renderTimeline(t):c}
-        ${n.show_schedules&&t.schedules.length>1?this._renderScheduleChoice(t):c}
-        ${n.compact?c:this._renderList(t)}
-        ${this._error?d`<div class="error">${this._error}</div>`:c}
+        ${i.show_modes?this._renderModes(t):c}
+        ${i.show_timeline&&!i.compact?this._renderTimeline(t):c}
+        ${i.show_schedules&&it(t).length>1?this._renderScheduleChoice(t):c}
+        ${i.compact?c:this._renderList(t)}
+        ${this._error?l`<div class="error">${this._error}</div>`:c}
       </ha-card>
-    `}_batteryChip(e){let t=e.batteries??[],n=le(e);if(!n)return c;let r=t.filter(l=>l.level!=null).map(l=>Math.round(l.level)),a=r.length?r.length<=3?`${r.join(" \xB7 ")} %`:`${Math.min(...r)} %`:"",o=b(this.hass);return d`<button class="bat-chip ${n.low?"low":""}" aria-expanded=${this._batOpen}
-      title=${o.battery} @click=${()=>this._batOpen=!this._batOpen}>
-      <ha-icon icon=${et(n.level,n.low)}></ha-icon>${a}
-    </button>`}_batteryPanel(e){let t=b(this.hass);return d`<div class="bat-panel">
-      ${(e.batteries??[]).map(n=>d`<button class="bat ${n.low?"low":""}" ?disabled=${!n.device_id}
-          @click=${()=>n.device_id&&this._navigate(`/config/devices/device/${n.device_id}`)}>
-          <ha-icon icon=${et(n.level,n.low)}></ha-icon>
-          <span class="grow">${n.name}</span>
-          <span class="bat-val">${n.level!=null?`${Math.round(n.level)} %`:n.low?t.battery_low:t.battery_ok}</span>
-          ${n.device_id?d`<ha-icon class="go" icon="mdi:chevron-right"></ha-icon>`:c}
+    `}_batteryChip(e){let t=e.batteries??[],i=ce(e);if(!i)return c;let s=t.filter(d=>d.level!=null).map(d=>Math.round(d.level)),o=s.length?s.length<=3?`${s.join(" \xB7 ")} %`:`${Math.min(...s)} %`:"",r=b(this.hass);return l`<button class="bat-chip ${i.low?"low":""}" aria-expanded=${this._batOpen}
+      title=${r.battery} @click=${()=>this._batOpen=!this._batOpen}>
+      <ha-icon icon=${st(i.level,i.low)}></ha-icon>${o}
+    </button>`}_batteryPanel(e){let t=b(this.hass);return l`<div class="bat-panel">
+      ${(e.batteries??[]).map(i=>l`<button class="bat ${i.low?"low":""}" ?disabled=${!i.device_id}
+          @click=${()=>i.device_id&&this._navigate(`/config/devices/device/${i.device_id}`)}>
+          <ha-icon icon=${st(i.level,i.low)}></ha-icon>
+          <span class="grow">${i.name}</span>
+          <span class="bat-val">${i.level!=null?`${Math.round(i.level)} %`:i.low?t.battery_low:t.battery_ok}</span>
+          ${i.device_id?l`<ha-icon class="go" icon="mdi:chevron-right"></ha-icon>`:c}
         </button>`)}
-    </div>`}_navigate(e){history.pushState(null,"",e),window.dispatchEvent(new CustomEvent("location-changed",{detail:{replace:!1}}))}_pencil(){let e=b(this.hass);return d`<button class="pencil" title=${e.edit} aria-label=${e.edit}
+    </div>`}_navigate(e){history.pushState(null,"",e),window.dispatchEvent(new CustomEvent("location-changed",{detail:{replace:!1}}))}_pencil(){let e=b(this.hass);return l`<button class="pencil" title=${e.edit} aria-label=${e.edit}
       @click=${()=>this._editing=!0}>
       <ha-icon icon="mdi:pencil"></ha-icon>
-    </button>`}_renderModes(e){let t=b(this.hass),n=[["auto",t.auto],["heat",t.heat],["off",t.off]];return d`<div class="seg accent" role="tablist">
-      ${n.map(([r,a])=>d`<button role="tab" aria-selected=${e.mode===r}
-          @click=${()=>this._mode(e,r)}>${a}</button>`)}
-    </div>`}_renderScheduleChoice(e){return d`<div class="seg" role="tablist">
-      ${e.schedules.map(t=>d`<button role="tab" aria-selected=${t.id===e.active_schedule}
-          @click=${()=>this._schedule(e,t.id)}>${t.name}</button>`)}
-    </div>`}_renderTimeline(e){let t=b(this.hass),n=e.schedules.find(h=>h.id===e.active_schedule);if(!n)return c;let r=this._snap.variables,a=n.week?.[Se(this.hass)]??n.week?.[g[0]];if(!a?.length)return c;let o=Z(a),l=ke(this.hass),p=e.mode!=="auto"||e.override_active;return d`<div class="timeline ${p?"paused":""}">
+    </button>`}_renderModes(e){let t=b(this.hass),i=[["auto",t.auto],["heat",t.heat],["off",t.off]];return l`<div class="seg accent" role="tablist">
+      ${i.map(([s,o])=>l`<button role="tab" aria-selected=${e.mode===s}
+          @click=${()=>this._mode(e,s)}>${o}</button>`)}
+    </div>`}_renderScheduleChoice(e){return l`<div class="seg" role="tablist">
+      ${it(e).map(t=>l`<button role="tab" aria-selected=${t.id===e.active_schedule}
+          title=${t.global?b(this.hass).global_schedule:""}
+          @click=${()=>this._schedule(e,t.id)}>${t.global?l`<ha-icon class="globe" icon="mdi:earth"></ha-icon>`:c}${t.name}</button>`)}
+    </div>`}_renderTimeline(e){let t=b(this.hass),i=e.schedules.find(h=>h.id===e.active_schedule);if(!i)return c;let s=this._snap.variables,o=i.week?.[q(this.hass)]??i.week?.[f[0]];if(!o?.length)return c;let r=O(o),d=De(this.hass),p=e.mode!=="auto"||e.override_active;return l`<div class="timeline ${p?"paused":""}">
       <div class="cap muted">
-        <span>${t.today} · ${n.name}${p?` \xB7 ${t.schedule_paused}`:""}</span>
+        <span>${t.today} · ${i.name}${p?` \xB7 ${t.schedule_paused}`:""}</span>
         ${this._config.show_editor?this._pencil():c}
       </div>
       <div class="bar">
-        ${o.map(h=>{let u=I(h.slot,r);return d`<div class="seg-t"
-            title="${re(h.slot,r)}"
-            style="left:${h.start/w*100}%;width:${(h.end-h.start)/w*100}%;background:${$(u)}"></div>`})}
-        <div class="now" style="left:${l/w*100}%"></div>
+        ${r.map(h=>{let u=z(h.slot,s);return l`<div class="seg-t"
+            title="${oe(h.slot,s)}"
+            style="left:${h.start/x*100}%;width:${(h.end-h.start)/x*100}%;background:${$(u)}"></div>`})}
+        <div class="now" style="left:${d/x*100}%"></div>
       </div>
       <div class="ticks muted"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-    </div>`}_row(e,t,n,r,a){let o=r!==void 0&&this._section===r,l=r!==void 0||a!==void 0;return d`<button class="row ${o?"open":""}" ?disabled=${!l}
-      @click=${()=>r?this._toggle(r):a?.()}>
+    </div>`}_row(e,t,i,s,o){let r=s!==void 0&&this._section===s,d=s!==void 0||o!==void 0;return l`<button class="row ${r?"open":""}" ?disabled=${!d}
+      @click=${()=>s?this._toggle(s):o?.()}>
       <ha-icon icon=${e}></ha-icon>
       <span class="row-label">${t}</span>
-      <span class="row-value">${n}</span>
-      ${l?d`<ha-icon class="chev" icon=${o?"mdi:chevron-up":"mdi:chevron-right"}></ha-icon>`:c}
-    </button>`}_renderList(e){let t=this._config,n=b(this.hass),r=this.hass,a=de(e),o=e.period?e.period.title:a.length?`${a.length} ${n.period_planned_n}`:n.prio_none,l=Tt(e,this._snap,n,r),p=l.layers.find(h=>h.n===l.winner);return d`<div class="list">
-      ${t.show_periods?d`${this._row("mdi:calendar-star",n.period_plural,o,"periods")}
-          ${this._section==="periods"?d`<div class="detail">${this._renderPeriods(e)}</div>`:c}`:c}
-      ${t.show_priorities?d`${this._row("mdi:layers-triple-outline",n.prio_short,p.name,"prio")}
-          ${this._section==="prio"?d`<div class="detail">${this._renderPriorities(l)}</div>`:c}`:c}
-    </div>`}_renderPriorities(e){return d`<div class="prio">
-      ${e.layers.map(t=>d`<div class="prio-row ${t.n===e.winner?"win":t.n<e.winner?"idle":"below"}">
+      <span class="row-value">${i}</span>
+      ${d?l`<ha-icon class="chev" icon=${r?"mdi:chevron-up":"mdi:chevron-right"}></ha-icon>`:c}
+    </button>`}_renderList(e){let t=this._config,i=b(this.hass),s=this.hass,o=de(e),r=e.period?e.period.title:o.length?`${o.length} ${i.period_planned_n}`:i.prio_none,d=Lt(e,this._snap,i,s),p=d.layers.find(h=>h.n===d.winner);return l`<div class="list">
+      ${t.show_periods?l`${this._row("mdi:calendar-star",i.period_plural,r,"periods")}
+          ${this._section==="periods"?l`<div class="detail">${this._renderPeriods(e)}</div>`:c}`:c}
+      ${t.show_priorities?l`${this._row("mdi:layers-triple-outline",i.prio_short,p.name,"prio")}
+          ${this._section==="prio"?l`<div class="detail">${this._renderPriorities(d)}</div>`:c}`:c}
+    </div>`}_renderPriorities(e){return l`<div class="prio">
+      ${e.layers.map(t=>l`<div class="prio-row ${t.n===e.winner?"win":t.n<e.winner?"idle":"below"}">
           <span class="prio-n">${t.n}</span>
           <span class="prio-name">${t.name}</span>
           <span class="prio-val">${t.value}</span>
         </div>`)}
-    </div>`}_renderPeriods(e){let t=b(this.hass),n=this.hass,r=e.period,a=de(e),o=this._allPeriods?a:a.slice(0,3),l=h=>`${y(h.start,n)} \u2013 ${h.end?y(h.end,n):t.period_open}`,p=(h,u)=>d`<div class="period ${u?"active":""}">
+    </div>`}_renderPeriods(e){let t=b(this.hass),i=this.hass,s=e.period,o=de(e),r=this._allPeriods?o:o.slice(0,3),d=h=>`${k(h.start,i)} \u2013 ${h.end?k(h.end,i):t.period_open}`,p=(h,u)=>l`<div class="period ${u?"active":""}">
       <button class="period-text" @click=${()=>this._openPeriod(h)}>
-        <span class="period-title">${h.title}</span>
-        <span class="muted period-when">${u?h.end?`${t.period_until} ${y(h.end,n)}`:t.period_open:l(h)}</span>
+        <span class="period-title">${h.group?l`<ha-icon class="group-icon" icon="mdi:home-group" title=${t.group_rooms}></ha-icon>`:c}${h.title}</span>
+        <span class="muted period-when">${u?h.end?`${t.period_until} ${k(h.end,i)}`:t.period_open:d(h)}</span>
       </button>
       <button class="text-btn small" @click=${()=>this._call("period/cancel",{entry_id:e.entry_id,period_id:h.id})}>
         ${u?t.period_end:t.period_delete}
       </button>
-    </div>`;return d`<div class="periods">
-      ${r?p(r,!0):c}
-      ${o.map(h=>p(h,!1))}
-      ${a.length>3?d`<button class="text-btn small" @click=${()=>this._allPeriods=!this._allPeriods}>
-            ${this._allPeriods?t.period_less:`+${a.length-o.length} ${t.period_more}`}
+    </div>`;return l`<div class="periods">
+      ${s?p(s,!0):c}
+      ${r.map(h=>p(h,!1))}
+      ${o.length>3?l`<button class="text-btn small" @click=${()=>this._allPeriods=!this._allPeriods}>
+            ${this._allPeriods?t.period_less:`+${o.length-r.length} ${t.period_more}`}
           </button>`:c}
       <button class="text-btn plan" @click=${()=>{this._editPeriod=void 0,this._planning=!0}}>
         <ha-icon icon="mdi:calendar-plus"></ha-icon> ${t.period_plan}
       </button>
-    </div>`}};Y.properties={hass:{attribute:!1},_config:{state:!0},_snap:{state:!0},_pending:{state:!0},_editing:{state:!0},_planning:{state:!0},_editPeriod:{state:!0},_allPeriods:{state:!0},_section:{state:!0},_batOpen:{state:!0},_swipe:{state:!0},_error:{state:!0},_unreachable:{state:!0}},Y.styles=[P,k`
+    </div>`}};J.properties={hass:{attribute:!1},_config:{state:!0},_snap:{state:!0},_pending:{state:!0},_editing:{state:!0},_planning:{state:!0},_editPeriod:{state:!0},_allPeriods:{state:!0},_section:{state:!0},_batOpen:{state:!0},_swipe:{state:!0},_error:{state:!0},_unreachable:{state:!0}},J.styles=[A,y`
+      .globe {
+        --mdc-icon-size: 14px;
+        margin-right: 4px;
+        opacity: 0.6;
+        vertical-align: -2px;
+      }
+      .group-icon {
+        --mdc-icon-size: 15px;
+        margin-right: 4px;
+        opacity: 0.7;
+        vertical-align: -2px;
+      }
       ha-card {
         padding: 16px;
         display: flex;
@@ -1698,141 +1822,311 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
       ha-card.compact .seg button {
         min-height: 44px;
       }
-    `];var Qt={entity:{de:"Raum",en:"Room"},name:{de:"Name (optional)",en:"Name (optional)"},compact:{de:"Kompaktmodus (Wanddisplay)",en:"Compact mode (wall display)"},show_modes:{de:"Modi anzeigen",en:"Show modes"},show_schedules:{de:"Zeitpl\xE4ne anzeigen",en:"Show schedules"},show_timeline:{de:"Zeitleiste heute anzeigen",en:"Show today's timeline"},show_editor:{de:"Stift f\xFCr Wocheneditor",en:"Pencil for weekly editor"},show_periods:{de:"Zeitr\xE4ume anzeigen und planen",en:"Show and plan periods"},show_priorities:{de:"Priorit\xE4ten anzeigen",en:"Show priorities"},show_battery:{de:"Batteriesymbol anzeigen",en:"Show battery indicator"},title:{de:"Titel",en:"Title"},show_override:{de:"Globalen Override anzeigen",en:"Show global override"},show_variables:{de:"Variablen anzeigen",en:"Show variables"},group_by_floor:{de:"Nach Stockwerk gruppieren",en:"Group by floor"},layout:{de:"Darstellung",en:"Layout"},show_summary:{de:"Zusammenfassung anzeigen",en:"Show summary"},room:{de:"R\xE4ume (gilt f\xFCr alle)",en:"Rooms (applies to all)"},exclude_rooms:{de:"R\xE4ume ausblenden",en:"Hide rooms"}},ei=[{name:"entity",required:!0,selector:{entity:{filter:{domain:"climate",integration:"bestthermostat"}}}},{name:"name",selector:{text:{}}},{type:"grid",name:"",schema:[{name:"compact",selector:{boolean:{}}},{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_battery",selector:{boolean:{}}}]}],ti=[{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_battery",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"compact",selector:{boolean:{}}}];function ii(s){return[{name:"title",selector:{text:{}}},{name:"layout",selector:{select:{mode:"box",options:[{value:"list",label:s?"Liste (Raum zum Aufklappen)":"List (tap to expand)"},{value:"tiles",label:s?"Kacheln (alle R\xE4ume offen)":"Tiles (all rooms open)"}]}}},{type:"grid",name:"",schema:[{name:"show_summary",selector:{boolean:{}}},{name:"show_override",selector:{boolean:{}}},{name:"show_variables",selector:{boolean:{}}},{name:"group_by_floor",selector:{boolean:{}}}]},{type:"expandable",name:"room",title:s?"R\xE4ume (gilt f\xFCr alle)":"Rooms (applies to all)",schema:[{type:"grid",name:"",schema:ti}]},{name:"exclude_rooms",selector:{entity:{multiple:!0,filter:{domain:"climate",integration:"bestthermostat"}}}}]}var ue=class extends x{constructor(){super(...arguments);this._label=e=>{let t=(this.hass?.locale?.language||this.hass?.language||"en").startsWith("de")?"de":"en";return Qt[e.name]?.[t]??e.name}}setConfig(e){let t=this.defaults,n=e;this._config={...t,...n,...t.room?{room:{...t.room,...n.room??{}}}:{}}}_changed(e){let t=e.detail.value;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0}))}render(){return!this.hass||!this._config?c:d`<ha-form
+    `];var ni={entity:{de:"Raum",en:"Room"},name:{de:"Name (optional)",en:"Name (optional)"},compact:{de:"Kompaktmodus (Wanddisplay)",en:"Compact mode (wall display)"},show_modes:{de:"Modi anzeigen",en:"Show modes"},show_schedules:{de:"Zeitpl\xE4ne anzeigen",en:"Show schedules"},show_timeline:{de:"Zeitleiste heute anzeigen",en:"Show today's timeline"},show_editor:{de:"Stift f\xFCr Wocheneditor",en:"Pencil for weekly editor"},show_periods:{de:"Zeitr\xE4ume anzeigen und planen",en:"Show and plan periods"},show_priorities:{de:"Priorit\xE4ten anzeigen",en:"Show priorities"},show_battery:{de:"Batteriesymbol anzeigen",en:"Show battery indicator"},title:{de:"Titel",en:"Title"},show_override:{de:"Globalen Override anzeigen",en:"Show global override"},show_variables:{de:"Variablen anzeigen",en:"Show variables"},show_actions:{de:"Zeitpl\xE4ne und Gruppen-Zeitr\xE4ume anzeigen",en:"Show schedules and group periods"},group_by_floor:{de:"Nach Stockwerk gruppieren",en:"Group by floor"},layout:{de:"Darstellung",en:"Layout"},show_summary:{de:"Zusammenfassung anzeigen",en:"Show summary"},room:{de:"R\xE4ume (gilt f\xFCr alle)",en:"Rooms (applies to all)"},exclude_rooms:{de:"R\xE4ume ausblenden",en:"Hide rooms"}},si=[{name:"entity",required:!0,selector:{entity:{filter:{domain:"climate",integration:"bestthermostat"}}}},{name:"name",selector:{text:{}}},{type:"grid",name:"",schema:[{name:"compact",selector:{boolean:{}}},{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_battery",selector:{boolean:{}}}]}],ai=[{name:"show_modes",selector:{boolean:{}}},{name:"show_schedules",selector:{boolean:{}}},{name:"show_timeline",selector:{boolean:{}}},{name:"show_periods",selector:{boolean:{}}},{name:"show_priorities",selector:{boolean:{}}},{name:"show_battery",selector:{boolean:{}}},{name:"show_editor",selector:{boolean:{}}},{name:"compact",selector:{boolean:{}}}];function oi(a){return[{name:"title",selector:{text:{}}},{name:"layout",selector:{select:{mode:"box",options:[{value:"list",label:a?"Liste (Raum zum Aufklappen)":"List (tap to expand)"},{value:"tiles",label:a?"Kacheln (alle R\xE4ume offen)":"Tiles (all rooms open)"}]}}},{type:"grid",name:"",schema:[{name:"show_summary",selector:{boolean:{}}},{name:"show_override",selector:{boolean:{}}},{name:"show_variables",selector:{boolean:{}}},{name:"show_actions",selector:{boolean:{}}},{name:"group_by_floor",selector:{boolean:{}}}]},{type:"expandable",name:"room",title:a?"R\xE4ume (gilt f\xFCr alle)":"Rooms (applies to all)",schema:[{type:"grid",name:"",schema:ai}]},{name:"exclude_rooms",selector:{entity:{multiple:!0,filter:{domain:"climate",integration:"bestthermostat"}}}}]}var _e=class extends v{constructor(){super(...arguments);this._label=e=>{let t=(this.hass?.locale?.language||this.hass?.language||"en").startsWith("de")?"de":"en";return ni[e.name]?.[t]??e.name}}setConfig(e){let t=this.defaults,i=e;this._config={...t,...i,...t.room?{room:{...t.room,...i.room??{}}}:{}}}_changed(e){let t=e.detail.value;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0}))}render(){return!this.hass||!this._config?c:l`<ha-form
       .hass=${this.hass}
       .data=${this._config}
       .schema=${this.schema}
       .computeLabel=${this._label}
       @value-changed=${this._changed}
-    ></ha-form>`}};ue.properties={hass:{attribute:!1},_config:{state:!0}};var tt=class extends ue{constructor(){super(...arguments);this.defaults={compact:!1,show_modes:!0,show_schedules:!0,show_timeline:!0,show_editor:!0,show_periods:!0,show_priorities:!0,show_battery:!0}}get schema(){return ei}},it=class extends ue{constructor(){super(...arguments);this.defaults={layout:"list",show_summary:!0,show_override:!0,show_variables:!0,group_by_floor:!0,room:{show_modes:!0,show_schedules:!0,show_timeline:!0,show_periods:!0,show_priorities:!0,show_battery:!0,show_editor:!0,compact:!1}}}get schema(){let e=this.hass?.locale?.language||this.hass?.language||"en";return ii(e.startsWith("de"))}};A("bestthermostat-card-editor",tt);A("bestthermostat-overview-card-editor",it);var Pt="bestthermostat.collapsedFloors",ni={show_modes:!0,show_schedules:!0,show_timeline:!0,show_periods:!0,show_priorities:!0,show_editor:!0,show_battery:!0,compact:!1},J=class extends x{constructor(){super(...arguments);this._ovOpen=!1;this._varsOpen=!1;this._unreachable=!1;this._cardConfigs=new Map;this._collapsed=this._loadCollapsed();this._pending=new Map;this._timers=new Map;this._swipeConsumed=!1}static getConfigElement(){return document.createElement("bestthermostat-overview-card-editor")}static getStubConfig(){return{}}setConfig(e){this._config={layout:"list",show_summary:!0,show_override:!0,show_variables:!0,show_periods:!0,group_by_floor:!0,...e,room:{...ni,...e.show_periods===!1?{show_periods:!1}:{},...e.room??{}}},this._cardConfigs.clear()}_cardConfig(e,t){let n=`${e.entry_id}:${t}`,r=this._cardConfigs.get(n);return r||(r={type:"custom:bestthermostat-card",entity:e.climate_entity_id??e.entry_id,embedded:!0,show_header:t,show_floor:!this._config.group_by_floor,...this._config.room},this._cardConfigs.set(n,r)),r}getCardSize(){return 2+(this._snap?.rooms.length??2)}_subscribe(){this._unsub=ve(this.hass,e=>this._snap=e,e=>this._unreachable=e)}connectedCallback(){super.connectedCallback(),this.hass&&this._subscribe()}shouldUpdate(e){return e.size===1&&e.has("hass")?(!this._unsub&&this.hass&&this.isConnected&&this._subscribe(),Ae(e.get("hass"),this.hass)):!0}disconnectedCallback(){super.disconnectedCallback(),this._unsub?.(),this._unsub=void 0}willUpdate(e){e.has("hass")&&this.hass&&!this._unsub&&this.isConnected&&this._subscribe()}async _call(e,t){try{this._error=void 0,await R(this.hass,e,t)}catch(n){this._error=n?.message??String(n)}}_stepPending(e,t,n){let{min:r,max:a}=D(this._snap),o=oe(t,r,a);this._pending.set(e,o),this.requestUpdate(),window.clearTimeout(this._timers.get(e)),this._timers.set(e,window.setTimeout(async()=>{await n(o),this._pending.delete(e),this.requestUpdate()},600))}_swipeStart(e,t,n,r,a,o){let l=this._pending.get(t)??n;De(e,{onStep:p=>{this._swipe={key:t,moved:!0};let h=Math.min(a,Math.max(r,Math.round((l+p*.5)*2)/2));h!==this._pending.get(t)&&(this._pending.set(t,h),window.clearTimeout(this._timers.get(t)),navigator.vibrate?.(5)),this.requestUpdate()},onEnd:async p=>{if(this._swipe=void 0,!p)return;this._swipeConsumed=!0,window.setTimeout(()=>this._swipeConsumed=!1,0);let h=this._pending.get(t);this.requestUpdate(),h!==void 0&&(await o(h),this._pending.delete(t),this.requestUpdate())}})}_swipeRoom(e,t){this._swipeStart(e,`room:${t.entry_id}`,t.target_temperature??20,t.min_temp,t.max_temp,n=>this._call("room/temperature",{entry_id:t.entry_id,temperature:n}))}_swipeOverride(e,t){let{min:n,max:r}=D(this._snap);this._swipeStart(e,"override",t??16,n,r,a=>this._call("override/set",{temperature:a}))}_consumeSwipe(){let e=this._swipeConsumed;return this._swipeConsumed=!1,e}_varStep(e,t,n){let r=`var:${e}`;this._stepPending(r,(this._pending.get(r)??t)+n,a=>this._call("variable/update",{variable_id:e,value:a}))}_loadCollapsed(){try{return new Set(JSON.parse(localStorage.getItem(Pt)||"[]"))}catch{return new Set}}_toggleFloor(e){let t=new Set(this._collapsed);t.has(e)?t.delete(e):t.add(e),this._collapsed=t;try{localStorage.setItem(Pt,JSON.stringify([...t]))}catch{}this.requestUpdate()}_floorIconNo(e){return e==null?"0":e<0?"negative-1":e>3?"3":String(e)}_heatingCount(e){return e.filter(t=>t.hvac_action==="heating").length}_renderTile(e){return d`<div class="tile">
+    ></ha-form>`}};_e.properties={hass:{attribute:!1},_config:{state:!0}};var at=class extends _e{constructor(){super(...arguments);this.defaults={compact:!1,show_modes:!0,show_schedules:!0,show_timeline:!0,show_editor:!0,show_periods:!0,show_priorities:!0,show_battery:!0}}get schema(){return si}},ot=class extends _e{constructor(){super(...arguments);this.defaults={layout:"list",show_summary:!0,show_override:!0,show_variables:!0,show_actions:!0,group_by_floor:!0,room:{show_modes:!0,show_schedules:!0,show_timeline:!0,show_periods:!0,show_priorities:!0,show_battery:!0,show_editor:!0,compact:!1}}}get schema(){let e=this.hass?.locale?.language||this.hass?.language||"en";return oi(e.startsWith("de"))}};S("bestthermostat-card-editor",at);S("bestthermostat-overview-card-editor",ot);function ri(a,n,e){return{entry_id:"",name:n,climate_entity_id:null,trvs:[],mode:"auto",manual_temperature:20,frost_temperature:5,target_temperature:null,target_source:"schedule",target_variable:null,current_temperature:null,hvac_action:null,min_temp:a.limits?.min??4,max_temp:a.limits?.max??35,active_schedule:e,base_schedule:e,base_mode:"auto",base_manual_temperature:20,area:null,floor:null,period:null,periods:[],hand_until:null,override_active:!1,next_change:null,next_temperature:null,schedules:(a.global_schedules??[]).map(t=>({id:t.id,name:t.name,week:t.week,global:!0}))}}var ge=class extends v{constructor(){super(...arguments);this._page={kind:"list"};this._busy=!1;this._onKey=e=>{e.key==="Escape"&&!this._editor&&this._back()}}get _t(){return b(this.hass)}connectedCallback(){super.connectedCallback(),document.addEventListener("keydown",this._onKey)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("keydown",this._onKey),this._editor?.remove(),this._editor=void 0}_back(){this._page.kind!=="list"?(this._page={kind:"list"},this._error=void 0):this.dispatchEvent(new CustomEvent("close"))}updated(){this._editing&&this.snap&&this.hass?(this._editor||(this._editor=document.createElement("bt-week-editor"),this._editor.addEventListener("close",()=>this._editing=void 0),document.body.appendChild(this._editor)),this._editor.hass=this.hass,this._editor.snap=this.snap,this._editor.room=ri(this.snap,this._t.global_schedules,this._editing)):this._editor&&(this._editor.remove(),this._editor=void 0)}async _call(e,t){if(this.hass){this._busy=!0,this._error=void 0;try{return await E(this.hass,e,t)}catch(i){this._error=i?.message??String(i);return}finally{this._busy=!1}}}_roomName(e){return this.snap?.rooms.find(t=>t.entry_id===e)?.name??"?"}_names(e){return e.map(t=>this._roomName(t)).join(", ")}async _delete(e){let t=this._t,i=e.active.length?t.confirm_delete_global_used.replace("{name}",e.name).replace("{rooms}",this._names(e.active)):t.confirm_delete_global.replace("{name}",e.name);if(e.periods.length&&(i+=`
+${t.confirm_delete_global_periods}`),!confirm(i))return;let s=await this._call("global_schedule/delete",{schedule_id:e.id});s&&(this._info=s.switched_off.length?`${t.deleted_switched_off} ${s.switched_off.join(", ")}`:void 0)}async _submitName(){let e=this._page;if(e.kind!=="name"||!e.value.trim())return;if(e.mode==="rename"){await this._call("global_schedule/rename",{schedule_id:e.id,name:e.value.trim()})&&(this._page={kind:"list"});return}let t=await this._call("global_schedule/create",{name:e.value.trim()});t&&(this._page={kind:"list"},this._editing=t.id)}async _applyRooms(){let e=this._page;if(e.kind!=="rooms"||!this.snap)return;let t;if(e.mode==="visibility"){let i=this.snap.rooms.every(s=>e.sel.has(s.entry_id));t=await this._call("global_schedule/rooms",{schedule_id:e.id,rooms:i?null:[...e.sel]})}else t=await this._call("global_schedule/assign",{schedule_id:e.id,entry_ids:[...e.sel]});t&&(this._page={kind:"list"})}render(){if(!this.snap)return c;let e=this._t,t=this._page,i=t.kind==="rooms"?t.mode==="visibility"?e.visibility:e.assign:t.kind==="name"?t.mode==="new"?e.global_new:e.rename:e.global_schedules,s=t.kind==="list"?"":this.snap.global_schedules?.find(o=>o.id===t.id)?.name??"";return l`
+      <div class="backdrop" @click=${()=>this.dispatchEvent(new CustomEvent("close"))}></div>
+      <div class="dialog" role="dialog" aria-modal="true">
+        <header>
+          ${t.kind!=="list"?l`<button class="round small" aria-label=${e.close} @click=${()=>this._back()}>
+                <ha-icon icon="mdi:chevron-left"></ha-icon>
+              </button>`:c}
+          <div class="h-title">
+            <div class="h-name">${i}</div>
+            ${s?l`<div class="muted h-sub">${s}</div>`:c}
+          </div>
+          <button class="round small" aria-label=${e.close} @click=${()=>this.dispatchEvent(new CustomEvent("close"))}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </header>
+        <div class="content">
+          ${t.kind==="list"?this._renderList():t.kind==="rooms"?this._renderRooms(t):this._renderName(t)}
+          ${this._info&&t.kind==="list"?l`<div class="info">${this._info}</div>`:c}
+          ${this._error?l`<div class="error">${this._error}</div>`:c}
+        </div>
+        <footer>${this._renderFooter()}</footer>
+      </div>
+    `}_renderFooter(){let e=this._t,t=this._page;if(t.kind==="list")return l`<button class="text-btn" @click=${()=>this._page={kind:"name",mode:"new",value:""}}>
+          <ha-icon icon="mdi:plus"></ha-icon>${e.global_new}
+        </button>
+        <span class="spacer"></span>
+        <button class="text-btn" @click=${()=>this.dispatchEvent(new CustomEvent("close"))}>${e.close}</button>`;if(t.kind==="rooms"){let i=this._busy||t.mode==="assign"&&!t.sel.size;return l`<span class="spacer"></span>
+        <button class="text-btn" @click=${()=>this._back()}>${e.cancel}</button>
+        <button class="primary-btn" ?disabled=${i} @click=${this._applyRooms}>
+          ${t.mode==="assign"?e.assign_action:e.save}
+        </button>`}return l`<span class="spacer"></span>
+      <button class="text-btn" @click=${()=>this._back()}>${e.cancel}</button>
+      <button class="primary-btn" ?disabled=${this._busy||!t.value.trim()} @click=${this._submitName}>${e.ok}</button>`}_renderList(){let e=this._t,t=this.snap.global_schedules??[],i=this.snap.rooms.map(s=>s.entry_id);return l`
+      <div class="muted small">${t.length?e.global_hint:e.global_none}</div>
+      ${t.map(s=>{let o=s.rooms===null?e.global_all_rooms:s.rooms.length===0?e.global_no_rooms:s.rooms.length<=3?this._names(s.rooms):e.global_n_rooms.replace("{n}",String(s.rooms.length));return l`<div class="item">
+          <div class="item-head">
+            <ha-icon icon="mdi:earth"></ha-icon>
+            <span class="item-name">${s.name}</span>
+            <button class="icon-btn" aria-label=${e.edit_week} title=${e.edit_week}
+              @click=${()=>this._editing=s.id}>
+              <ha-icon icon="mdi:pencil-outline"></ha-icon>
+            </button>
+          </div>
+          ${this._renderPreview(s)}
+          <div class="facts small">
+            <div><span class="muted">${e.global_active_in}:</span>
+              ${s.active.length?this._names(s.active):l`<span class="muted">${e.global_active_none}</span>`}</div>
+            <div><span class="muted">${e.global_offered}:</span> ${o}</div>
+            ${s.periods.length?l`<div><span class="muted">${e.global_periods_in}:</span> ${this._names(s.periods)}</div>`:c}
+          </div>
+          <div class="actions">
+            <button class="chip" @click=${()=>this._page={kind:"rooms",mode:"assign",id:s.id,sel:new Set(s.active)}}>
+              <ha-icon icon="mdi:home-import-outline"></ha-icon>${e.assign}
+            </button>
+            <button class="chip" @click=${()=>this._page={kind:"rooms",mode:"visibility",id:s.id,sel:new Set(s.rooms??i)}}>
+              <ha-icon icon="mdi:eye-outline"></ha-icon>${e.visibility}
+            </button>
+            <button class="chip" @click=${()=>this._page={kind:"name",mode:"rename",id:s.id,value:s.name}}>
+              <ha-icon icon="mdi:pencil-outline"></ha-icon>${e.rename}
+            </button>
+            <button class="chip danger" ?disabled=${this._busy} @click=${()=>this._delete(s)}>
+              <ha-icon icon="mdi:delete-outline"></ha-icon>${e.delete}
+            </button>
+          </div>
+        </div>`})}
+    `}_renderPreview(e){let t=this.snap.variables,i=e.week[q(this.hass)]??e.week[f[0]];return l`<div class="preview">
+      ${O(i).map(s=>l`<i style="left:${s.start/x*100}%;width:${(s.end-s.start)/x*100}%;
+          background:${$(z(s.slot,t))}"></i>`)}
+    </div>`}_renderRooms(e){let t=this._t,i=this.snap.global_schedules?.find(o=>o.id===e.id),s={};for(let o of i?.active??[])s[o]=t.active;return l`
+      <div class="muted small">${e.mode==="visibility"?t.visibility_hint:t.assign_hint}</div>
+      <bt-room-picker .hass=${this.hass} .rooms=${this.snap.rooms} .selected=${e.sel} .notes=${s}
+        @change=${o=>this._page={...e,sel:o.detail}}></bt-room-picker>
+    `}_renderName(e){let t=this._t;return l`<input type="text" .value=${e.value} placeholder=${t.name} aria-label=${t.name}
+      @input=${i=>this._page={...e,value:i.target.value}}
+      @keydown=${i=>i.key==="Enter"&&this._submitName()} />`}};ge.properties={hass:{attribute:!1},snap:{attribute:!1},_page:{state:!0},_error:{state:!0},_info:{state:!0},_busy:{state:!0},_editing:{state:!0}},ge.styles=[A,Se,y`
+      .small {
+        font-size: 13px;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .round.small {
+        width: 36px;
+        height: 36px;
+      }
+      .round ha-icon,
+      .chip ha-icon,
+      .text-btn ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .text-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+      }
+      .icon-btn:hover {
+        background: var(--bt-surface);
+      }
+      .item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--divider-color);
+      }
+      .item-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .item-head > ha-icon {
+        color: var(--bt-accent);
+        --mdc-icon-size: 20px;
+      }
+      .item-name {
+        flex: 1;
+        font-weight: 600;
+      }
+      .preview {
+        position: relative;
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+        background: var(--bt-surface);
+      }
+      .preview i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+      }
+      .facts {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .actions .chip {
+        min-height: 32px;
+        padding: 0 10px;
+        font-size: 13px;
+      }
+      .chip.danger {
+        color: var(--error-color, #db4437);
+      }
+      .info {
+        font-size: 13px;
+        color: var(--bt-accent);
+      }
+    `];S("bt-schedule-manager",ge);var Ht="bestthermostat.collapsedFloors",li={show_modes:!0,show_schedules:!0,show_timeline:!0,show_periods:!0,show_priorities:!0,show_editor:!0,show_battery:!0,compact:!1},X=class extends v{constructor(){super(...arguments);this._ovOpen=!1;this._varsOpen=!1;this._unreachable=!1;this._managing=!1;this._planning=!1;this._cardConfigs=new Map;this._collapsed=this._loadCollapsed();this._pending=new Map;this._timers=new Map;this._swipeConsumed=!1}static getConfigElement(){return document.createElement("bestthermostat-overview-card-editor")}static getStubConfig(){return{}}setConfig(e){this._config={layout:"list",show_summary:!0,show_override:!0,show_variables:!0,show_actions:!0,show_periods:!0,group_by_floor:!0,...e,room:{...li,...e.show_periods===!1?{show_periods:!1}:{},...e.room??{}}},this._cardConfigs.clear()}_cardConfig(e,t){let i=`${e.entry_id}:${t}`,s=this._cardConfigs.get(i);return s||(s={type:"custom:bestthermostat-card",entity:e.climate_entity_id??e.entry_id,embedded:!0,show_header:t,show_floor:!this._config.group_by_floor,...this._config.room},this._cardConfigs.set(i,s)),s}getCardSize(){return 2+(this._snap?.rooms.length??2)}_subscribe(){this._unsub=$e(this.hass,e=>this._snap=e,e=>this._unreachable=e)}connectedCallback(){super.connectedCallback(),this.hass&&this._subscribe()}shouldUpdate(e){return e.size===1&&e.has("hass")?(!this._unsub&&this.hass&&this.isConnected&&this._subscribe(),Te(e.get("hass"),this.hass)):!0}disconnectedCallback(){super.disconnectedCallback(),this._unsub?.(),this._unsub=void 0,this._manager?.remove(),this._manager=void 0,this._managing=!1,this._planner?.remove(),this._planner=void 0,this._planning=!1}updated(){this._managing&&this.hass&&this._snap?(this._manager||(this._manager=document.createElement("bt-schedule-manager"),this._manager.addEventListener("close",()=>this._managing=!1),document.body.appendChild(this._manager)),this._manager.hass=this.hass,this._manager.snap=this._snap):this._manager&&(this._manager.remove(),this._manager=void 0),this._planning&&this.hass&&this._snap?(this._planner||(this._planner=document.createElement("bt-period-dialog"),this._planner.addEventListener("close",()=>this._planning=!1),document.body.appendChild(this._planner)),this._planner.hass=this.hass,this._planner.snap=this._snap):this._planner&&(this._planner.remove(),this._planner=void 0)}willUpdate(e){e.has("hass")&&this.hass&&!this._unsub&&this.isConnected&&this._subscribe()}async _call(e,t){try{this._error=void 0,await E(this.hass,e,t)}catch(i){this._error=i?.message??String(i)}}_stepPending(e,t,i){let{min:s,max:o}=T(this._snap),r=le(t,s,o);this._pending.set(e,r),this.requestUpdate(),window.clearTimeout(this._timers.get(e)),this._timers.set(e,window.setTimeout(async()=>{await i(r),this._pending.delete(e),this.requestUpdate()},600))}_swipeStart(e,t,i,s,o,r){let d=this._pending.get(t)??i;Ne(e,{onStep:p=>{this._swipe={key:t,moved:!0};let h=Math.min(o,Math.max(s,Math.round((d+p*.5)*2)/2));h!==this._pending.get(t)&&(this._pending.set(t,h),window.clearTimeout(this._timers.get(t)),navigator.vibrate?.(5)),this.requestUpdate()},onEnd:async p=>{if(this._swipe=void 0,!p)return;this._swipeConsumed=!0,window.setTimeout(()=>this._swipeConsumed=!1,0);let h=this._pending.get(t);this.requestUpdate(),h!==void 0&&(await r(h),this._pending.delete(t),this.requestUpdate())}})}_swipeRoom(e,t){this._swipeStart(e,`room:${t.entry_id}`,t.target_temperature??20,t.min_temp,t.max_temp,i=>this._call("room/temperature",{entry_id:t.entry_id,temperature:i}))}_swipeOverride(e,t){let{min:i,max:s}=T(this._snap);this._swipeStart(e,"override",t??16,i,s,o=>this._call("override/set",{temperature:o}))}_consumeSwipe(){let e=this._swipeConsumed;return this._swipeConsumed=!1,e}_varStep(e,t,i){let s=`var:${e}`;this._stepPending(s,(this._pending.get(s)??t)+i,o=>this._call("variable/update",{variable_id:e,value:o}))}_loadCollapsed(){try{return new Set(JSON.parse(localStorage.getItem(Ht)||"[]"))}catch{return new Set}}_toggleFloor(e){let t=new Set(this._collapsed);t.has(e)?t.delete(e):t.add(e),this._collapsed=t;try{localStorage.setItem(Ht,JSON.stringify([...t]))}catch{}this.requestUpdate()}_floorIconNo(e){return e==null?"0":e<0?"negative-1":e>3?"3":String(e)}_heatingCount(e){return e.filter(t=>t.hvac_action==="heating").length}_renderTile(e){return l`<div class="tile">
       <bestthermostat-card .hass=${this.hass} .config=${this._cardConfig(e,!0)}></bestthermostat-card>
-    </div>`}_groups(e){if(!this._config?.group_by_floor||!e.some(n=>n.floor))return[{floor:null,rooms:e}];let t=new Map;for(let n of e){let r=n.floor?.id??"";t.has(r)||t.set(r,{floor:n.floor,rooms:[]}),t.get(r).rooms.push(n)}return[...t.values()].sort((n,r)=>{if(!n.floor)return 1;if(!r.floor)return-1;let a=n.floor.level??999,o=r.floor.level??999;return a!==o?a-o:n.floor.name.localeCompare(r.floor.name)})}_renderUpdate(){let e=Ee(this._snap?.version,G,b(this.hass));return e?d`<div class="update"><span>${e.text}</span>
-          <button class="text-btn" @click=${()=>location.reload()}>${e.action}</button></div>`:c}render(){if(!this._config||!this.hass)return c;let e=b(this.hass),t=this._snap;if(!t)return d`<ha-card><div class="pad">${this._unreachable?e.unreachable:e.loading}</div></ha-card>`;let n=t.rooms.filter(f=>f.hvac_action==="heating").length,r=t.rooms.map(f=>f.current_temperature).filter(f=>f!=null),a=r.length?r.reduce((f,v)=>f+v,0)/r.length:null,o=new Set(this._config.exclude_rooms??[]),l=t.rooms.filter(f=>!o.has(f.climate_entity_id??"")&&!o.has(f.entry_id)),p=this._groups(l),h=p.length>1||p[0]?.floor,u=this._config.layout==="tiles",m=this._config.title??e.rooms;return d`<ha-card>
+    </div>`}_groups(e){if(!this._config?.group_by_floor||!e.some(i=>i.floor))return[{floor:null,rooms:e}];let t=new Map;for(let i of e){let s=i.floor?.id??"";t.has(s)||t.set(s,{floor:i.floor,rooms:[]}),t.get(s).rooms.push(i)}return[...t.values()].sort((i,s)=>{if(!i.floor)return 1;if(!s.floor)return-1;let o=i.floor.level??999,r=s.floor.level??999;return o!==r?o-r:i.floor.name.localeCompare(s.floor.name)})}_renderUpdate(){let e=ze(this._snap?.version,Y,b(this.hass));return e?l`<div class="update"><span>${e.text}</span>
+          <button class="text-btn" @click=${()=>location.reload()}>${e.action}</button></div>`:c}render(){if(!this._config||!this.hass)return c;let e=b(this.hass),t=this._snap;if(!t)return l`<ha-card><div class="pad">${this._unreachable?e.unreachable:e.loading}</div></ha-card>`;let i=t.rooms.filter(_=>_.hvac_action==="heating").length,s=t.rooms.map(_=>_.current_temperature).filter(_=>_!=null),o=s.length?s.reduce((_,w)=>_+w,0)/s.length:null,r=new Set(this._config.exclude_rooms??[]),d=t.rooms.filter(_=>!r.has(_.climate_entity_id??"")&&!r.has(_.entry_id)),p=this._groups(d),h=p.length>1||p[0]?.floor,u=this._config.layout==="tiles",m=this._config.title??e.rooms;return l`<ha-card>
       <div class="pad col">
         ${this._renderUpdate()}
-        ${m||this._config.show_summary?d`<div>
-              ${m?d`<div class="title">${m}</div>`:c}
-              ${this._config.show_summary?d`<div class="muted summary">
-                    ${n} ${e.of} ${t.rooms.length} ${e.rooms_word} ${e.heating_summary}${a!=null?d` · Ø ${_(a)}`:c}
+        ${m||this._config.show_summary?l`<div>
+              ${m?l`<div class="title">${m}</div>`:c}
+              ${this._config.show_summary?l`<div class="muted summary">
+                    ${i} ${e.of} ${t.rooms.length} ${e.rooms_word} ${e.heating_summary}${o!=null?l` · Ø ${g(o)}`:c}
                   </div>`:c}
             </div>`:c}
         <div class="top">
           ${this._config.show_override?this._renderOverride():c}
           ${this._config.show_variables&&t.variables.length?this._renderVariables():c}
+          ${this._config.show_actions?l`<div class="actions">
+                <button class="mini act" @click=${()=>this._managing=!0}>
+                  <ha-icon icon="mdi:calendar-multiple"></ha-icon>${e.global_schedules}
+                </button>
+                <button class="mini act" @click=${()=>this._planning=!0}>
+                  <ha-icon icon="mdi:calendar-plus"></ha-icon>${e.period_plan}
+                </button>
+              </div>`:c}
         </div>
         <div class="rooms">
-          ${p.map(f=>{let v=f.floor?.id??"_other",j=h&&this._collapsed.has(v),z=h?zt(f.rooms):void 0;return d`${h?d`<button class="floor" aria-expanded=${!j} @click=${()=>this._toggleFloor(v)}>
-                      <ha-icon icon=${f.floor?.icon||"mdi:home-floor-"+this._floorIconNo(f.floor?.level)}></ha-icon>
-                      <span>${f.floor?.name??e.other_floor}</span>
-                      ${this._heatingCount(f.rooms)?d`<span class="floor-heat">· ${this._heatingCount(f.rooms)} ${e.heating_summary}</span>`:c}
-                      <span class="floor-next">${z?`${e.until} ${y(z.time,this.hass)}, ${e.then} ${_(z.temp,!1)}\xB0`:""}</span>
+          ${p.map(_=>{let w=_.floor?.id??"_other",j=h&&this._collapsed.has(w),M=h?Nt(_.rooms):void 0;return l`${h?l`<button class="floor" aria-expanded=${!j} @click=${()=>this._toggleFloor(w)}>
+                      <ha-icon icon=${_.floor?.icon||"mdi:home-floor-"+this._floorIconNo(_.floor?.level)}></ha-icon>
+                      <span>${_.floor?.name??e.other_floor}</span>
+                      ${this._heatingCount(_.rooms)?l`<span class="floor-heat">· ${this._heatingCount(_.rooms)} ${e.heating_summary}</span>`:c}
+                      <span class="floor-next">${M?`${e.until} ${k(M.time,this.hass)}, ${e.then} ${g(M.temp,!1)}\xB0`:""}</span>
                       <ha-icon class="floor-chev" icon=${j?"mdi:chevron-down":"mdi:chevron-up"}></ha-icon>
                     </button>`:c}
-                ${j?c:d`<div class="grid ${u?"tiles":""}">
-                      ${f.rooms.map(Te=>u?this._renderTile(Te):this._renderRoom(Te,!!z&&Qe(Te)))}
+                ${j?c:l`<div class="grid ${u?"tiles":""}">
+                      ${_.rooms.map(Oe=>u?this._renderTile(Oe):this._renderRoom(Oe,!!M&&nt(Oe)))}
                     </div>`}`})}
         </div>
-        ${this._error?d`<div class="error">${this._error}</div>`:c}
+        ${this._error?l`<div class="error">${this._error}</div>`:c}
       </div>
-    </ha-card>`}_renderOverride(){let e=b(this.hass),t=this._snap.override,n=this._ovOpen,r=this._pending.get("override")??t.value,a=o=>this._stepPending("override",(r??16)+o,l=>this._call("override/set",{temperature:l}));return d`<div class="box ${t.active?"on":""}">
+    </ha-card>`}_renderOverride(){let e=b(this.hass),t=this._snap.override,i=this._ovOpen,s=this._pending.get("override")??t.value,o=r=>this._stepPending("override",(s??16)+r,d=>this._call("override/set",{temperature:d}));return l`<div class="box ${t.active?"on":""}">
       <div class="box-head">
         <span class="box-label">
           <ha-icon icon="mdi:home-export-outline"></ha-icon>
           <span>${e.override}</span>
         </span>
-        <button class="value-btn swipeable ${n?"open":""} ${this._swipe?.key==="override"&&this._swipe.moved?"swiping":""}"
+        <button class="value-btn swipeable ${i?"open":""} ${this._swipe?.key==="override"&&this._swipe.moved?"swiping":""}"
           title=${e.swipe_hint}
-          @pointerdown=${o=>this._swipeOverride(o,r)}
-          @touchstart=${o=>this._swipeOverride(o,r)}
+          @pointerdown=${r=>this._swipeOverride(r,s)}
+          @touchstart=${r=>this._swipeOverride(r,s)}
           @click=${()=>{this._consumeSwipe()||(this._ovOpen=!this._ovOpen)}}
-          aria-expanded=${n}>
-          ${_(r)}
-          <ha-icon icon=${n?"mdi:chevron-up":"mdi:chevron-down"}></ha-icon>
+          aria-expanded=${i}>
+          ${g(s)}
+          <ha-icon icon=${i?"mdi:chevron-up":"mdi:chevron-down"}></ha-icon>
         </button>
         <button class="switch ${t.active?"on":""}" role="switch" aria-checked=${t.active}
           aria-label=${e.override} @click=${()=>this._call("override/set",{active:!t.active})}>
           <span></span>
         </button>
       </div>
-      ${n?d`<div class="box-body">
-            ${this._renderOverrideSlider(r,a)}
+      ${i?l`<div class="box-body">
+            ${this._renderOverrideSlider(s,o)}
             <div class="also">
               <span class="muted">${e.override_also}</span>
-              ${[["include_manual",t.include_manual,e.heat],["include_off",t.include_off,e.off]].map(([o,l,p])=>d`<button class="mini ${l?"on":""}"
-                  @click=${()=>this._call("override/set",{[o]:!l})}>${p}</button>`)}
+              ${[["include_manual",t.include_manual,e.heat],["include_off",t.include_off,e.off]].map(([r,d,p])=>l`<button class="mini ${d?"on":""}"
+                  @click=${()=>this._call("override/set",{[r]:!d})}>${p}</button>`)}
             </div>
           </div>`:c}
-    </div>`}_renderOverrideSlider(e,t){let n=b(this.hass),r=this._snap.override,a=[...this._snap.variables].sort((m,f)=>m.value-f.value),o=e??16,{min:l,max:p}=D(this._snap),h=[];for(let m=Math.ceil(l/5)*5;m<=p;m+=5)h.push(m);let u=m=>(Math.min(p,Math.max(l,m))-l)/(p-l)*100;return d`<div class="ov-slider" style="--thumb:${$(o)}">
+    </div>`}_renderOverrideSlider(e,t){let i=b(this.hass),s=this._snap.override,o=[...this._snap.variables].sort((m,_)=>m.value-_.value),r=e??16,{min:d,max:p}=T(this._snap),h=[];for(let m=Math.ceil(d/5)*5;m<=p;m+=5)h.push(m);let u=m=>(Math.min(p,Math.max(d,m))-d)/(p-d)*100;return l`<div class="ov-slider" style="--thumb:${$(r)}">
       <div class="ov-value">
         <button class="round small" aria-label="-0.5" @click=${()=>t(-.5)}>−</button>
         <span class="big-val swipeable ${this._swipe?.key==="override"&&this._swipe.moved?"swiping":""}"
-          title=${n.swipe_hint}
+          title=${i.swipe_hint}
           @pointerdown=${m=>this._swipeOverride(m,e)}
           @touchstart=${m=>this._swipeOverride(m,e)}>
-          ${_(o,!1)}<small>°C</small>
+          ${g(r,!1)}<small>°C</small>
         </span>
         <button class="round small" aria-label="+0.5" @click=${()=>t(.5)}>+</button>
       </div>
       <div class="track">
-        <input type="range" min=${l} max=${p} step="0.5" .value=${String(o)}
-          aria-label=${n.override}
-          style="background:${Ct(l,p)}"
+        <input type="range" min=${d} max=${p} step="0.5" .value=${String(r)}
+          aria-label=${i.override}
+          style="background:${Tt(d,p)}"
           @input=${m=>{this._pending.set("override",Number(m.target.value)),window.clearTimeout(this._timers.get("override")),this.requestUpdate()}}
-          @change=${async m=>{let f=Number(m.target.value);await this._call("override/set",{temperature:f}),this._pending.delete("override"),this.requestUpdate()}} />
-        ${a.map(m=>d`<i class="tick" style="left:${u(m.value)}%" title=${m.name}></i>`)}
+          @change=${async m=>{let _=Number(m.target.value);await this._call("override/set",{temperature:_}),this._pending.delete("override"),this.requestUpdate()}} />
+        ${o.map(m=>l`<i class="tick" style="left:${u(m.value)}%" title=${m.name}></i>`)}
       </div>
-      <div class="scale muted">${h.map(m=>d`<span style="left:${u(m)}%">${m}°</span>`)}</div>
-      ${a.length?d`<div class="quick">
-            ${a.map(m=>d`<button class="mini q ${r.variable===m.id?"on":""}"
+      <div class="scale muted">${h.map(m=>l`<span style="left:${u(m)}%">${m}°</span>`)}</div>
+      ${o.length?l`<div class="quick">
+            ${o.map(m=>l`<button class="mini q ${s.variable===m.id?"on":""}"
                 @click=${()=>this._call("override/set",{variable:m.id})}>
                 <span class="dot" style="background:${$(m.value)}"></span>${m.name}
-                <b>${_(m.value,!1)}°</b>
+                <b>${g(m.value,!1)}°</b>
               </button>`)}
           </div>`:c}
-    </div>`}_renderVariables(){let e=b(this.hass),t=this._snap.variables;return d`<div>
+    </div>`}_renderVariables(){let e=b(this.hass),t=this._snap.variables;return l`<div>
       <button class="vars-line" @click=${()=>this._varsOpen=!this._varsOpen}>
         <span class="vars-text">
-          ${t.map((n,r)=>d`${r?d`<span class="sep">·</span>`:c}<span>${n.name}
-                <b>${_(n.value,!1)}°</b></span>`)}
+          ${t.map((i,s)=>l`${s?l`<span class="sep">·</span>`:c}<span>${i.name}
+                <b>${g(i.value,!1)}°</b></span>`)}
         </span>
         <ha-icon icon=${this._varsOpen?"mdi:chevron-up":"mdi:chevron-right"}></ha-icon>
       </button>
-      ${this._varsOpen?d`<div class="var-list">
-            ${t.map(n=>d`<div class="var-row">
-                <span class="dot" style="background:${$(n.value)}"></span>
-                <span class="grow">${n.name}</span>
-                <button class="round small" @click=${()=>this._varStep(n.id,n.value,-.5)}>−</button>
-                <span class="val">${_(this._pending.get(`var:${n.id}`)??n.value)}</span>
-                <button class="round small" @click=${()=>this._varStep(n.id,n.value,.5)}>+</button>
+      ${this._varsOpen?l`<div class="var-list">
+            ${t.map(i=>l`<div class="var-row">
+                <span class="dot" style="background:${$(i.value)}"></span>
+                <span class="grow">${i.name}</span>
+                <button class="round small" @click=${()=>this._varStep(i.id,i.value,-.5)}>−</button>
+                <span class="val">${g(this._pending.get(`var:${i.id}`)??i.value)}</span>
+                <button class="round small" @click=${()=>this._varStep(i.id,i.value,.5)}>+</button>
               </div>`)}
             <div class="muted hint">${e.variables_note}</div>
           </div>`:c}
-    </div>`}_renderRoom(e,t=!1){let n=b(this.hass),r=this.hass,a=e.hvac_action==="heating",o=this._open===e.entry_id,l=this._config?.room?.show_periods?de(e)[0]:void 0;return d`<div class="room-block ${o?"open":""}">
-      <button class="room" @click=${()=>{this._consumeSwipe()||(this._open=o?void 0:e.entry_id)}}>
-        <span class="icon ${a?"heating":""} ${e.mode==="off"?"off":""}">
-          <ha-icon icon=${Ce(e)}></ha-icon>
+    </div>`}_renderRoom(e,t=!1){let i=b(this.hass),s=this.hass,o=e.hvac_action==="heating",r=this._open===e.entry_id,d=this._config?.room?.show_periods?de(e)[0]:void 0;return l`<div class="room-block ${r?"open":""}">
+      <button class="room" @click=${()=>{this._consumeSwipe()||(this._open=r?void 0:e.entry_id)}}>
+        <span class="icon ${o?"heating":""} ${e.mode==="off"?"off":""}">
+          <ha-icon icon=${Me(e)}></ha-icon>
         </span>
         <span class="grow left">
-          <span class="name">${e.name}${this._config?.room?.show_battery&&le(e)?.low?d`<ha-icon class="bat-low" icon="mdi:battery-alert-variant-outline"
-                title=${n.battery_low}></ha-icon>`:c}</span>
-          <span class="muted sub">${Re(e,n,r,t)}</span>
-          ${l?d`<span class="muted sub planned">
-                <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>${l.title} · ${n.period_from}
-                ${y(l.start,r)}
+          <span class="name">${e.name}${this._config?.room?.show_battery&&ce(e)?.low?l`<ha-icon class="bat-low" icon="mdi:battery-alert-variant-outline"
+                title=${i.battery_low}></ha-icon>`:c}</span>
+          <span class="muted sub">${Pe(e,i,s,t)}</span>
+          ${d?l`<span class="muted sub planned">
+                <ha-icon icon="mdi:calendar-clock-outline"></ha-icon>${d.title} · ${i.period_from}
+                ${k(d.start,s)}
               </span>`:c}
         </span>
         <span class="temps swipeable ${this._swipe?.key===`room:${e.entry_id}`&&this._swipe.moved?"swiping":""}"
-          title=${n.swipe_hint}
+          title=${i.swipe_hint}
           @pointerdown=${p=>this._swipeRoom(p,e)}
           @touchstart=${p=>this._swipeRoom(p,e)}>
-          <span class="cur">${_(e.current_temperature,!1)}°</span>
-          ${this._pending.has(`room:${e.entry_id}`)?d`<span class="tgt live">→ ${_(this._pending.get(`room:${e.entry_id}`),!1)}°</span>`:e.current_temperature==null||e.target_temperature==null||Math.abs(e.current_temperature-e.target_temperature)>=.5?d`<span class="muted tgt">→ ${_(e.target_temperature,!1)}°</span>`:c}
+          <span class="cur">${g(e.current_temperature,!1)}°</span>
+          ${this._pending.has(`room:${e.entry_id}`)?l`<span class="tgt live">→ ${g(this._pending.get(`room:${e.entry_id}`),!1)}°</span>`:e.current_temperature==null||e.target_temperature==null||Math.abs(e.current_temperature-e.target_temperature)>=.5?l`<span class="muted tgt">→ ${g(e.target_temperature,!1)}°</span>`:c}
         </span>
       </button>
-      ${o?d`<div class="detail">
+      ${r?l`<div class="detail">
             <bestthermostat-card .hass=${this.hass} .config=${this._cardConfig(e,!1)}></bestthermostat-card>
           </div>`:c}
-    </div>`}};J.properties={hass:{attribute:!1},_config:{state:!0},_snap:{state:!0},_error:{state:!0},_open:{state:!0},_ovOpen:{state:!0},_varsOpen:{state:!0},_unreachable:{state:!0}},J.styles=[P,k`
+    </div>`}};X.properties={hass:{attribute:!1},_config:{state:!0},_snap:{state:!0},_error:{state:!0},_open:{state:!0},_ovOpen:{state:!0},_varsOpen:{state:!0},_unreachable:{state:!0},_managing:{state:!0},_planning:{state:!0}},X.styles=[A,y`
       .update {
         display: flex;
         align-items: center;
@@ -1862,6 +2156,9 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
         }
         .top .vars-line {
           min-height: 48px;
+        }
+        .top .actions {
+          grid-column: 1 / -1;
         }
         .grid {
           display: grid;
@@ -2145,6 +2442,25 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
         background: var(--bt-accent);
         color: var(--text-primary-color, #fff);
       }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .mini.act {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 16px;
+        background: var(--bt-surface);
+        color: var(--primary-text-color);
+      }
+      .mini.act ha-icon {
+        --mdc-icon-size: 16px;
+        color: var(--bt-muted);
+      }
       .vars-line {
         display: flex;
         align-items: center;
@@ -2389,4 +2705,4 @@ var me=globalThis,fe=me.ShadowRoot&&(me.ShadyCSS===void 0||me.ShadyCSS.nativeSha
         min-height: 30px;
         font-size: 13px;
       }
-    `];A("bestthermostat-card",Y);A("bestthermostat-overview-card",J);var ze=window;ze.customCards=ze.customCards||[];var nt=(document.documentElement.lang||navigator.language||"").startsWith("de"),si=[{type:"bestthermostat-card",name:"Best Thermostat",description:nt?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:nt?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:nt?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let s of si)ze.customCards.some(i=>i?.type===s.type)||ze.customCards.push(s);console.info(`%c BEST-THERMOSTAT %c ${G} `,"background:#ff8100;color:#fff","");
+    `];S("bestthermostat-card",J);S("bestthermostat-overview-card",X);var Le=window;Le.customCards=Le.customCards||[];var rt=(document.documentElement.lang||navigator.language||"").startsWith("de"),di=[{type:"bestthermostat-card",name:"Best Thermostat",description:rt?"Raumthermostat mit Zeitpl\xE4nen und Wocheneditor":"Room thermostat with schedules and weekly editor",preview:!0,documentationURL:"https://github.com/zitroaen/bestthermostat"},{type:"bestthermostat-overview-card",name:rt?"Best Thermostat \xDCbersicht":"Best Thermostat Overview",description:rt?"Alle R\xE4ume, globaler Override und Variablen":"All rooms, global override and variables",preview:!0}];for(let a of di)Le.customCards.some(n=>n?.type===a.type)||Le.customCards.push(a);console.info(`%c BEST-THERMOSTAT %c ${Y} `,"background:#ff8100;color:#fff","");

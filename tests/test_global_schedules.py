@@ -267,14 +267,14 @@ async def test_services_with_label_target(
     """Services accept labels; a period for several rooms becomes a group."""
     office, _bathroom = rooms
     hub.create_global("Guest", week=GUEST, rooms=[])
-    label = lr.async_get(hass).async_create("Apartment")
+    label = lr.async_get(hass).async_create("Guest area")
     devices = dr.async_get(hass)
     for room in rooms:
         device = devices.async_get_device(identifiers={(DOMAIN, room.entry_id)})
         assert device is not None
         devices.async_update_device(device.id, labels={label.label_id})
     await settle(hass)
-    assert office.labels()[0]["name"] == "Apartment"
+    assert office.labels()[0]["name"] == "Guest area"
 
     response = await hass.services.async_call(
         DOMAIN,

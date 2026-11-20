@@ -47,6 +47,7 @@ export class BtWeekEditor extends LitElement {
     _drag: { state: true },
     _menu: { state: true },
     _copyRooms: { state: true },
+    _mkGlobal: { state: true },
     _info: { state: true },
   };
 
@@ -60,6 +61,8 @@ export class BtWeekEditor extends LitElement {
   _vars = false;
   _menu = false;
   _copyRooms?: Set<string>;
+  /** "Make global" sheet: rooms whose identical schedule is merged, offer in all rooms. */
+  _mkGlobal?: { sel: Set<string>; all: boolean };
   _info?: string;
   _error?: string;
   _nameAction?: NameAction;
@@ -76,6 +79,15 @@ export class BtWeekEditor extends LitElement {
 
   private get _server(): WeekData | undefined {
     return this.room?.schedules.find((s) => s.id === this._sid)?.week;
+  }
+
+  /** Editing the global schedules (opened from the schedule manager, no room). */
+  private get _globalMode(): boolean {
+    return !this.room?.entry_id;
+  }
+
+  private _isGlobal(id = this._sid): boolean {
+    return !!this.room?.schedules.find((s) => s.id === id)?.global;
   }
 
   private get _dirty(): boolean {
@@ -163,16 +175,17 @@ export class BtWeekEditor extends LitElement {
     if (!name || !this.room || !this._nameAction) return;
     const entry_id = this.room.entry_id;
     if (this._nameAction === "rename") {
-      await this._call("schedule/rename", { entry_id, schedule_id: this._sid, name });
+      if (this._isGlobal()) await this._call("global_schedule/rename", { schedule_id: this._sid, name });
+      else await this._call("schedule/rename", { entry_id, schedule_id: this._sid, name });
     } else {
       const draft = this._nameAction === "duplicate" && this._dirty ? this._draft : undefined;
-      const res = await this._call<{ id: string }>("schedule/create", {
-        entry_id,
-        name,
-        copy_from: this._sid,
-      });
+      // In a room a new schedule (also a copy of a global one) belongs to the room.
+      const res = this._globalMode
+        ? await this._call<{ id: string }>("global_schedule/create", { name, copy_from: this._sid })
+        : await this._call<{ id: string }>("schedule/create", { entry_id, name, copy_from: this._sid });
       if (res && draft) {
-        await this._call("schedule/save", { entry_id, schedule_id: res.id, week: draft });
+        if (this._globalMode) await this._call("global_schedule/save", { schedule_id: res.id, week: draft });
+        else await this._call("schedule/save", { entry_id, schedule_id: res.id, week: draft });
       }
       if (res) {
         // The schedule we came from keeps its saved state.
@@ -184,7 +197,27 @@ export class BtWeekEditor extends LitElement {
   }
 
   private async _delete() {
-    if (!this.room || !confirm(this._t.confirm_delete)) return;
+    if (!this.room) return;
+    const t = this._t;
+    if (this._isGlobal()) {
+      const g = this.snap?.global_schedules?.find((x) => x.id === this._sid);
+      if (!g) return;
+      const names = g.active.map((id) => this.snap?.rooms.find((r) => r.entry_id === id)?.name ?? "?").join(", ");
+      let text = g.active.length
+        ? t.confirm_delete_global_used.replace("{name}", g.name).replace("{rooms}", names)
+        : t.confirm_delete_global.replace("{name}", g.name);
+      if (g.periods.length) text += `\n${t.confirm_delete_global_periods}`;
+      if (!confirm(text)) return;
+      const ok = await this._call("global_schedule/delete", { schedule_id: this._sid });
+      if (ok) {
+        const rest = this.room.schedules.filter((s) => s.id !== this._sid && !s.hidden);
+        this._sid = this._globalMode ? rest[0]?.id : undefined;
+        this._draft = undefined;
+        if (this._globalMode && !rest.length) this.dispatchEvent(new CustomEvent("close"));
+      }
+      return;
+    }
+    if (!confirm(t.confirm_delete)) return;
     const ok = await this._call("schedule/delete", {
       entry_id: this.room.entry_id,
       schedule_id: this._sid,
@@ -202,11 +235,13 @@ export class BtWeekEditor extends LitElement {
 
   private async _save() {
     if (!this.room || !this._draft) return;
-    const ok = await this._call("schedule/save", {
-      entry_id: this.room.entry_id,
-      schedule_id: this._sid,
-      week: this._draft,
-    });
+    const ok = this._isGlobal()
+      ? await this._call("global_schedule/save", { schedule_id: this._sid, week: this._draft })
+      : await this._call("schedule/save", {
+          entry_id: this.room.entry_id,
+          schedule_id: this._sid,
+          week: this._draft,
+        });
     if (ok) this._sel = undefined;
   }
 
@@ -407,8 +442,8 @@ export class BtWeekEditor extends LitElement {
     const t = this._t;
     const room = this.room;
     const current = room.schedules.find((s) => s.id === this._sid);
-    const inEffect = current?.id === room.active_schedule;
-    const sheetOpen = !!this._sel || this._vars || !!this._nameAction || !!this._copyRooms;
+    const inEffect = this._globalMode || current?.id === room.active_schedule;
+    const sheetOpen = !!this._sel || this._vars || !!this._nameAction || !!this._copyRooms || !!this._mkGlobal;
     return html`
       <div class="backdrop" @click=${this._close}></div>
       <div class="dialog" role="dialog" aria-modal="true">
@@ -429,17 +464,28 @@ export class BtWeekEditor extends LitElement {
         <div class="content ${sheetOpen ? "sheet-open" : ""} ${this._dirty ? "dirty" : ""}"
           @click=${() => (this._menu = false)}>
           <div class="seg" role="tablist">
-            ${room.schedules.map(
-              (s) => html`<button role="tab" aria-selected=${s.id === this._sid}
-                @click=${() => this._selectSchedule(s.id)}>
-                ${s.name}${s.id === room.active_schedule ? html`<i class="active-dot"></i>` : nothing}
-              </button>`,
-            )}
+            ${room.schedules
+              .filter((s) => !s.hidden || s.id === this._sid)
+              .map(
+                (s) => html`<button role="tab" aria-selected=${s.id === this._sid}
+                  @click=${() => this._selectSchedule(s.id)}>
+                  ${s.global && !this._globalMode
+                    ? html`<ha-icon class="globe" icon="mdi:earth" title=${this._t.global_schedule}></ha-icon>`
+                    : nothing}${s.name}${s.id === room.active_schedule && !this._globalMode
+                    ? html`<i class="active-dot"></i>`
+                    : nothing}
+                </button>`,
+              )}
             <button class="plus" aria-label=${t.new_schedule} @click=${() => this._startName("new")}>
               <ha-icon icon="mdi:plus"></ha-icon>
             </button>
           </div>
 
+          ${current?.global && !this._globalMode
+            ? html`<div class="notice global">
+                <ha-icon icon="mdi:earth"></ha-icon><span>${t.global_hint}</span>
+              </div>`
+            : nothing}
           ${current && !inEffect
             ? html`<div class="notice">
                 <span>${t.not_active}</span>
@@ -463,6 +509,7 @@ export class BtWeekEditor extends LitElement {
         ${this._vars ? this._renderVariablesSheet() : nothing}
         ${this._nameAction ? this._renderNameSheet() : nothing}
         ${this._copyRooms ? this._renderCopyRoomsSheet() : nothing}
+        ${this._mkGlobal ? this._renderMakeGlobalSheet() : nothing}
 
         ${this._dirty && !sheetOpen
           ? html`<div class="savebar">
@@ -479,7 +526,9 @@ export class BtWeekEditor extends LitElement {
 
   private _renderMenu(room: RoomData) {
     const t = this._t;
-    const canDelete = this._sid !== room.base_schedule && room.schedules.length > 1;
+    const isGlobal = this._isGlobal();
+    const canDelete =
+      isGlobal || (this._sid !== room.base_schedule && room.schedules.filter((s) => !s.hidden).length > 1);
     const item = (icon: string, label: string, fn: () => void, cls = "", disabled = false) =>
       html`<button class="menu-item ${cls}" ?disabled=${disabled} @click=${() => {
         this._menu = false;
@@ -487,13 +536,18 @@ export class BtWeekEditor extends LitElement {
       }}><ha-icon icon=${icon}></ha-icon>${label}</button>`;
     return html`<div class="menu" role="menu">
       ${item("mdi:pencil-outline", t.rename, () => this._startName("rename"))}
-      ${item("mdi:content-copy", t.duplicate, () => this._startName("duplicate"))}
-      ${item("mdi:home-export-outline", t.copy_to_rooms, () => {
-        this._sel = undefined;
-        this._vars = false;
-        this._info = undefined;
-        this._copyRooms = new Set();
-      }, "", (this.snap?.rooms.length ?? 0) < 2)}
+      ${item("mdi:content-copy", isGlobal && !this._globalMode ? t.local_copy : t.duplicate, () =>
+        this._startName("duplicate"),
+      )}
+      ${this._globalMode || isGlobal
+        ? nothing
+        : html`${item("mdi:earth", t.make_global, () => this._startMakeGlobal())}
+          ${item("mdi:home-export-outline", t.copy_to_rooms, () => {
+            this._sel = undefined;
+            this._vars = false;
+            this._info = undefined;
+            this._copyRooms = new Set();
+          }, "", (this.snap?.rooms.length ?? 0) < 2)}`}
       ${item("mdi:thermometer-lines", t.manage_variables, () => {
         this._sel = undefined;
         this._vars = true;
@@ -731,6 +785,83 @@ export class BtWeekEditor extends LitElement {
     });
   }
 
+  /** Rooms with an own schedule whose saved plan equals the current one. */
+  private _identical(): { room: RoomData; id: string; name: string }[] {
+    const week = this._server;
+    if (!week || !this.room) return [];
+    const result: { room: RoomData; id: string; name: string }[] = [];
+    for (const r of this.snap?.rooms ?? []) {
+      if (r.entry_id === this.room.entry_id) continue;
+      const same = r.schedules.find((s) => !s.global && weekEqual(s.week, week));
+      if (same) result.push({ room: r, id: same.id, name: same.name });
+    }
+    return result;
+  }
+
+  private _startMakeGlobal() {
+    this._sel = undefined;
+    this._vars = false;
+    this._error = undefined;
+    this._mkGlobal = { sel: new Set(this._identical().map((x) => x.room.entry_id)), all: false };
+  }
+
+  private async _makeGlobal() {
+    if (!this.room || !this._mkGlobal) return;
+    if (this._dirty && !confirm(this._t.copy_unsaved)) return;
+    const merge = this._identical()
+      .filter((x) => this._mkGlobal!.sel.has(x.room.entry_id))
+      .map((x) => ({ entry_id: x.room.entry_id, schedule_id: x.id }));
+    const res = await this._call<{ id: string }>("schedule/make_global", {
+      entry_id: this.room.entry_id,
+      schedule_id: this._sid,
+      merge,
+      all_rooms: this._mkGlobal.all,
+    });
+    if (res) {
+      this._mkGlobal = undefined;
+      this._sid = res.id;
+      this._draft = undefined;
+    }
+  }
+
+  private _renderMakeGlobalSheet() {
+    const t = this._t;
+    const mk = this._mkGlobal!;
+    const name = this.room?.schedules.find((s) => s.id === this._sid)?.name ?? "";
+    const candidates = this._identical();
+    const toggle = (id: string) => {
+      const next = new Set(mk.sel);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      this._mkGlobal = { ...mk, sel: next };
+    };
+    const body = html`
+      <div class="muted small-text">${t.make_global_hint.replace("{name}", name)}</div>
+      <div class="room-list">
+        ${candidates.length
+          ? candidates.map((c) => {
+              const on = mk.sel.has(c.room.entry_id);
+              return html`<button class="room-pick ${on ? "on" : ""}" @click=${() => toggle(c.room.entry_id)}>
+                <ha-icon icon=${on ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+                <span class="grow">${c.room.name}</span>
+                <span class="muted small-text">${c.name}</span>
+              </button>`;
+            })
+          : html`<div class="muted small-text">${t.make_global_none}</div>`}
+      </div>
+      <button class="room-pick ${mk.all ? "on" : ""}" @click=${() => (this._mkGlobal = { ...mk, all: !mk.all })}>
+        <ha-icon icon=${mk.all ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+        <span class="grow">${t.make_global_all}</span>
+      </button>
+      ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
+      <div class="sheet-actions">
+        <button class="text-btn" @click=${() => (this._mkGlobal = undefined)}>${t.cancel}</button>
+        <span class="grow"></span>
+        <button class="primary-btn" ?disabled=${this._busy} @click=${this._makeGlobal}>${t.make_global_action}</button>
+      </div>`;
+    return this._sheet(`${t.make_global_action}: ${name}`, body, () => (this._mkGlobal = undefined));
+  }
+
   private _renderNameSheet() {
     const t = this._t;
     const label =
@@ -927,6 +1058,21 @@ export class BtWeekEditor extends LitElement {
         border-radius: 50%;
         background: var(--success-color, #3bb273);
         margin-left: 6px;
+      }
+      .notice.global {
+        justify-content: flex-start;
+        padding: 8px 12px;
+        background: color-mix(in srgb, var(--bt-accent) 12%, transparent);
+      }
+      .notice.global ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--bt-accent);
+        flex: none;
+      }
+      .globe {
+        --mdc-icon-size: 15px;
+        margin-right: 4px;
+        opacity: 0.75;
       }
       .notice {
         display: flex;

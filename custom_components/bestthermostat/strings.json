@@ -173,11 +173,11 @@
   "services": {
     "set_active_schedule": {
       "name": "Set active schedule",
-      "description": "Activates a schedule of one or more rooms.",
+      "description": "Activates a schedule (own or global) of one or more rooms.",
       "fields": {
         "schedule": {
           "name": "Schedule",
-          "description": "Name or ID of the schedule."
+          "description": "Name or ID of the schedule (own or global)."
         }
       }
     },
@@ -269,11 +269,11 @@
     },
     "add_period": {
       "name": "Add period",
-      "description": "Activates a schedule and/or mode for a period (now or later, until an end or cancelled). Afterwards the room continues as before. Returns the period id.",
+      "description": "Activates a schedule and/or mode for a period (now or later, until an end or cancelled). Afterwards the room continues as before. For several rooms (e.g. a label) one period with the same id is created in each room. Returns the period id.",
       "fields": {
         "schedule": {
           "name": "Schedule",
-          "description": "Name or ID of the schedule to activate."
+          "description": "Name or ID of the schedule to activate (own or global)."
         },
         "mode": {
           "name": "Mode",

@@ -173,11 +173,11 @@
   "services": {
     "set_active_schedule": {
       "name": "Aktiven Zeitplan setzen",
-      "description": "Aktiviert einen Zeitplan eines oder mehrerer Räume.",
+      "description": "Aktiviert einen Zeitplan (eigenen oder globalen) eines oder mehrerer Räume.",
       "fields": {
         "schedule": {
           "name": "Zeitplan",
-          "description": "Name oder ID des Zeitplans."
+          "description": "Name oder ID des Zeitplans (eigener oder globaler)."
         }
       }
     },
@@ -269,11 +269,11 @@
     },
     "add_period": {
       "name": "Zeitraum planen",
-      "description": "Aktiviert einen Zeitplan und/oder Modus für einen Zeitraum (jetzt oder später, bis zu einem Ende oder bis zum Abbrechen). Danach läuft der Raum wie vorher weiter. Liefert die ID des Zeitraums.",
+      "description": "Aktiviert einen Zeitplan und/oder Modus für einen Zeitraum (jetzt oder später, bis zu einem Ende oder bis zum Abbrechen). Danach läuft der Raum wie vorher weiter. Bei mehreren Räumen (z. B. über ein Label) bekommt jeder Raum einen Zeitraum mit derselben ID. Liefert die ID des Zeitraums.",
       "fields": {
         "schedule": {
           "name": "Zeitplan",
-          "description": "Name oder ID des zu aktivierenden Zeitplans."
+          "description": "Name oder ID des zu aktivierenden Zeitplans (eigener oder globaler)."
         },
         "mode": {
           "name": "Modus",

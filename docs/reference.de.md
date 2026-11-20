@@ -2,7 +2,8 @@
 
 *[English](reference.md) · [Zurück zum README](../README.de.md)*
 
-Alles im Detail: Entitäten, Einstellungen, Prioritäten, Zeiträume, Kartenoptionen und Services.
+Alles im Detail: Entitäten, Einstellungen, Prioritäten, Zeiträume, globale Zeitpläne,
+Kartenoptionen und Services.
 
 ## Entitäten
 
@@ -121,13 +122,25 @@ BACnet-Prioritäts-Array), beim Ende greift wieder die Ebene darunter.
   Temperaturänderung die Temperatur des Zeitraums an.
 - Wählst du am Raum **ausdrücklich einen Modus oder Zeitplan** (Karte, Raumthermostat,
   Select), endet der laufende Zeitraum.
-- Ein Zeitplan, der von einem geplanten Zeitraum verwendet wird, lässt sich nicht löschen.
+- Ein eigener Zeitplan des Raums, der von einem geplanten Zeitraum verwendet wird, lässt
+  sich nicht löschen (beim Löschen eines globalen Zeitplans werden seine Zeiträume
+  gelöscht, siehe [Globale Zeitpläne](#globale-zeitpläne)).
 
 **In der Karte:** „Zeitraum planen“ in der Raumkarte öffnet einen Dialog: Zeitplan, Manuell
 (mit Temperatur) oder Aus wählen, Beginn (jetzt oder Datum/Uhrzeit), Ende (bis auf
 Weiteres oder Datum/Uhrzeit) und optional einen Titel. Aktive und geplante Zeiträume
 werden aufgelistet; ein Tipp darauf öffnet sie zum Bearbeiten (alle Einstellungen, oder
 beenden/löschen). „+N weitere“ klappt die vollständige Liste auf.
+
+**Mehrere Räume gleichzeitig** (z. B. Besuch im Gästebereich): „Zeitraum planen“
+in der Übersichtskarte öffnet denselben Dialog mit einer Raumauswahl. Die Chips oben
+wählen alle Räume oder alle Räume mit einem Home-Assistant-**Label** (Labels der
+Best-Thermostat-Raumgeräte, vergeben in Home Assistant unter *Einstellungen → Geräte*).
+Ein solcher Zeitraum steht in jedem gewählten Raum mit derselben ID; er kann jeden
+globalen Zeitplan nutzen, auch einen, der in einem Raum nicht zur Auswahl steht. Beim
+Bearbeiten oder Löschen in einer Raumkarte wählst du, ob es für **alle Räume** der Gruppe
+oder **nur hier** gilt; „Beenden“ in der Zeitraum-Liste einer Raumkarte beendet ihn nur in
+diesem Raum.
 
 **Kalender:** Jeder Raum hat eine Entität `calendar.<raum>_zeitraume`. Dort siehst du alle
 Zeiträume und kannst sie anlegen, ändern und löschen. Der Titel bestimmt, was passiert:
@@ -163,10 +176,60 @@ action: bestthermostat.cancel_period
 data:
   entity_id: climate.arbeitszimmer
   period_id: 1a2b3c4d5e6f
+
+# Besuch in allen Räumen mit dem Label „Gästebereich“ (ein Zeitraum, gleiche ID in jedem Raum)
+action: bestthermostat.add_period
+target:
+  label_id: gastebereich
+data:
+  schedule: Besuch
+  start: "2026-11-13 14:00:00"
+  end: "2026-11-15 18:00:00"
 ```
 
 `bestthermostat.get_schedule` liefert pro Raum auch `period` (aktiv) und `periods` (alle
 geplanten).
+
+## Globale Zeitpläne
+
+Räume, die gleich heizen, teilen sich einen **globalen Zeitplan**, statt jeweils eine eigene
+Kopie zu pflegen. Ein globaler Zeitplan existiert nur einmal: Eine Änderung gilt in jedem
+Raum, der ihn nutzt. Räume mit Sonderwünschen (z. B. Bad, Schlafzimmer) behalten ihre
+**eigenen Zeitpläne**; die tauchen nie in anderen Räumen auf.
+
+- **Auswahl im Raum:** seine eigenen Zeitpläne plus die globalen Zeitpläne, die dort
+  **auswählbar** sind (mit Globus markiert). Jeder globale Zeitplan ist in allen Räumen
+  (auch später angelegten) oder nur in ausgewählten Räumen auswählbar – so bleiben die
+  Raumkarten kurz.
+- **Aktiv heißt auswählbar:** Wird ein globaler Zeitplan in einem Raum aktiviert (Karte,
+  Select, Service, „Zuweisen“), ist er dort auch auswählbar. Einen Raum, in dem er aktiv
+  ist, kannst du nicht aus der Auswahl nehmen; aktiviere dort zuerst einen anderen.
+- **Zeiträume** können jeden globalen Zeitplan in jedem Raum nutzen, auswählbar oder nicht.
+- **Namen** sind eindeutig: Ein globaler Zeitplan darf nicht heißen wie ein anderer
+  globaler Zeitplan oder ein eigener Zeitplan eines Raums, in dem er auswählbar ist.
+- **Global machen:** Im Wocheneditor eines Raums macht ⋮ → *Global machen …* aus einem
+  eigenen Zeitplan einen globalen. Andere Räume, deren eigener Zeitplan **genau denselben
+  Ablauf** hat (Name egal), werden angezeigt und sind vorausgewählt: Sie wechseln auf den
+  globalen Zeitplan, ihre Kopie wird entfernt; am Heizverhalten ändert sich nichts. Der
+  neue Zeitplan ist in diesen Räumen auswählbar oder, falls gewählt, in allen Räumen.
+- **Lokale Kopie:** Bei einem globalen Zeitplan bietet der Wocheneditor *Lokale Kopie*
+  (statt *Duplizieren*): ein neuer eigener Zeitplan des Raums, um ihn nur hier anzupassen.
+- **Löschen:** Wird ein globaler Zeitplan gelöscht, gehen alle Räume, in denen er **aktiv**
+  ist, auf **Aus** (Frostschutz), und **Zeiträume**, die ihn nutzen, werden gelöscht. Ein
+  solcher Raum behält einen anderen verfügbaren Zeitplan als Zeitplan für Auto; hat er
+  keinen, bekommt er eine eigene Kopie des gelöschten. Die Karte fragt vorher nach und
+  nennt die Räume.
+- Variablen, die ein globaler Zeitplan verwendet, lassen sich nicht löschen.
+
+<img src="images/schedule-manager.png" alt="Schedule manager" width="360">
+
+**Zeitplan-Manager** (Übersichtskarte → *Zeitpläne*): listet die globalen Zeitpläne mit
+dem heutigen Ablauf, den Räumen, in denen er aktiv ist, wo er auswählbar ist und welche
+Zeiträume ihn nutzen. Pro Zeitplan: Wochenplan bearbeiten (Stift), **Zuweisen …** (in den
+gewählten Räumen aktivieren), **Auswählbar in …** (Räume, die ihn anbieten; alle Räume
+gewählt = alle Räume, auch künftige), umbenennen, löschen. *Neuer globaler Zeitplan* legt
+einen aus dem Standardablauf an und öffnet den Editor. Die Raumauswahl hat Chips für alle
+Räume und für jedes Label.
 
 ## Karten
 
@@ -190,6 +253,7 @@ layout: tiles          # list (Raum antippen zum Aufklappen) oder tiles (alle R�
 show_summary: true
 show_override: true
 show_variables: true
+show_actions: true     # Buttons „Zeitpläne“ (Zeitplan-Manager) und „Zeitraum planen“ (mehrere Räume)
 group_by_floor: true
 exclude_rooms: [climate.keller]
 room:                  # gilt für alle Räume – dieselben Optionen wie die Raumkarte
@@ -231,18 +295,28 @@ Bereich automatisch vorgeschlagen. Räume ohne Stockwerk stehen unter „Weitere
 Beide Karten haben einen visuellen Editor. Der Wocheneditor öffnet sich über den Stift an
 der Zeitleiste (bzw. oben im Kopf, wenn die Zeitleiste ausgeblendet ist):
 
-- Oben zwischen Zeitplänen wechseln (der gültige hat einen grünen Punkt, „+“ legt einen
-  an); ein nicht aktiver Zeitplan lässt sich direkt dort aktivieren
+- Oben zwischen Zeitplänen wechseln (der gültige hat einen grünen Punkt, globale einen
+  Globus, „+“ legt einen eigenen an); ein nicht aktiver Zeitplan lässt sich direkt dort
+  aktivieren
 - Abschnitt antippen und im Sheet bearbeiten: Von/Bis mit −/+ (15-Minuten-Raster), feste
   Temperatur oder Variable, teilen, Tag kopieren (Mo–Fr / Wochenende / alle), löschen
 - Grenzen ziehen, um sie zu verschieben (die Uhrzeit wird dabei angezeigt)
 - Die Legende erklärt die Farben; „Bearbeiten“ öffnet die Variablen
-- ⋮-Menü: umbenennen, duplizieren, **in andere Räume kopieren** (ein gleichnamiger
-  Zeitplan wird ersetzt, sonst neu angelegt), Variablen verwalten, Zeitplan löschen
+- ⋮-Menü: umbenennen, duplizieren (*Lokale Kopie* bei einem globalen Zeitplan), **global
+  machen**, **in andere Räume kopieren** (ein gleichnamiger eigener Zeitplan wird
+  ersetzt, sonst neu angelegt), Variablen verwalten, Zeitplan löschen. Umbenennen,
+  Speichern und Löschen eines globalen Zeitplans gelten für alle Räume.
 - Änderungen werden erst mit **Speichern** übernommen – die Leiste erscheint, sobald
   etwas geändert wurde
 
 ## Services
+
+Services, die auf Räume wirken, nehmen ein **Ziel** (`target`): Raumthermostate
+(`entity_id`) und/oder Bereiche, Stockwerke, Geräte und Labels (`area_id`, `floor_id`,
+`device_id`, `label_id`). Alle darüber gefundenen Best-Thermostat-Räume werden verwendet.
+`add_period` für mehrere Räume legt in jedem einen Zeitraum mit derselben ID an, sodass
+`update_period` und `cancel_period` mit dieser ID und demselben Ziel alle betreffen. Ein
+Zeitplan-`name` kann ein eigener Zeitplan des Raums oder ein globaler Zeitplan sein.
 
 | Service | Zweck |
 |---|---|
