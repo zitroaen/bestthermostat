@@ -173,15 +173,11 @@
   "services": {
     "set_active_schedule": {
       "name": "Aktiven Zeitplan setzen",
-      "description": "Aktiviert einen Zeitplan eines oder mehrerer Räume.",
+      "description": "Aktiviert einen Zeitplan (eigenen oder globalen) eines oder mehrerer Räume.",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "schedule": {
           "name": "Zeitplan",
-          "description": "Name oder ID des Zeitplans."
+          "description": "Name oder ID des Zeitplans (eigener oder globaler)."
         }
       }
     },
@@ -189,10 +185,6 @@
       "name": "Modus setzen",
       "description": "Setzt Auto, Manuell oder Aus.",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "mode": {
           "name": "Modus",
           "description": "Betriebsmodus."
@@ -207,10 +199,6 @@
       "name": "Zeitpläne abrufen",
       "description": "Liefert Zustand, Zeitpläne und Wochenpläne von Räumen.",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "schedule": {
           "name": "Zeitplan",
           "description": "Nur dieser Zeitplan (optional)."
@@ -221,10 +209,6 @@
       "name": "Wochenplan setzen",
       "description": "Ersetzt den Wochenplan eines Zeitplans (legt ihn bei Bedarf an).",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "schedule": {
           "name": "Zeitplan",
           "description": "Name oder ID des Zeitplans."
@@ -285,15 +269,11 @@
     },
     "add_period": {
       "name": "Zeitraum planen",
-      "description": "Aktiviert einen Zeitplan und/oder Modus für einen Zeitraum (jetzt oder später, bis zu einem Ende oder bis zum Abbrechen). Danach läuft der Raum wie vorher weiter. Liefert die ID des Zeitraums.",
+      "description": "Aktiviert einen Zeitplan und/oder Modus für einen Zeitraum (jetzt oder später, bis zu einem Ende oder bis zum Abbrechen). Danach läuft der Raum wie vorher weiter. Bei mehreren Räumen (z. B. über ein Label) bekommt jeder Raum einen Zeitraum mit derselben ID. Liefert die ID des Zeitraums.",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "schedule": {
           "name": "Zeitplan",
-          "description": "Name oder ID des zu aktivierenden Zeitplans."
+          "description": "Name oder ID des zu aktivierenden Zeitplans (eigener oder globaler)."
         },
         "mode": {
           "name": "Modus",
@@ -325,10 +305,6 @@
       "name": "Zeitraum beenden",
       "description": "Beendet bzw. löscht einen geplanten Zeitraum; ohne ID alle Zeiträume des Raums.",
       "fields": {
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
-        },
         "period_id": {
           "name": "Zeitraum-ID",
           "description": "Von add_period gelieferte ID."
@@ -342,10 +318,6 @@
         "period_id": {
           "name": "Zeitraum-ID",
           "description": "ID des Zeitraums."
-        },
-        "entity_id": {
-          "name": "Raum",
-          "description": "Raumthermostat(e)."
         },
         "schedule": {
           "name": "Zeitplan",

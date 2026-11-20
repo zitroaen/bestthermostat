@@ -1,5 +1,5 @@
 // Shared presentation helpers for the room and overview cards.
-import type { HomeAssistant, RoomData, Snapshot } from "./api";
+import type { HomeAssistant, RoomData, ScheduleData, Snapshot } from "./api";
 import { fmtTemp, fmtTime, type Strings } from "./utils";
 
 export function scheduleName(room: RoomData, id: string): string {
@@ -7,6 +7,11 @@ export function scheduleName(room: RoomData, id: string): string {
 }
 
 /** Icon of the room: the icon of its Home Assistant area, else a state icon. */
+/** Schedules offered for selection in a room (own and visible global ones). */
+export function offered(room: RoomData): ScheduleData[] {
+  return room.schedules.filter((s) => !s.hidden);
+}
+
 export function roomIcon(room: RoomData): string {
   if (room.area?.icon) return room.area.icon;
   if (room.override_active) return "mdi:home-export-outline";

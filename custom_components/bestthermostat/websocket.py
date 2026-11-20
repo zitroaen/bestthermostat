@@ -45,6 +45,9 @@ def _build_snapshot(hass: HomeAssistant) -> dict[str, Any]:
             (c.as_dict() for c in hub.controllers.values()), key=lambda r: r["name"].casefold()
         ),
         "variables": [v.to_dict() for v in hub.variables.values()],
+        "global_schedules": [
+            {**sched.to_dict(), **hub.global_usage(sched.id)} for sched in hub.schedules.values()
+        ],
         "override": {
             "active": hub.override.active,
             "temperature": hub.override.temperature,
@@ -68,24 +71,47 @@ def _dt(value: str | None) -> datetime | None:
 def _copy_to_rooms(
     hass: HomeAssistant, entry_id: str, schedule_id: str, targets: list[str]
 ) -> dict[str, Any]:
-    """Copy a schedule to other rooms (same name: replaced, otherwise created)."""
+    """Copy a room's own schedule to other rooms (same name: replaced, else created)."""
     source = _room(hass, entry_id)
     sched = source.find_schedule(schedule_id)
+    if source.is_global(sched.id):
+        raise HomeAssistantError(f"{sched.name!r} is global and already shared")
     week = sched.week.to_dict()
     created, replaced = [], []
     for target_id in targets:
         if target_id == entry_id:
             continue
         target = _room(hass, target_id)
-        try:
-            existing = target.find_schedule(sched.name)
-        except HomeAssistantError:
+        existing = next(
+            (
+                s
+                for s in target.state.schedules.values()
+                if s.name.casefold() == sched.name.casefold()
+            ),
+            None,
+        )
+        if existing is None:
             target.create_schedule(sched.name, week=week)
             created.append(target.name)
         else:
             target.save_week(existing.id, week)
             replaced.append(target.name)
     return {"created": created, "replaced": replaced}
+
+
+def _periods_result(pairs: list[tuple[RoomController, Any]]) -> dict[str, Any]:
+    return {"periods": [{"entry_id": r.entry_id, **r.period_dict(p)} for r, p in pairs]}
+
+
+def _period_fields(msg: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "start": _dt(msg.get("start")),
+        "end": _dt(msg.get("end")),
+        "schedule": msg.get("schedule_id"),
+        "mode": msg.get("mode"),
+        "temperature": msg.get("temperature"),
+        "summary": msg.get("summary"),
+    }
 
 
 def _room(hass: HomeAssistant, entry_id: str) -> RoomController:
@@ -294,6 +320,119 @@ def async_register_websocket(hass: HomeAssistant) -> None:
                 vol.Required("targets"): [str],
             },
             lambda h, m: _copy_to_rooms(h, m["entry_id"], m["schedule_id"], m["targets"]),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "global_schedule/create",
+                vol.Required("name"): str,
+                vol.Optional("copy_from"): str,
+                vol.Optional("week"): dict,
+                vol.Optional("rooms"): vol.Any(None, [str]),
+            },
+            lambda h, m: (
+                get_hub(h)
+                .create_global(
+                    m["name"],
+                    week=m.get("week"),
+                    copy_from=m.get("copy_from"),
+                    rooms=m.get("rooms"),
+                )
+                .to_dict()
+            ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "global_schedule/rename",
+                sched: str,
+                vol.Required("name"): str,
+            },
+            _ok(lambda h, m: get_hub(h).rename_global(m["schedule_id"], m["name"])),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "global_schedule/save",
+                sched: str,
+                vol.Required("week"): dict,
+            },
+            _ok(lambda h, m: get_hub(h).save_global_week(m["schedule_id"], m["week"])),
+        ),
+        _handler(
+            {vol.Required("type"): t + "global_schedule/delete", sched: str},
+            lambda h, m: get_hub(h).delete_global(m["schedule_id"]),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "global_schedule/rooms",
+                sched: str,
+                vol.Required("rooms"): vol.Any(None, [str]),
+            },
+            _ok(lambda h, m: get_hub(h).set_global_rooms(m["schedule_id"], m["rooms"])),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "global_schedule/assign",
+                sched: str,
+                vol.Required("entry_ids"): [str],
+            },
+            _ok(lambda h, m: get_hub(h).assign_global(m["schedule_id"], m["entry_ids"])),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "schedule/make_global",
+                entry: str,
+                sched: str,
+                vol.Optional("merge", default=[]): [
+                    {vol.Required("entry_id"): str, vol.Required("schedule_id"): str}
+                ],
+                vol.Optional("all_rooms", default=False): bool,
+            },
+            lambda h, m: (
+                get_hub(h)
+                .make_global(
+                    m["entry_id"],
+                    m["schedule_id"],
+                    [(x["entry_id"], x["schedule_id"]) for x in m["merge"]],
+                    all_rooms=m["all_rooms"],
+                )
+                .to_dict()
+            ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "period/add_group",
+                vol.Required("entry_ids"): [str],
+                vol.Optional("schedule_id"): str,
+                vol.Optional("mode"): str,
+                vol.Optional("temperature"): vol.Coerce(float),
+                vol.Optional("start"): str,
+                vol.Optional("end"): str,
+                vol.Optional("summary"): str,
+            },
+            lambda h, m: _periods_result(
+                get_hub(h).add_group_period(m["entry_ids"], **_period_fields(m))
+            ),
+        ),
+        _handler(
+            {
+                vol.Required("type"): t + "period/update_group",
+                vol.Required("group"): str,
+                vol.Optional("schedule_id"): str,
+                vol.Optional("mode"): str,
+                vol.Optional("temperature"): vol.Coerce(float),
+                vol.Optional("start"): str,
+                vol.Optional("end"): str,
+                vol.Optional("open_end"): bool,
+                vol.Optional("summary"): str,
+            },
+            lambda h, m: _periods_result(
+                get_hub(h).update_group_period(
+                    m["group"], **_period_fields(m), open_end=m.get("open_end", False)
+                )
+            ),
+        ),
+        _handler(
+            {vol.Required("type"): t + "period/cancel_group", vol.Required("group"): str},
+            lambda h, m: {"rooms": get_hub(h).cancel_group_period(m["group"])},
         ),
         _handler(
             {

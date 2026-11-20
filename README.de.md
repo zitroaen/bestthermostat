@@ -21,11 +21,14 @@ alles deutsch.
   werden synchron gehalten.
 - **Wochenpläne** mit grafischem Editor. Ein Raum kann mehrere haben (z. B. „Arbeit“ und
   „Gäste“), umschalten geht mit einem Tipp.
+- **Globale Zeitpläne** für viele Räume: einmal ändern, alle Räume folgen. Sonderräume
+  behalten ihre eigenen Pläne.
 - **Variablen** wie „Komfort“ und „Absenk“: Wert einmal ändern, alle Pläne folgen.
 - **Globaler Override**, z. B. wenn niemand zu Hause ist. Nach dem Ausschalten ist alles
   genau wie vorher.
-- **Zeiträume**: „Gästeplan von Freitag bis Sonntag“ oder „Bad drei Stunden auf 23 °C“.
-  Danach läuft der Raum weiter wie zuvor.
+- **Zeiträume**: „Gästeplan von Freitag bis Sonntag“ oder „Bad drei Stunden auf 23 °C“,
+  auch für mehrere Räume auf einmal (z. B. alle Räume mit einem Label). Danach laufen die
+  Räume weiter wie zuvor.
 - **Drei Modi** je Raum: *Auto* (Zeitplan), *Manuell* (feste Temperatur) und *Aus*
   (Frostschutz).
 - Änderungen **direkt am Thermostat** werden erkannt und so behandelt, wie du es je Raum

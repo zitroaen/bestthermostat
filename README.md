@@ -18,12 +18,15 @@ exposes as a `climate` entity (ZHA, Zigbee2MQTT, …).
   sync.
 - **Weekly schedules** with a visual editor. A room can have several (e.g. "Work" and
   "Guest") and you switch between them with one tap.
+- **Global schedules** shared by many rooms: edit once, every room follows. Special rooms
+  keep their own schedules.
 - **Variables** such as "Comfort" and "Eco": change the value once and every schedule
   that uses it follows.
 - **Global override**, e.g. while nobody is home. Turn it off and everything is exactly
   as before.
 - **Periods**: "guest schedule from Friday to Sunday" or "bathroom at 23 °C for three
-  hours". Afterwards the room continues as before.
+  hours", also for several rooms at once (e.g. all rooms with a label). Afterwards the
+  rooms continue as before.
 - **Three modes** per room: *Auto* (schedule), *Manual* (fixed temperature) and *Off*
   (frost protection).
 - Changes made **directly on a thermostat** are picked up and handled the way you choose

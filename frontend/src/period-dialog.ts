@@ -1,7 +1,8 @@
 import { LitElement, css, html, nothing } from "lit";
-import type { HomeAssistant, PeriodData, RoomData } from "./api";
+import type { HomeAssistant, PeriodData, RoomData, ScheduleData, Snapshot } from "./api";
 import { ws } from "./api";
-import { shared } from "./styles";
+import "./room-picker";
+import { dialogFrame, shared } from "./styles";
 import { fmtTemp, strings, define } from "./utils";
 
 type What = { kind: "schedule"; id: string } | { kind: "mode"; mode: "auto" | "heat" | "off" };
@@ -24,7 +25,10 @@ export class BtPeriodDialog extends LitElement {
     hass: { attribute: false },
     room: { attribute: false },
     period: { attribute: false },
+    snap: { attribute: false },
     _what: { state: true },
+    _rooms: { state: true },
+    _scope: { state: true },
     _temp: { state: true },
     _startNow: { state: true },
     _start: { state: true },
@@ -36,8 +40,14 @@ export class BtPeriodDialog extends LitElement {
   };
 
   hass?: HomeAssistant;
+  /** The room; without a room the period is planned for several rooms (``_rooms``). */
   room?: RoomData;
   period?: PeriodData;
+  snap?: Snapshot;
+  /** Group mode: selected rooms (entry ids). */
+  _rooms: Set<string> = new Set();
+  /** Editing a period planned for several rooms: change all of them or only this room. */
+  _scope: "group" | "room" = "group";
   private _initialized = false;
   _what?: What;
   _temp = 21;
@@ -67,7 +77,32 @@ export class BtPeriodDialog extends LitElement {
     if (ev.key === "Escape") this._close();
   };
 
+  private get _group(): boolean {
+    return !this.room;
+  }
+
+  /** Rooms that share the edited period (planned together). */
+  private get _groupRooms(): RoomData[] {
+    const group = this.period?.group;
+    if (!group || !this.snap) return [];
+    return this.snap.rooms.filter((r) => r.periods.some((p) => p.group === group));
+  }
+
+  /** Schedules to choose from: the room's (not hidden) or, for several rooms, the global ones. */
+  private get _schedules(): ScheduleData[] {
+    if (this._group || (this.period?.group && this._scope === "group" && this._groupRooms.length > 1)) {
+      return (this.snap?.global_schedules ?? []).map((g) => ({ id: g.id, name: g.name, week: g.week, global: true }));
+    }
+    return (this.room?.schedules ?? []).filter((s) => !s.hidden || s.id === this.period?.schedule);
+  }
+
   protected willUpdate() {
+    if (!this._initialized && this._group && this.snap) {
+      this._initialized = true;
+      const first = this.snap.global_schedules?.[0];
+      this._what = first ? { kind: "schedule", id: first.id } : { kind: "mode", mode: "off" };
+      this._temp = 21;
+    }
     if (!this._initialized && this.room && this.period) {
       this._initialized = true;
       const p = this.period;
@@ -81,7 +116,7 @@ export class BtPeriodDialog extends LitElement {
       this._title = p.summary ?? "";
     }
     if (!this._what && this.room) {
-      const other = this.room.schedules.find((s) => s.id !== this.room!.base_schedule);
+      const other = this.room.schedules.find((s) => s.id !== this.room!.base_schedule && !s.hidden);
       this._what = other ? { kind: "schedule", id: other.id } : { kind: "mode", mode: "off" };
       this._temp = Math.round((this.room.target_temperature ?? 21) * 2) / 2;
     }
@@ -93,6 +128,7 @@ export class BtPeriodDialog extends LitElement {
 
   private get _valid(): string | undefined {
     const t = this._t;
+    if (this._group && !this._rooms.size) return t.need_rooms;
     const start = this._startNow ? new Date() : new Date(this._start);
     if (!this._startNow && Number.isNaN(start.getTime())) return t.period_invalid;
     if (!this._openEnd) {
@@ -103,8 +139,14 @@ export class BtPeriodDialog extends LitElement {
   }
 
   private async _save() {
-    if (!this.hass || !this.room || !this._what) return;
-    const data: Record<string, unknown> = { entry_id: this.room.entry_id };
+    if (!this.hass || !this._what) return;
+    if (!this.room && !this._group) return;
+    const groupEdit = !!this.period?.group && this._scope === "group" && this._groupRooms.length > 1;
+    const data: Record<string, unknown> = this.room
+      ? groupEdit
+        ? { group: this.period!.group }
+        : { entry_id: this.room.entry_id }
+      : { entry_ids: [...this._rooms] };
     if (this._what.kind === "schedule") data.schedule_id = this._what.id;
     else {
       data.mode = this._what.mode;
@@ -116,13 +158,20 @@ export class BtPeriodDialog extends LitElement {
     if (!this._openEnd) data.end = this._end;
     else if (editing) data.open_end = true;
     if (editing) {
-      data.period_id = this.period!.id;
+      if (!groupEdit) data.period_id = this.period!.id;
       data.summary = this._title.trim();
     } else if (this._title.trim()) data.summary = this._title.trim();
+    const type = editing
+      ? groupEdit
+        ? "period/update_group"
+        : "period/update"
+      : this._group
+        ? "period/add_group"
+        : "period/add";
     this._busy = true;
     this._error = undefined;
     try {
-      await ws(this.hass, editing ? "period/update" : "period/add", data);
+      await ws(this.hass, type, data);
       this._close();
     } catch (err: any) {
       this._error = err?.message ?? String(err);
@@ -135,10 +184,14 @@ export class BtPeriodDialog extends LitElement {
     if (!this.hass || !this.room || !this.period) return;
     this._busy = true;
     try {
-      await ws(this.hass, "period/cancel", {
-        entry_id: this.room.entry_id,
-        period_id: this.period.id,
-      });
+      if (this.period.group && this._scope === "group" && this._groupRooms.length > 1) {
+        await ws(this.hass, "period/cancel_group", { group: this.period.group });
+      } else {
+        await ws(this.hass, "period/cancel", {
+          entry_id: this.room.entry_id,
+          period_id: this.period.id,
+        });
+      }
       this._close();
     } catch (err: any) {
       this._error = err?.message ?? String(err);
@@ -154,10 +207,13 @@ export class BtPeriodDialog extends LitElement {
   }
 
   protected render() {
-    if (!this.room) return nothing;
+    if (!this.room && !(this._group && this.snap)) return nothing;
     const t = this._t;
     const room = this.room;
     const invalid = this._valid;
+    const groupRooms = this._groupRooms;
+    const minT = room?.min_temp ?? this.snap?.limits?.min ?? 4;
+    const maxT = room?.max_temp ?? this.snap?.limits?.max ?? 35;
     const modes: ["auto" | "heat" | "off", string][] = [
       ["heat", t.heat],
       ["off", t.off],
@@ -168,20 +224,41 @@ export class BtPeriodDialog extends LitElement {
         <header>
           <div class="h-title">
             <div class="h-name">${this.period ? t.period_edit : t.period_plan}</div>
-            <div class="muted h-sub">${room.name}</div>
+            <div class="muted h-sub">${room ? room.name : t.select_rooms}</div>
           </div>
           <button class="round small" @click=${this._close} aria-label=${t.close}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
         </header>
         <div class="content">
+          ${this._group
+            ? html`<section>
+                <div class="label">${t.select_rooms}</div>
+                <bt-room-picker .hass=${this.hass} .rooms=${this.snap!.rooms} .selected=${this._rooms}
+                  @change=${(e: CustomEvent<Set<string>>) => (this._rooms = e.detail)}></bt-room-picker>
+              </section>`
+            : nothing}
+          ${groupRooms.length > 1
+            ? html`<section>
+                <div class="label">${t.group_scope}</div>
+                <div class="chips">
+                  <button class="chip" aria-pressed=${this._scope === "group"} @click=${() => (this._scope = "group")}>
+                    <ha-icon icon="mdi:home-group"></ha-icon>${t.group_all.replace("{n}", String(groupRooms.length))}
+                  </button>
+                  <button class="chip" aria-pressed=${this._scope === "room"} @click=${() => (this._scope = "room")}>
+                    <ha-icon icon="mdi:home-outline"></ha-icon>${t.group_here}
+                  </button>
+                </div>
+                <div class="muted small">${t.group_rooms}: ${groupRooms.map((r) => r.name).join(", ")}</div>
+              </section>`
+            : nothing}
           <section>
             <div class="label">${t.period_what}</div>
             <div class="chips">
-              ${room.schedules.map(
+              ${this._schedules.map(
                 (s) => html`<button class="chip" aria-pressed=${this._isWhat({ kind: "schedule", id: s.id })}
                   @click=${() => (this._what = { kind: "schedule", id: s.id })}>
-                  <ha-icon icon="mdi:calendar-clock"></ha-icon>${s.name}
+                  <ha-icon icon=${s.global ? "mdi:earth" : "mdi:calendar-clock"}></ha-icon>${s.name}
                 </button>`,
               )}
               ${modes.map(
@@ -193,9 +270,9 @@ export class BtPeriodDialog extends LitElement {
             </div>
             ${this._what?.kind === "mode" && this._what.mode === "heat"
               ? html`<div class="temp-row">
-                  <button class="round" @click=${() => (this._temp = Math.max(this.room?.min_temp ?? 4, this._temp - 0.5))}>−</button>
+                  <button class="round" @click=${() => (this._temp = Math.max(minT, this._temp - 0.5))}>−</button>
                   <span class="temp-val">${fmtTemp(this._temp)}</span>
-                  <button class="round" @click=${() => (this._temp = Math.min(this.room?.max_temp ?? 35, this._temp + 0.5))}>+</button>
+                  <button class="round" @click=${() => (this._temp = Math.min(maxT, this._temp + 0.5))}>+</button>
                 </div>`
               : nothing}
           </section>
@@ -243,7 +320,7 @@ export class BtPeriodDialog extends LitElement {
         <footer>
           ${this.period
             ? html`<button class="text-btn danger" ?disabled=${this._busy} @click=${this._delete}>
-                <ha-icon icon="mdi:delete-outline"></ha-icon>${this.period && this.room?.period?.id === this.period.id ? t.period_end : t.period_delete}
+                <ha-icon icon="mdi:delete-outline"></ha-icon>${this.period && room?.period?.id === this.period.id ? t.period_end : t.period_delete}
               </button>`
             : nothing}
           <span class="spacer"></span>
@@ -258,92 +335,8 @@ export class BtPeriodDialog extends LitElement {
 
   static styles = [
     shared,
+    dialogFrame,
     css`
-      :host {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary-text-color);
-      }
-      .backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-      }
-      .dialog {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        width: min(520px, 100vw);
-        max-height: min(760px, 100dvh);
-        background: var(--card-background-color, var(--primary-background-color));
-        border-radius: var(--bt-radius);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-      }
-      @media (max-width: 600px) {
-        .dialog {
-          width: 100vw;
-          height: 100dvh;
-          max-height: none;
-          border-radius: 0;
-        }
-      }
-      header,
-      footer {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        padding-left: max(16px, env(safe-area-inset-left));
-        padding-right: max(16px, env(safe-area-inset-right));
-      }
-      header {
-        border-bottom: 1px solid var(--divider-color);
-        padding-top: max(12px, env(safe-area-inset-top));
-      }
-      footer {
-        justify-content: flex-end;
-        border-top: 1px solid var(--divider-color);
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-      }
-      .h-title {
-        flex: 1;
-      }
-      .h-name {
-        font-weight: 600;
-        font-size: 17px;
-      }
-      .h-sub {
-        font-size: 13px;
-      }
-      .content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-      }
-      section {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .label {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--bt-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .label .muted {
-        text-transform: none;
-        font-weight: 400;
-      }
       .chip ha-icon,
       .round ha-icon {
         --mdc-icon-size: 18px;

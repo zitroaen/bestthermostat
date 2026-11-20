@@ -17,6 +17,10 @@ const LABELS: Record<string, { de: string; en: string }> = {
   title: { de: "Titel", en: "Title" },
   show_override: { de: "Globalen Override anzeigen", en: "Show global override" },
   show_variables: { de: "Variablen anzeigen", en: "Show variables" },
+  show_actions: {
+    de: "Zeitpläne und Gruppen-Zeiträume anzeigen",
+    en: "Show schedules and group periods",
+  },
   group_by_floor: { de: "Nach Stockwerk gruppieren", en: "Group by floor" },
   layout: { de: "Darstellung", en: "Layout" },
   show_summary: { de: "Zusammenfassung anzeigen", en: "Show summary" },
@@ -80,6 +84,7 @@ function overviewSchema(de: boolean) {
         { name: "show_summary", selector: { boolean: {} } },
         { name: "show_override", selector: { boolean: {} } },
         { name: "show_variables", selector: { boolean: {} } },
+        { name: "show_actions", selector: { boolean: {} } },
         { name: "group_by_floor", selector: { boolean: {} } },
       ],
     },
@@ -168,6 +173,7 @@ export class BestThermostatOverviewEditor extends BaseEditor {
     show_summary: true,
     show_override: true,
     show_variables: true,
+    show_actions: true,
     group_by_floor: true,
     room: {
       show_modes: true,

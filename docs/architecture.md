@@ -33,8 +33,19 @@ with the first room) and one entry per room. The hub lives in `hass.data[DOMAIN]
 controllers in `entry.runtime_data`.
 
 **Storage** (`homeassistant.helpers.storage.Store`): `variables`, `override`
-(`active`, `temperature`, `variable`, `include_manual`, `include_off`) and per room
-`schedules`, `active_schedule`, `mode`, `manual_temperature`, hand change and `periods`.
+(`active`, `temperature`, `variable`, `include_manual`, `include_off`), global
+`schedules` (`id`, `name`, `week`, `rooms`: entry ids or null = all) and per room its own
+`schedules`, `active_schedule` (own or global id), `mode`, `manual_temperature`, hand
+change and `periods` (a period may reference a global schedule; periods planned together
+share `id` = `group`).
+
+**Global schedules:** `Hub.schedules` (`SharedSchedule`, ids start with `g_`). Every
+`RoomState.shared` references this same dict (never reassign it), so `RoomState.lookup()`
+resolves own and global ids. Changes to a global schedule go through the hub
+(`create_global`, `rename_global`, `save_global_week`, `set_global_rooms`,
+`assign_global`, `delete_global`, `make_global`), which re-evaluates every room once and
+notifies the cards once. Room methods (`save_week`, `rename_schedule`, `delete_schedule`)
+forward global ids to the hub.
 Room configuration (TRVs, frost temperature, hand-change behaviour, sync, hide) lives in
 `entry.options`.
 
@@ -101,10 +112,16 @@ All commands are `bestthermostat/<name>` (see `websocket.py`):
 | `schedule/create`, `rename`, `delete`, `save`, `activate`, `copy_to_rooms` | Schedules |
 | `variable/create`, `update`, `delete` | Global variables |
 | `override/set` | Global override |
-| `period/add`, `update`, `cancel` | Periods |
+| `period/add`, `update`, `cancel` | Periods of one room |
+| `period/add_group`, `update_group`, `cancel_group` | Periods for several rooms (`entry_ids`, `group`) |
+| `global_schedule/create`, `rename`, `save`, `delete`, `rooms`, `assign` | Global schedules |
+| `schedule/make_global` | Turn an own schedule global, merging identical ones (`merge`, `all_rooms`) |
 
-A snapshot is `{version, rooms[], variables[], override}`; a room is
-`RoomController.as_dict()` (typed in `frontend/src/api.ts` as `RoomData`). Errors are
+A snapshot is `{version, limits, rooms[], variables[], global_schedules[], override}`; a
+room is `RoomController.as_dict()` (typed in `frontend/src/api.ts` as `RoomData`). A
+room's `schedules` are its own, the visible global ones (`global: true`) and global ones
+used by it but not visible (`hidden: true`); `labels` are the labels of the room device.
+`global_schedules` adds `active` and `periods` (entry ids using it) to each schedule. Errors are
 `HomeAssistantError`s and reach the card as the message text.
 
 ## Frontend
@@ -120,7 +137,10 @@ frontend/src/
   card.ts           <bestthermostat-card> room card (also embedded by the overview)
   overview-card.ts  <bestthermostat-overview-card>
   week-editor.ts    <bt-week-editor> full-screen weekly editor (appended to document.body)
-  period-dialog.ts  <bt-period-dialog> plan/edit a period (appended to document.body)
+  period-dialog.ts  <bt-period-dialog> plan/edit a period; without a room: for several rooms
+  schedule-manager.ts <bt-schedule-manager> global schedules (overview card, document.body);
+                    opens <bt-week-editor> with a pseudo room (entry_id "") for global schedules
+  room-picker.ts    <bt-room-picker> room checkboxes with chips for all rooms and labels
   config-editor.ts  visual editors of both cards (ha-form schemas)
   version.ts        CARD_VERSION, must equal the manifest version
 ```

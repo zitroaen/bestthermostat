@@ -29,8 +29,11 @@ class ScheduleSelect(RoomEntity, SelectEntity):
 
     @property
     def options(self) -> list[str]:
-        """Schedule names."""
-        return [s.name for s in self.controller.state.schedules.values()]
+        """Own and visible global schedules (plus the one in effect, e.g. by a period)."""
+        names = [s.name for s in self.controller.available_schedules()]
+        if (active := self.controller.active_schedule.name) not in names:
+            names.append(active)
+        return names
 
     @property
     def current_option(self) -> str | None:

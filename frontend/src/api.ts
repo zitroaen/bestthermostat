@@ -30,6 +30,29 @@ export interface ScheduleData {
   id: string;
   name: string;
   week: WeekData;
+  /** A global schedule (shared by rooms). */
+  global?: boolean;
+  /** Global schedule in use here (period) but not offered for selection. */
+  hidden?: boolean;
+}
+
+export interface GlobalScheduleData {
+  id: string;
+  name: string;
+  week: WeekData;
+  /** Rooms (entry ids) that offer it; null = all rooms. */
+  rooms: string[] | null;
+  /** Rooms whose active schedule it is. */
+  active: string[];
+  /** Rooms with a period that uses it. */
+  periods: string[];
+}
+
+export interface LabelData {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
 }
 
 export interface PeriodData {
@@ -41,6 +64,8 @@ export interface PeriodData {
   mode: "auto" | "heat" | "off" | null;
   temperature: number | null;
   summary: string | null;
+  /** Shared id of periods planned together for several rooms. */
+  group?: string | null;
   title: string;
 }
 
@@ -90,6 +115,7 @@ export interface RoomData {
   next_change: string | null;
   next_temperature: number | null;
   schedules: ScheduleData[];
+  labels?: LabelData[];
 }
 
 export interface VariableData {
@@ -119,6 +145,7 @@ export interface Snapshot {
   limits?: Limits;
   rooms: RoomData[];
   variables: VariableData[];
+  global_schedules?: GlobalScheduleData[];
   override: OverrideData;
 }
 
@@ -158,6 +185,9 @@ function share(prev: Snapshot | undefined, next: Snapshot): Snapshot {
       return o && same(o, r) ? o : r;
     }),
     variables: same(prev.variables, next.variables) ? prev.variables : next.variables,
+    global_schedules: same(prev.global_schedules, next.global_schedules)
+      ? prev.global_schedules
+      : next.global_schedules,
     override: same(prev.override, next.override) ? prev.override : next.override,
   };
 }

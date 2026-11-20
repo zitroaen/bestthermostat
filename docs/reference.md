@@ -2,7 +2,8 @@
 
 *[Deutsch](reference.de.md) · [Back to the README](../README.md)*
 
-Everything in detail: entities, settings, priorities, periods, card options and services.
+Everything in detail: entities, settings, priorities, periods, global schedules, card
+options and services.
 
 ## Entities
 
@@ -120,12 +121,22 @@ continues **exactly as before**.
   temperature.
 - **Explicitly choosing a mode or schedule** on the room (card, room thermostat, select)
   ends the running period.
-- A schedule used by a planned period cannot be deleted.
+- A room's own schedule used by a planned period cannot be deleted (deleting a global
+  schedule removes its periods, see [Global schedules](#global-schedules)).
 
 **In the card:** "Plan period" in the room card opens a dialog: choose a schedule, manual
 (with temperature) or off, a start (now or a date/time), an end (until cancelled or a
 date/time) and an optional title. Active and planned periods are listed; tap one to edit
 it (all settings, or end/delete it). "+N more" expands the full list.
+
+**Several rooms at once** (e.g. guests in the guest area): "Plan period" in the overview
+card opens the same dialog with a room selection. The chips at the top select all rooms
+or all rooms with a Home Assistant **label** (labels of the Best Thermostat room
+devices, assigned in Home Assistant under *Settings → Devices*). Such a period exists in
+every selected room with the same ID; it can use any global schedule, also one that is
+not offered in a room. Editing or deleting it in a room card asks whether it applies to
+**all rooms** of the group or **only here**; "End" in the period list of a room card
+ends it only in that room.
 
 **Calendar:** every room has a `calendar.<room>_periods` entity. It shows all periods and
 lets you create, change and delete them. The event title defines what happens: a schedule
@@ -162,10 +173,58 @@ action: bestthermostat.cancel_period
 data:
   entity_id: climate.office
   period_id: 1a2b3c4d5e6f
+
+# Guests in all rooms with the label "Guest area" (one period, same ID in every room)
+action: bestthermostat.add_period
+target:
+  label_id: guest_area
+data:
+  schedule: Guest
+  start: "2026-11-13 14:00:00"
+  end: "2026-11-15 18:00:00"
 ```
 
 `bestthermostat.get_schedule` also returns `period` (active) and `periods` (all planned)
 for each room.
+
+## Global schedules
+
+Rooms that heat the same way share one **global schedule** instead of each keeping its
+own copy. A global schedule exists only once: editing it changes every room that uses it.
+Rooms with special needs (e.g. bathroom, bedroom) keep their **own schedules**; they never
+appear in other rooms.
+
+- **Selection in a room:** its own schedules plus the global schedules **offered** there
+  (marked with a globe). Each global schedule is offered in all rooms (also rooms added
+  later) or only in selected rooms, so the room cards stay short.
+- **Active means offered:** activating a global schedule in a room (card, select,
+  service, "Assign") also offers it there. A room in which it is active cannot be removed
+  from the selection; activate another schedule there first.
+- **Periods** may use any global schedule in any room, offered there or not.
+- **Names** are unique: a global schedule cannot have the name of another global schedule
+  or of an own schedule of a room that offers it.
+- **Make global:** in the weekly editor of a room, ⋮ → *Make global …* turns an own
+  schedule into a global one. Other rooms whose own schedule has **exactly the same plan**
+  (any name) are listed and preselected: they switch to the global schedule and their copy
+  is removed; nothing changes for the heating. The new schedule is offered in these rooms
+  or, if chosen, in all rooms.
+- **Local copy:** for a global schedule the weekly editor offers *Local copy* (instead of
+  *Duplicate*): a new own schedule of the room, to change it for this room only.
+- **Delete:** deleting a global schedule switches every room in which it is **active** to
+  **off** (frost protection) and deletes the **periods** that use it. Such a room keeps
+  another available schedule as its schedule for auto; if it has none, it gets an own
+  copy of the deleted schedule. The card asks for confirmation and names the rooms.
+- Variables used by a global schedule cannot be deleted.
+
+<img src="images/schedule-manager.png" alt="Schedule manager" width="360">
+
+**Schedule manager** (overview card → *Schedules*): lists the global schedules with
+today's plan, the rooms in which each is active, where it is offered and which periods
+use it. Per schedule: edit the weekly plan (pencil), **Assign …** (activate it in the
+chosen rooms), **Offered in …** (rooms that offer it; all rooms selected = all rooms,
+also future ones), rename, delete. *New global schedule* creates one from the default
+plan and opens the editor. The room selection has chips for all rooms and for each
+label.
 
 ## Cards
 
@@ -189,6 +248,7 @@ layout: tiles          # list (tap a room to expand) or tiles (all rooms open)
 show_summary: true
 show_override: true
 show_variables: true
+show_actions: true     # buttons "Schedules" (schedule manager) and "Plan period" (several rooms)
 group_by_floor: true
 exclude_rooms: [climate.basement]
 room:                  # applies to all rooms – same options as the room card
@@ -228,17 +288,27 @@ without a floor are listed under "Other".
 Both cards have a visual editor. The weekly editor opens via the pencil next to the
 timeline (or in the header when the timeline is hidden):
 
-- Switch between schedules at the top (the one in effect has a green dot, "+" adds one);
-  a schedule that is not active can be activated right there
+- Switch between schedules at the top (the one in effect has a green dot, global
+  schedules a globe, "+" adds an own schedule); a schedule that is not active can be
+  activated right there
 - Tap a block to edit it in a sheet: start/end with −/+ (15-minute grid), fixed
   temperature or a variable, split, copy the day (Mon–Fri / weekend / all), delete
 - Drag the borders to move them (the time is shown while dragging)
 - The legend explains the colours; "Edit" opens the variables
-- ⋮ menu: rename, duplicate, **copy to other rooms** (an existing schedule with the same
-  name is replaced, otherwise it is created), manage variables, delete schedule
+- ⋮ menu: rename, duplicate (*Local copy* for a global schedule), **make global**,
+  **copy to other rooms** (an existing own schedule with the same name is replaced,
+  otherwise it is created), manage variables, delete schedule. Renaming, saving and
+  deleting a global schedule apply to all rooms.
 - Changes are only applied with **Save** – the bar appears as soon as something changed
 
 ## Services
+
+Services that act on rooms take a **target**: room thermostats (`entity_id`) and/or
+areas, floors, devices and labels (`area_id`, `floor_id`, `device_id`, `label_id`). All
+Best Thermostat rooms found through them are used. `add_period` for several rooms creates
+one period with the same ID in each of them, so `update_period` and `cancel_period` with
+that ID and the same target act on all of them. A schedule `name` may be an own schedule
+of the room or a global schedule.
 
 | Service | Purpose |
 |---|---|

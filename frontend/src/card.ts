@@ -24,6 +24,7 @@ import {
   roomIcon,
   roomStatus,
   upcomingPeriods,
+  offered,
 } from "./room-view";
 import { startSwipe } from "./swipe";
 import { CARD_VERSION } from "./version";
@@ -211,6 +212,7 @@ export class BestThermostatCard extends LitElement {
         document.body.appendChild(this._planner);
       }
       this._planner.hass = this.hass;
+      this._planner.snap = this._snap;
       this._planner.room = room;
       this._planner.period = this._editPeriod;
     } else if (this._planner) {
@@ -381,7 +383,7 @@ export class BestThermostatCard extends LitElement {
 
         ${c.show_modes ? this._renderModes(room) : nothing}
         ${c.show_timeline && !c.compact ? this._renderTimeline(room) : nothing}
-        ${c.show_schedules && room.schedules.length > 1 ? this._renderScheduleChoice(room) : nothing}
+        ${c.show_schedules && offered(room).length > 1 ? this._renderScheduleChoice(room) : nothing}
         ${c.compact ? nothing : this._renderList(room)}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
       </ha-card>
@@ -452,9 +454,12 @@ export class BestThermostatCard extends LitElement {
 
   private _renderScheduleChoice(room: RoomData) {
     return html`<div class="seg" role="tablist">
-      ${room.schedules.map(
+      ${offered(room).map(
         (s) => html`<button role="tab" aria-selected=${s.id === room.active_schedule}
-          @click=${() => this._schedule(room, s.id)}>${s.name}</button>`,
+          title=${s.global ? strings(this.hass).global_schedule : ""}
+          @click=${() => this._schedule(room, s.id)}>${s.global
+            ? html`<ha-icon class="globe" icon="mdi:earth"></ha-icon>`
+            : nothing}${s.name}</button>`,
       )}
     </div>`;
   }
@@ -545,7 +550,9 @@ export class BestThermostatCard extends LitElement {
       `${fmtTime(p.start, h)} – ${p.end ? fmtTime(p.end, h) : t.period_open}`;
     const item = (p: PeriodData, isActive: boolean) => html`<div class="period ${isActive ? "active" : ""}">
       <button class="period-text" @click=${() => this._openPeriod(p)}>
-        <span class="period-title">${p.title}</span>
+        <span class="period-title">${p.group
+          ? html`<ha-icon class="group-icon" icon="mdi:home-group" title=${t.group_rooms}></ha-icon>`
+          : nothing}${p.title}</span>
         <span class="muted period-when">${isActive
           ? p.end ? `${t.period_until} ${fmtTime(p.end, h)}` : t.period_open
           : range(p)}</span>
@@ -575,6 +582,18 @@ export class BestThermostatCard extends LitElement {
   static styles = [
     shared,
     css`
+      .globe {
+        --mdc-icon-size: 14px;
+        margin-right: 4px;
+        opacity: 0.6;
+        vertical-align: -2px;
+      }
+      .group-icon {
+        --mdc-icon-size: 15px;
+        margin-right: 4px;
+        opacity: 0.7;
+        vertical-align: -2px;
+      }
       ha-card {
         padding: 16px;
         display: flex;

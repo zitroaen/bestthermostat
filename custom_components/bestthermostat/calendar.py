@@ -45,9 +45,9 @@ def parse_summary(controller: RoomController, summary: str) -> dict[str, Any]:
     """
     text = summary.strip()
     folded = text.casefold()
-    for sched in sorted(
-        controller.state.schedules.values(), key=lambda s: len(s.name), reverse=True
-    ):
+    # Own schedules first; a period may use any global schedule.
+    candidates = [*controller.state.schedules.values(), *controller.state.shared.values()]
+    for sched in sorted(candidates, key=lambda s: len(s.name), reverse=True):
         if sched.name.casefold() in folded:
             return {"schedule": sched.id}
     words = set(re.findall(r"\w+", folded))
@@ -57,7 +57,7 @@ def parse_summary(controller: RoomController, summary: str) -> dict[str, Any]:
         return {"mode": MODE_HEAT, "temperature": float(match.group(1).replace(",", "."))}
     if words & AUTO_WORDS:
         return {"mode": MODE_AUTO}
-    names = ", ".join(s.name for s in controller.state.schedules.values())
+    names = ", ".join(s.name for s in candidates)
     raise HomeAssistantError(
         f"Unknown event title {summary!r}. Use a schedule name ({names}), "
         "'Off', 'Auto' or a temperature such as 'Manual 22'"

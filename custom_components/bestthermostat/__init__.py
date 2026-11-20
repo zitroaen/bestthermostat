@@ -12,6 +12,7 @@ from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
     floor_registry as fr,
+    label_registry as lr,
 )
 from homeassistant.helpers.typing import ConfigType
 
@@ -61,13 +62,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     @callback
     def _registry_changed(_event: Event) -> None:
-        # Areas/floors are shown (and used for grouping) in the cards.
+        # Areas, floors and labels are shown (and used for grouping) in the cards.
         hub.notify(None)
 
     for event_type in (
         ar.EVENT_AREA_REGISTRY_UPDATED,
         fr.EVENT_FLOOR_REGISTRY_UPDATED,
         dr.EVENT_DEVICE_REGISTRY_UPDATED,
+        lr.EVENT_LABEL_REGISTRY_UPDATED,
     ):
         hass.bus.async_listen(event_type, _registry_changed)  # type: ignore[misc]
 

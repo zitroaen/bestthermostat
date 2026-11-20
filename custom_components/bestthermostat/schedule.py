@@ -35,6 +35,9 @@ SOURCE_MANUAL = "manual"
 SOURCE_HAND = "hand"
 SOURCE_SCHEDULE = "schedule"
 
+GLOBAL_ID_PREFIX = "g_"
+"""Ids of global schedules start with this prefix; local ids never do."""
+
 DEFAULT_COMFORT_VAR = "comfort"
 DEFAULT_ECO_VAR = "eco"
 
@@ -177,6 +180,40 @@ class Schedule:
         return cls(id=str(raw["id"]), name=str(raw["name"]), week=Week.from_dict(raw["week"]))
 
 
+@dataclass
+class SharedSchedule(Schedule):
+    """A global schedule: stored once, referenced by any number of rooms.
+
+    ``rooms`` lists the rooms (config entry ids) that offer it for selection; None
+    means all rooms. Visibility only affects the selection lists: a period may use a
+    global schedule in any room.
+    """
+
+    rooms: set[str] | None = None
+
+    def visible_to(self, entry_id: str) -> bool:
+        """Return True if the schedule is offered in the given room."""
+        return self.rooms is None or entry_id in self.rooms
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize."""
+        return {
+            **super().to_dict(),
+            "rooms": None if self.rooms is None else sorted(self.rooms),
+        }
+
+    @classmethod
+    def from_dict(cls, raw: Mapping[str, Any]) -> SharedSchedule:
+        """Deserialize."""
+        rooms = raw.get("rooms")
+        return cls(
+            id=str(raw["id"]),
+            name=str(raw["name"]),
+            week=Week.from_dict(raw["week"]),
+            rooms=None if rooms is None else {str(r) for r in rooms},
+        )
+
+
 def default_week() -> Week:
     """Return a sensible default plan based on the comfort/eco variables."""
     eco, comfort = DEFAULT_ECO_VAR, DEFAULT_COMFORT_VAR
@@ -289,6 +326,8 @@ class Period:
     mode: str | None = None
     temperature: float | None = None
     summary: str | None = None
+    group: str | None = None
+    """Id shared by the periods that were planned together for several rooms."""
 
     def active_at(self, now: datetime) -> bool:
         """Return True if the period is in effect at ``now``."""
@@ -309,6 +348,7 @@ class Period:
             "mode": self.mode,
             "temperature": self.temperature,
             "summary": self.summary,
+            "group": self.group,
         }
 
     @classmethod
@@ -323,6 +363,7 @@ class Period:
             mode=raw.get("mode"),
             temperature=raw.get("temperature"),
             summary=raw.get("summary"),
+            group=raw.get("group"),
         )
 
 
@@ -354,7 +395,12 @@ class Effective:
 
 @dataclass
 class RoomState:
-    """Persistent state of a room."""
+    """Persistent state of a room.
+
+    ``schedules`` are the room's own (local) schedules. ``shared`` are the global
+    schedules (the hub's dict, shared by all rooms); ``active_schedule`` and periods
+    may reference either.
+    """
 
     schedules: dict[str, Schedule]
     active_schedule: str
@@ -364,11 +410,22 @@ class RoomState:
     hand_until: datetime | None = None
     periods: list[Period] = field(default_factory=list)
     trv_deviations: dict[str, TrvDeviation] = field(default_factory=dict)
+    shared: Mapping[str, Schedule] = field(default_factory=dict)
+
+    def has_schedule(self, schedule_id: str) -> bool:
+        """Return True if a local or global schedule with this id exists."""
+        return schedule_id in self.schedules or schedule_id in self.shared
+
+    def lookup(self, schedule_id: str) -> Schedule:
+        """Return a local or global schedule by id (KeyError if unknown)."""
+        if schedule_id in self.schedules:
+            return self.schedules[schedule_id]
+        return self.shared[schedule_id]
 
     @property
     def schedule(self) -> Schedule:
         """Return the base (non-period) active schedule."""
-        return self.schedules[self.active_schedule]
+        return self.lookup(self.active_schedule)
 
     def active_period(self, now: datetime) -> Period | None:
         """Return the period in effect (the most recently created active one)."""
@@ -384,7 +441,7 @@ class RoomState:
                 mode = period.mode
             elif period.schedule is not None:
                 mode = MODE_AUTO
-            if period.schedule is not None and period.schedule in self.schedules:
+            if period.schedule is not None and self.has_schedule(period.schedule):
                 schedule_id = period.schedule
             if period.temperature is not None:
                 manual = period.temperature
@@ -400,7 +457,7 @@ class RoomState:
         )
 
     def variables(self) -> set[str]:
-        """Return all variables referenced by any schedule."""
+        """Return all variables referenced by any local schedule."""
         result: set[str] = set()
         for schedule in self.schedules.values():
             result |= schedule.week.variables()
@@ -437,7 +494,7 @@ def compute_target(
         return Target(eff.manual_temperature, SOURCE_MANUAL)
     if state.hand_active(now):
         return Target(state.hand_temperature, SOURCE_HAND)
-    slot = slot_at(state.schedules[eff.schedule_id].week, now.astimezone(tz))
+    slot = slot_at(state.lookup(eff.schedule_id).week, now.astimezone(tz))
     return Target(resolve(slot, variables), SOURCE_SCHEDULE)
 
 

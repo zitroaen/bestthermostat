@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 import logging
 from typing import Any
@@ -38,6 +38,7 @@ from homeassistant.helpers import (
     device_registry as dr,
     entity_registry as er,
     floor_registry as fr,
+    label_registry as lr,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -68,6 +69,7 @@ from .const import (
 from .hub import Hub
 from .i18n import text
 from .schedule import (
+    GLOBAL_ID_PREFIX,
     MODE_AUTO,
     MODE_HEAT,
     MODE_OFF,
@@ -81,7 +83,6 @@ from .schedule import (
     ScheduleError,
     Target,
     TrvDeviation,
-    Week,
     clamp,
     compute_target,
     default_week,
@@ -127,9 +128,17 @@ def _float(value: Any) -> float | None:
 
 
 def state_from_dict(
-    raw: dict[str, Any] | None, default_schedule_name: str = "Default"
+    raw: dict[str, Any] | None,
+    default_schedule_name: str = "Default",
+    shared: Mapping[str, Schedule] | None = None,
 ) -> RoomState:
-    """Restore a room state, falling back to defaults for anything broken."""
+    """Restore a room state, falling back to defaults for anything broken.
+
+    ``shared`` are the global schedules; the active schedule may be one of them. A
+    room without any local schedule only gets a default one when its active schedule
+    is not a global schedule either.
+    """
+    shared = shared if shared is not None else {}
     schedules: dict[str, Schedule] = {}
     for item in (raw or {}).get("schedules", []):
         try:
@@ -138,13 +147,13 @@ def state_from_dict(
             _LOGGER.error("Dropping invalid stored schedule %s: %s", item.get("name"), err)
             continue
         schedules[sched.id] = sched
-    if not schedules:
+    raw = raw or {}
+    active = raw.get("active_schedule")
+    if not schedules and active not in shared:
         schedules[DEFAULT_SCHEDULE_ID] = Schedule(
             DEFAULT_SCHEDULE_ID, default_schedule_name, default_week()
         )
-    raw = raw or {}
-    active = raw.get("active_schedule")
-    if active not in schedules:
+    if not isinstance(active, str) or (active not in schedules and active not in shared):
         active = next(iter(schedules))
     mode = raw.get("mode", MODE_AUTO)
     if mode not in MODES:
@@ -172,6 +181,7 @@ def state_from_dict(
         hand_until=hand_until,
         periods=periods,
         trv_deviations=deviations,
+        shared=shared,
     )
 
 
@@ -212,8 +222,10 @@ class RoomController:
         self.hand_change: str = options.get(CONF_HAND_CHANGE, DEFAULT_HAND_CHANGE)
         self.sync_trvs: bool = options.get(CONF_SYNC_TRVS, DEFAULT_SYNC_TRVS)
         self.state = state_from_dict(
-            hub.rooms_data.get(entry.entry_id), text(hass, "default_schedule")
+            hub.rooms_data.get(entry.entry_id), text(hass, "default_schedule"), hub.schedules
         )
+        if (sched := hub.schedules.get(self.state.active_schedule)) is not None:
+            hub.ensure_visible(sched, self.entry_id)
         if self.sync_trvs:
             self.state.trv_deviations.clear()
         else:  # drop deviations of thermostats that were removed from the room
@@ -453,7 +465,7 @@ class RoomController:
     @property
     def active_schedule(self) -> Schedule:
         """Effective active schedule."""
-        return self.state.schedules[self.effective().schedule_id]
+        return self.state.lookup(self.effective().schedule_id)
 
     @property
     def active_period(self) -> Period | None:
@@ -747,7 +759,7 @@ class RoomController:
                     state.manual_temperature = current
                 self._clear_hand()
             else:
-                result = next_change(state.schedules[eff.schedule_id].week, now, tz)
+                result = next_change(state.lookup(eff.schedule_id).week, now, tz)
                 candidates = [
                     t for t in (result[0] if result else None, period and period.end) if t
                 ]
@@ -839,7 +851,7 @@ class RoomController:
                 period.temperature = temperature
                 return
             result = next_change(
-                state.schedules[eff.schedule_id].week, now, dt_util.get_default_time_zone()
+                state.lookup(eff.schedule_id).week, now, dt_util.get_default_time_zone()
             )
             until = [t for t in (result[0] if result else None, period.end) if t is not None]
             state.hand_temperature = temperature
@@ -896,12 +908,29 @@ class RoomController:
 
     # ------------------------------------------------------------ schedules
 
+    def is_global(self, schedule_id: str) -> bool:
+        """Return True if the id refers to a global schedule."""
+        return schedule_id not in self.state.schedules and schedule_id in self.hub.schedules
+
+    def available_schedules(self) -> list[Schedule]:
+        """Schedules offered in this room: its own plus the visible global ones."""
+        return [
+            *self.state.schedules.values(),
+            *(g for g in self.hub.schedules.values() if g.visible_to(self.entry_id)),
+        ]
+
     def find_schedule(self, key: str) -> Schedule:
-        """Find a schedule by id or name."""
+        """Find a schedule by id or name (own schedules first, then global ones)."""
         if key in self.state.schedules:
             return self.state.schedules[key]
-        for sched in self.state.schedules.values():
-            if sched.name.casefold() == key.casefold():
+        if key in self.hub.schedules:
+            return self.hub.schedules[key]
+        folded = key.casefold()
+        for sched in self.available_schedules():
+            if sched.name.casefold() == folded:
+                return sched
+        for sched in self.hub.schedules.values():  # periods may use any global schedule
+            if sched.name.casefold() == folded:
                 return sched
         raise HomeAssistantError(f"{self.name}: unknown schedule {key!r}")
 
@@ -909,39 +938,45 @@ class RoomController:
     def set_active_schedule(self, key: str) -> None:
         """Activate a schedule (ends a running period)."""
         sched = self.find_schedule(key)
+        if (shared := self.hub.schedules.get(sched.id)) is not None:
+            self.hub.make_visible(shared, self.entry_id)  # active implies available
         self._end_active_period()
         self.state.active_schedule = sched.id
         self._clear_hand()
         self._clear_deviations()
         self._changed()
 
+    def local_name_conflict(self, name: str, ignore: str | None = None) -> bool:
+        """Return True if one of the room's own schedules has this name."""
+        folded = name.casefold()
+        return any(
+            s.id != ignore and s.name.casefold() == folded for s in self.state.schedules.values()
+        )
+
     def _check_name(self, name: str, ignore: str | None = None) -> str:
         name = name.strip()
         if not name:
             raise HomeAssistantError("Schedule name must not be empty")
-        for sched in self.state.schedules.values():
-            if sched.id != ignore and sched.name.casefold() == name.casefold():
-                raise HomeAssistantError(f"Schedule {name!r} already exists")
+        folded = name.casefold()
+        if any(s.id != ignore and s.name.casefold() == folded for s in self.available_schedules()):
+            raise HomeAssistantError(f"Schedule {name!r} already exists")
         return name
-
-    def _check_variables(self, week: Week) -> None:
-        unknown = week.variables() - set(self.hub.variables)
-        if unknown:
-            raise HomeAssistantError(f"Unknown variables: {', '.join(sorted(unknown))}")
 
     @callback
     def create_schedule(
         self, name: str, *, copy_from: str | None = None, week: dict[str, Any] | None = None
     ) -> Schedule:
-        """Create a schedule (optionally duplicating another one)."""
+        """Create a schedule of this room (optionally copying a local or global one)."""
         name = self._check_name(name)
         if week is not None:
-            parsed = self._parse_week(week)
+            parsed = self.hub.parse_week(week)
         elif copy_from is not None:
             parsed = self.find_schedule(copy_from).week
         else:
             parsed = self.state.schedule.week
         sid = slugify(name) or "plan"
+        if sid.startswith(GLOBAL_ID_PREFIX):
+            sid = f"plan_{sid}"
         if sid in self.state.schedules:
             sid = f"{sid}_{uuid.uuid4().hex[:6]}"
         sched = Schedule(sid, name, parsed)
@@ -951,15 +986,21 @@ class RoomController:
 
     @callback
     def rename_schedule(self, key: str, name: str) -> None:
-        """Rename a schedule."""
+        """Rename a schedule (a global one is renamed everywhere)."""
         sched = self.find_schedule(key)
+        if self.is_global(sched.id):
+            self.hub.rename_global(sched.id, name)
+            return
         sched.name = self._check_name(name, ignore=sched.id)
         self._changed()
 
     @callback
     def delete_schedule(self, key: str) -> None:
-        """Delete a schedule (not the active one)."""
+        """Delete an own schedule (not the active one); global ones via the hub."""
         sched = self.find_schedule(key)
+        if self.is_global(sched.id):
+            self.hub.delete_global(sched.id)
+            return
         if sched.id == self.state.active_schedule:
             raise HomeAssistantError("The active schedule cannot be deleted")
         if any(p.schedule == sched.id for p in self.state.periods):
@@ -967,20 +1008,63 @@ class RoomController:
         del self.state.schedules[sched.id]
         self._changed()
 
-    def _parse_week(self, raw: Any) -> Week:
-        try:
-            week = Week.from_dict(raw)
-        except ScheduleError as err:
-            raise HomeAssistantError(str(err)) from err
-        self._check_variables(week)
-        return week
-
     @callback
     def save_week(self, key: str, raw_week: Any) -> None:
-        """Replace the weekly plan of a schedule."""
+        """Replace the weekly plan of a schedule (a global one changes for every room)."""
         sched = self.find_schedule(key)
-        sched.week = self._parse_week(raw_week)
+        if self.is_global(sched.id):
+            self.hub.save_global_week(sched.id, raw_week)
+            return
+        sched.week = self.hub.parse_week(raw_week)
         self._changed()
+
+    def uses_schedule(self, schedule_id: str) -> bool:
+        """Return True if the room's active schedule or one of its periods uses it."""
+        return self.state.active_schedule == schedule_id or any(
+            p.schedule == schedule_id for p in self.state.periods
+        )
+
+    def replace_schedule(self, local_id: str, global_id: str) -> None:
+        """Replace an own schedule by a global one with the same plan (merge)."""
+        if self.state.active_schedule == local_id:
+            self.state.active_schedule = global_id
+        for period in self.state.periods:
+            if period.schedule == local_id:
+                period.schedule = global_id
+        self.state.schedules.pop(local_id, None)
+
+    def drop_global(self, global_id: str) -> tuple[bool, int]:
+        """A global schedule was deleted: remove its periods; if active, switch off.
+
+        Returns (switched off, number of removed periods). The room keeps a valid
+        active schedule: another available one or, if there is none, a local copy of
+        the deleted schedule.
+        """
+        before = len(self.state.periods)
+        self.state.periods = [p for p in self.state.periods if p.schedule != global_id]
+        removed = before - len(self.state.periods)
+        switched_off = False
+        if self.state.active_schedule == global_id:
+            deleted = self.hub.schedules[global_id]
+            others = [s for s in self.available_schedules() if s.id != global_id]
+            if others:
+                self.state.active_schedule = others[0].id
+            else:
+                copy = Schedule(slugify(deleted.name) or "plan", deleted.name, deleted.week)
+                if copy.id.startswith(GLOBAL_ID_PREFIX):
+                    copy.id = f"plan_{copy.id}"
+                self.state.schedules[copy.id] = copy
+                self.state.active_schedule = copy.id
+            self.state.mode = MODE_OFF
+            self._clear_hand()
+            self._clear_deviations()
+            switched_off = True
+        return switched_off, removed
+
+    @callback
+    def refresh(self) -> None:
+        """Re-evaluate after a change outside the room (e.g. a global schedule)."""
+        self._reevaluate()
 
     # -------------------------------------------------------------- periods
 
@@ -1000,6 +1084,7 @@ class RoomController:
         mode: str | None,
         temperature: float | None,
         summary: str | None,
+        group: str | None = None,
     ) -> Period:
         """Validate the settings of a period and build it."""
         now = dt_util.utcnow()
@@ -1031,6 +1116,7 @@ class RoomController:
             mode=mode,
             temperature=temperature,
             summary=summary.strip() if summary and summary.strip() else None,
+            group=group,
         )
 
     def _periods_changed(self) -> None:
@@ -1049,11 +1135,19 @@ class RoomController:
         mode: str | None = None,
         temperature: float | None = None,
         summary: str | None = None,
+        group: str | None = None,
+        validate_only: bool = False,
     ) -> Period:
-        """Plan a period that activates a schedule and/or mode."""
+        """Plan a period that activates a schedule and/or mode.
+
+        Periods planned together for several rooms share ``group`` as their id.
+        ``validate_only`` builds the period without adding it.
+        """
         now = dt_util.utcnow()
+        if group is not None and any(p.id == group for p in self.state.periods):
+            raise HomeAssistantError(f"{self.name}: period {group!r} already exists")
         period = self._build_period(
-            period_id=uuid.uuid4().hex[:12],
+            period_id=group or uuid.uuid4().hex[:12],
             created=now,
             start=start or now,
             end=end,
@@ -1061,7 +1155,10 @@ class RoomController:
             mode=mode,
             temperature=temperature,
             summary=summary,
+            group=group,
         )
+        if validate_only:
+            return period
         self.state.periods.append(period)
         self._periods_changed()
         return period
@@ -1085,11 +1182,13 @@ class RoomController:
         mode: str | None = None,
         temperature: float | None = None,
         summary: str | None = None,
+        validate_only: bool = False,
     ) -> Period:
         """Change a period in place (id and priority are kept).
 
         Only the given fields change. Choosing a schedule clears the mode and vice
-        versa unless both are given; ``open_end`` removes the end.
+        versa unless both are given; ``open_end`` removes the end. ``validate_only``
+        builds the changed period without storing it.
         """
         old = self.find_period(period_id)
         if temperature is not None and mode is None and schedule is None:
@@ -1109,7 +1208,10 @@ class RoomController:
             mode=new_mode,
             temperature=temperature,
             summary=old.summary if summary is None else summary,
+            group=old.group,
         )
+        if validate_only:
+            return period
         self.state.periods[self.state.periods.index(old)] = period
         self._periods_changed()
         return period
@@ -1133,8 +1235,8 @@ class RoomController:
         if period.summary:
             return period.summary
         parts: list[str] = []
-        if period.schedule and period.schedule in self.state.schedules:
-            parts.append(self.state.schedules[period.schedule].name)
+        if period.schedule and self.state.has_schedule(period.schedule):
+            parts.append(self.state.lookup(period.schedule).name)
         if period.mode == MODE_HEAT:
             parts.append(f"{text(self.hass, 'manual')} {period.temperature} °C")
         elif period.mode == MODE_OFF:
@@ -1190,8 +1292,52 @@ class RoomController:
             "trv_deviations": self.deviations_list(),
             "next_change": nxt[0].isoformat() if nxt else None,
             "next_temperature": nxt[1] if nxt else None,
-            "schedules": [
-                {"id": s.id, "name": s.name, **({"week": s.week.to_dict()} if with_weeks else {})}
-                for s in self.state.schedules.values()
-            ],
+            "schedules": self.schedules_list(with_weeks=with_weeks),
+            "labels": self.labels(),
         }
+
+    def schedules_list(self, *, with_weeks: bool = True) -> list[dict[str, Any]]:
+        """Own and visible global schedules, plus global ones in use but not offered."""
+        used = {self.state.active_schedule} | {p.schedule for p in self.state.periods if p.schedule}
+        result = []
+        for sched in self.state.schedules.values():
+            result.append(self._schedule_dict(sched, with_weeks, is_global=False, hidden=False))
+        for shared in self.hub.schedules.values():
+            visible = shared.visible_to(self.entry_id)
+            if visible or shared.id in used:
+                result.append(
+                    self._schedule_dict(shared, with_weeks, is_global=True, hidden=not visible)
+                )
+        return result
+
+    @staticmethod
+    def _schedule_dict(
+        sched: Schedule, with_weeks: bool, *, is_global: bool, hidden: bool
+    ) -> dict[str, Any]:
+        data: dict[str, Any] = {"id": sched.id, "name": sched.name}
+        if with_weeks:
+            data["week"] = sched.week.to_dict()
+        if is_global:
+            data["global"] = True
+        if hidden:
+            data["hidden"] = True
+        return data
+
+    def labels(self) -> list[dict[str, Any]]:
+        """Home Assistant labels of the room device (used to select groups of rooms)."""
+        device = dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, self.entry_id)})
+        if device is None or not device.labels:
+            return []
+        registry = lr.async_get(self.hass)
+        result = []
+        for label_id in sorted(device.labels):
+            if (label := registry.async_get_label(label_id)) is not None:
+                result.append(
+                    {
+                        "id": label.label_id,
+                        "name": label.name,
+                        "icon": label.icon,
+                        "color": label.color,
+                    }
+                )
+        return result
