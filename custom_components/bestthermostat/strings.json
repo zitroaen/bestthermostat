@@ -128,6 +128,14 @@
     "select": {
       "schedule": {
         "name": "Schedule"
+      },
+      "hand_change": {
+        "name": "Change on thermostat",
+        "state": {
+          "manual": "Switch room to manual mode",
+          "until_next_slot": "Keep until the next slot",
+          "ignore": "Ignore and restore schedule"
+        }
       }
     },
     "sensor": {

@@ -35,6 +35,7 @@ export interface RoomOptions {
   show_timeline?: boolean;
   show_periods?: boolean;
   show_priorities?: boolean;
+  show_hand_change?: boolean;
   show_editor?: boolean;
   show_battery?: boolean;
   compact?: boolean;
@@ -63,6 +64,7 @@ const ROOM_DEFAULTS: RoomOptions = {
   show_timeline: true,
   show_periods: true,
   show_priorities: true,
+  show_hand_change: true,
   show_editor: true,
   show_battery: true,
   compact: false,

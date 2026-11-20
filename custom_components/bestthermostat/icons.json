@@ -3,6 +3,9 @@
     "select": {
       "schedule": {
         "default": "mdi:calendar-clock"
+      },
+      "hand_change": {
+        "default": "mdi:hand-back-right-outline"
       }
     },
     "sensor": {

@@ -109,6 +109,7 @@ All commands are `bestthermostat/<name>` (see `websocket.py`):
 | `subscribe` | Full snapshot now and after every change (coalesced, `SNAPSHOT_DELAY`). The snapshot is built once per change and shared by all subscribers; any `SIGNAL_UPDATE` invalidates it |
 | `state` | One snapshot |
 | `room/mode`, `room/temperature` | Mode / temperature of a room |
+| `room/hand_change` | Behaviour on changes made on a thermostat (stored in the entry options, no reload) |
 | `schedule/create`, `rename`, `delete`, `save`, `activate`, `copy_to_rooms` | Schedules |
 | `variable/create`, `update`, `delete` | Global variables |
 | `override/set` | Global override |

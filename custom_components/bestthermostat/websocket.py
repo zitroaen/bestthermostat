@@ -238,6 +238,14 @@ def async_register_websocket(hass: HomeAssistant) -> None:
         ),
         _handler(
             {
+                vol.Required("type"): t + "room/hand_change",
+                entry: str,
+                vol.Required("hand_change"): str,
+            },
+            _ok(lambda h, m: _room(h, m["entry_id"]).set_hand_change(m["hand_change"])),
+        ),
+        _handler(
+            {
                 vol.Required("type"): t + "room/temperature",
                 entry: str,
                 vol.Required("temperature"): vol.Coerce(float),

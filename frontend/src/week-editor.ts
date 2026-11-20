@@ -35,6 +35,7 @@ export class BtWeekEditor extends LitElement {
     hass: { attribute: false },
     snap: { attribute: false },
     room: { attribute: false },
+    initial: { attribute: false },
     _sid: { state: true },
     _draft: { state: true },
     _sel: { state: true },
@@ -54,6 +55,8 @@ export class BtWeekEditor extends LitElement {
   hass?: HomeAssistant;
   snap?: Snapshot;
   room?: RoomData;
+  /** Schedule to show first (default: the active one). */
+  initial?: string;
   _sid?: string;
   _draft?: WeekData;
   _sel?: Sel;
@@ -112,7 +115,10 @@ export class BtWeekEditor extends LitElement {
 
   protected willUpdate(changed: PropertyValues) {
     if (!this.room) return;
-    if (!this._sid) this._sid = this.room.active_schedule;
+    if (!this._sid) {
+      const first = this.initial && this.room.schedules.some((s) => s.id === this.initial);
+      this._sid = first ? this.initial : this.room.active_schedule;
+    }
     if ((changed.has("room") || !this._draft) && this._server && (!this._draft || !this._dirtyAgainst(changed))) {
       this._draft = cloneWeek(this._server);
     }
