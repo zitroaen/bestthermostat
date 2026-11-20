@@ -59,6 +59,7 @@ from .const import (
     DEFAULT_SCHEDULE_ID,
     DEFAULT_SYNC_TRVS,
     DOMAIN,
+    HAND_CHANGE_OPTIONS,
     HAND_IGNORE,
     HAND_MANUAL,
     NAME,
@@ -212,6 +213,9 @@ class RoomController:
         """Initialize."""
         self.hass = hass
         self.hub = hub
+        self.entry = entry
+        # Options this controller runs with; an update to exactly these needs no reload.
+        self.options = dict(entry.options)
         self.entry_id = entry.entry_id
         self.name = entry.title
         options = {**entry.data, **entry.options}
@@ -906,6 +910,18 @@ class RoomController:
         self._clear_deviations()
         self._changed()
 
+    @callback
+    def set_hand_change(self, value: str) -> None:
+        """Choose how changes made on a thermostat are handled (stored, no reload)."""
+        if value not in HAND_CHANGE_OPTIONS:
+            raise HomeAssistantError(f"Unknown hand change behaviour {value!r}")
+        if value == self.hand_change:
+            return
+        self.hand_change = value
+        self.options = {**self.entry.options, CONF_HAND_CHANGE: value}
+        self.hass.config_entries.async_update_entry(self.entry, options=self.options)
+        self.notify()
+
     # ------------------------------------------------------------ schedules
 
     def is_global(self, schedule_id: str) -> bool:
@@ -1270,6 +1286,7 @@ class RoomController:
             "manual_temperature": self.effective().manual_temperature,
             "base_manual_temperature": self.state.manual_temperature,
             "frost_temperature": self.frost_temperature,
+            "hand_change": self.hand_change,
             "target_temperature": target.temperature,
             "target_source": target.source,
             "target_variable": self.target_variable(target.source),

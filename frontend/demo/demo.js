@@ -82,6 +82,7 @@ function room(name, icon, floor, o = {}) {
     manual_temperature: 21,
     base_manual_temperature: 21,
     frost_temperature: 5,
+    hand_change: "until_next_slot",
     target_temperature: 21,
     target_source: "schedule",
     target_variable: lang === "de" ? "Komfort" : "Comfort",
@@ -234,6 +235,9 @@ const hass = {
     const r = snapshot.rooms.find((x) => x.entry_id === msg.entry_id);
     const type = msg.type.replace("bestthermostat/", "");
     if (type === "room/temperature") Object.assign(r, { target_temperature: msg.temperature, target_source: r.mode === "heat" ? "manual" : "hand", target_variable: null, hand_until: iso(3) });
+    if (type === "room/hand_change") r.hand_change = msg.hand_change;
+    if (type === "schedule/rename" && r) r.schedules.find((s) => s.id === msg.schedule_id).name = msg.name;
+    if (type === "schedule/delete" && r) r.schedules = r.schedules.filter((s) => s.id !== msg.schedule_id);
     if (type === "room/mode") Object.assign(r, { mode: msg.mode, base_mode: msg.mode, target_source: { auto: "schedule", heat: "manual", off: "off" }[msg.mode] });
     if (type === "schedule/activate") Object.assign(r, { active_schedule: msg.schedule_id, base_schedule: msg.schedule_id });
     const g = globals.find((x) => x.id === msg.schedule_id);

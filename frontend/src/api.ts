@@ -92,6 +92,8 @@ export interface RoomData {
   mode: "auto" | "heat" | "off";
   manual_temperature: number;
   frost_temperature: number;
+  /** How a set-point changed on a thermostat is handled. */
+  hand_change?: "manual" | "until_next_slot" | "ignore";
   target_temperature: number | null;
   target_source: "override" | "off" | "manual" | "hand" | "schedule";
   target_variable: string | null;

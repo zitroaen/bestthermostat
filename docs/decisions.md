@@ -85,6 +85,10 @@ an hvac mode to a thermostat.
 A temperature set on the room thermostat itself always behaves like "until next slot"
 when the room is in `auto`.
 
+The behaviour is a room option, but it can also be switched at runtime (a `select`
+entity per room, a row in the room card). That change is written to the entry options
+without reloading the room (`RoomController.options` remembers what is applied).
+
 ## Cards
 
 - Both cards ship with the integration in one repository and are registered

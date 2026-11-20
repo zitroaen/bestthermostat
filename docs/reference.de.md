@@ -11,6 +11,7 @@ Kartenoptionen und Services.
 |---|---|---|
 | `climate` | `climate.arbeitszimmer` | Raumthermostat. Ist-Temperatur = Mittelwert, heizt, wenn ein TRV heizt |
 | `select` | `select.arbeitszimmer_zeitplan` | Aktiver Zeitplan |
+| `select` | `select.arbeitszimmer_anderung_am_thermostat` | Verhalten bei Änderungen am Thermostat (Konfigurations-Entität, siehe unten) |
 | `calendar` | `calendar.arbeitszimmer_zeitraume` | Geplante Zeiträume (anlegen, ändern, löschen) |
 | `sensor` | `sensor.arbeitszimmer_nachster_wechsel` | Nächster Slot-Wechsel (Attribut `next_temperature`) |
 | `binary_sensor` | `binary_sensor.arbeitszimmer_zeitplan_pausiert` | Zeitplan wirkt gerade nicht (Attribut `reason`) |
@@ -33,6 +34,10 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
   - *Bis zum nächsten Slot halten* (Standard)
   - *Ignorieren und Plan wiederherstellen*: Gilt für Änderungen am Thermostat. Am
     Raumthermostat wirkt diese Einstellung wie „bis zum nächsten Slot“.
+
+  Diese Einstellung lässt sich auch jederzeit ohne Neuladen des Raums umschalten: über
+  die Entität `select.<raum>_anderung_am_thermostat` oder in der Raumkarte (Zeile *Am
+  Thermostat*: *Manuell* / *Bis Wechsel* / *Ignorieren*).
 - Änderungen auf die anderen Thermostate übertragen (an/aus). Wenn aus, bleibt eine
   Änderung am Thermostat nur an diesem Thermostat: Das Raumziel ändert sich nicht, die
   anderen Thermostate behalten ihren Wert. Die Abweichung endet mit dem nächsten Slot
@@ -223,13 +228,17 @@ Raum, der ihn nutzt. Räume mit Sonderwünschen (z. B. Bad, Schlafzimmer) behalt
 
 <img src="images/schedule-manager.png" alt="Schedule manager" width="360">
 
-**Zeitplan-Manager** (Übersichtskarte → *Zeitpläne*): listet die globalen Zeitpläne mit
+**Zeitplan-Manager** (Übersichtskarte → *Zeitpläne*): verwaltet alle Zeitpläne. Oben
+listet er die globalen Zeitpläne mit
 dem heutigen Ablauf, den Räumen, in denen er aktiv ist, wo er auswählbar ist und welche
 Zeiträume ihn nutzen. Pro Zeitplan: Wochenplan bearbeiten (Stift), **Zuweisen …** (in den
 gewählten Räumen aktivieren), **Auswählbar in …** (Räume, die ihn anbieten; alle Räume
 gewählt = alle Räume, auch künftige), umbenennen, löschen. *Neuer globaler Zeitplan* legt
 einen aus dem Standardablauf an und öffnet den Editor. Die Raumauswahl hat Chips für alle
-Räume und für jedes Label.
+Räume und für jedes Label. Darunter stehen, nach Raum gruppiert, die **eigenen Zeitpläne
+aller Räume** (der aktive ist markiert): Wochenplan bearbeiten, **Global machen …** (mit
+demselben Zusammenführen gleicher Pläne wie im Wocheneditor), umbenennen, löschen (nicht
+den aktiven).
 
 ## Karten
 
@@ -243,6 +252,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # aktive/geplante Zeiträume und Button „Zeitraum planen“
 show_priorities: true   # Zeile, welche Prioritäts-Ebene gerade bestimmt (aufklappbar)
+show_hand_change: true  # Zeile „Am Thermostat“: Manuell / Bis Wechsel / Ignorieren
 show_battery: true      # Batteriesymbol oben rechts (automatisch ermittelt, < 20 % rot)
 ```
 
@@ -262,6 +272,7 @@ room:                  # gilt für alle Räume – dieselben Optionen wie die Ra
   show_timeline: true
   show_periods: true
   show_priorities: true
+  show_hand_change: true
   show_battery: true
   show_editor: true
   compact: false
@@ -271,7 +282,8 @@ room:                  # gilt für alle Räume – dieselben Optionen wie die Ra
 (−/+ oder **waagerecht wischen**; darunter klein die gültige Variable und Quelle, z. B.
 „Komfort · Zeitplan“); Modus- und Zeitplan-Auswahl, eine schmale Zeitleiste für heute
 mit einem kleinen Stift, der den Wocheneditor öffnet, und ruhige Zeilen – Zeiträume,
-Priorität –, die sich beim Antippen aufklappen.
+Priorität –, die sich beim Antippen aufklappen, sowie die Zeile *Am Thermostat* mit einem
+kleinen Umschalter, wie eine Änderung direkt am Thermostat behandelt wird.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
 globale Override als ein Schalter (Tipp auf die Temperatur öffnet einen Regler mit

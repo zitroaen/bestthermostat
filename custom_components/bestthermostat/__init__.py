@@ -126,6 +126,9 @@ async def _async_global_options_changed(hass: HomeAssistant, entry: ConfigEntry)
 
 
 async def _async_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    controller = getattr(entry, "runtime_data", None)
+    if isinstance(controller, RoomController) and controller.options == dict(entry.options):
+        return  # already applied (e.g. the hand change select), no reload needed
     await hass.config_entries.async_reload(entry.entry_id)
 
 

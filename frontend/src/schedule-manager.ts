@@ -1,16 +1,18 @@
 import { LitElement, css, html, nothing } from "lit";
-import type { GlobalScheduleData, HomeAssistant, RoomData, Snapshot } from "./api";
+import type { GlobalScheduleData, HomeAssistant, RoomData, ScheduleData, Snapshot, WeekData } from "./api";
 import { DAYS, ws } from "./api";
 import "./room-picker";
 import { dialogFrame, shared } from "./styles";
 import "./week-editor";
 import type { BtWeekEditor } from "./week-editor";
-import { DAY_MIN, define, resolveSlot, segments, strings, tempColor, todayKey } from "./utils";
+import { DAY_MIN, define, resolveSlot, segments, strings, tempColor, todayKey, weekEqual } from "./utils";
 
+/** ``entry_id`` "" = global schedule. */
 type Page =
   | { kind: "list" }
   | { kind: "rooms"; mode: "visibility" | "assign"; id: string; sel: Set<string> }
-  | { kind: "name"; mode: "new" | "rename"; id?: string; value: string };
+  | { kind: "name"; mode: "new" | "rename"; entry_id: string; id?: string; value: string }
+  | { kind: "make_global"; entry_id: string; id: string; sel: Set<string>; all: boolean };
 
 /**
  * Pseudo room for the weekly editor in global mode: its schedules are the global
@@ -48,7 +50,10 @@ export function globalRoom(snap: Snapshot, name: string, selected: string): Room
   };
 }
 
-/** Manage global schedules: edit, offer in rooms, assign to rooms, rename, delete. */
+/**
+ * Manage all schedules: global ones (edit, offer in rooms, assign, rename, delete) and
+ * the own schedules of every room (edit, make global, rename, delete).
+ */
 export class BtScheduleManager extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -66,8 +71,8 @@ export class BtScheduleManager extends LitElement {
   _error?: string;
   _info?: string;
   _busy = false;
-  /** Id of the global schedule open in the weekly editor. */
-  _editing?: string;
+  /** Schedule open in the weekly editor (``entry_id`` "" = global). */
+  _editing?: { entry_id: string; id: string };
   private _editor?: BtWeekEditor;
 
   private get _t() {
@@ -100,6 +105,14 @@ export class BtScheduleManager extends LitElement {
   protected updated() {
     // The weekly editor lives in document.body like everywhere else.
     if (this._editing && this.snap && this.hass) {
+      const { entry_id, id } = this._editing;
+      const room = entry_id
+        ? this.snap.rooms.find((r) => r.entry_id === entry_id)
+        : globalRoom(this.snap, this._t.global_schedules, id);
+      if (!room) {
+        this._editing = undefined;
+        return;
+      }
       if (!this._editor) {
         this._editor = document.createElement("bt-week-editor") as BtWeekEditor;
         this._editor.addEventListener("close", () => (this._editing = undefined));
@@ -107,7 +120,8 @@ export class BtScheduleManager extends LitElement {
       }
       this._editor.hass = this.hass;
       this._editor.snap = this.snap;
-      this._editor.room = globalRoom(this.snap, this._t.global_schedules, this._editing);
+      this._editor.initial = id;
+      this._editor.room = room;
     } else if (this._editor) {
       this._editor.remove();
       this._editor = undefined;
@@ -150,16 +164,71 @@ export class BtScheduleManager extends LitElement {
   private async _submitName() {
     const page = this._page;
     if (page.kind !== "name" || !page.value.trim()) return;
+    const name = page.value.trim();
     if (page.mode === "rename") {
-      const ok = await this._call("global_schedule/rename", { schedule_id: page.id, name: page.value.trim() });
+      const ok = page.entry_id
+        ? await this._call("schedule/rename", { entry_id: page.entry_id, schedule_id: page.id, name })
+        : await this._call("global_schedule/rename", { schedule_id: page.id, name });
       if (ok) this._page = { kind: "list" };
       return;
     }
-    const res = await this._call<{ id: string }>("global_schedule/create", { name: page.value.trim() });
+    const res = await this._call<{ id: string }>("global_schedule/create", { name });
     if (res) {
       this._page = { kind: "list" };
-      this._editing = res.id;
+      this._editing = { entry_id: "", id: res.id };
     }
+  }
+
+  private async _deleteOwn(room: RoomData, s: ScheduleData) {
+    if (!confirm(`${room.name}: ${s.name}\n${this._t.confirm_delete}`)) return;
+    await this._call("schedule/delete", { entry_id: room.entry_id, schedule_id: s.id });
+  }
+
+  /** Other rooms with an own schedule whose plan equals ``week``. */
+  private _identical(entryId: string, week: WeekData): { room: RoomData; id: string; name: string }[] {
+    const result: { room: RoomData; id: string; name: string }[] = [];
+    for (const r of this.snap?.rooms ?? []) {
+      if (r.entry_id === entryId) continue;
+      const same = r.schedules.find((s) => !s.global && weekEqual(s.week, week));
+      if (same) result.push({ room: r, id: same.id, name: same.name });
+    }
+    return result;
+  }
+
+  private _startMakeGlobal(room: RoomData, s: ScheduleData) {
+    const sel = new Set(this._identical(room.entry_id, s.week).map((x) => x.room.entry_id));
+    this._error = undefined;
+    this._page = { kind: "make_global", entry_id: room.entry_id, id: s.id, sel, all: false };
+  }
+
+  private async _makeGlobal() {
+    const page = this._page;
+    if (page.kind !== "make_global") return;
+    const room = this.snap?.rooms.find((r) => r.entry_id === page.entry_id);
+    const s = room?.schedules.find((x) => x.id === page.id);
+    if (!room || !s) return;
+    const merge = this._identical(room.entry_id, s.week)
+      .filter((x) => page.sel.has(x.room.entry_id))
+      .map((x) => ({ entry_id: x.room.entry_id, schedule_id: x.id }));
+    const res = await this._call("schedule/make_global", {
+      entry_id: room.entry_id,
+      schedule_id: s.id,
+      merge,
+      all_rooms: page.all,
+    });
+    if (res) this._page = { kind: "list" };
+  }
+
+  /** Name of the schedule a page is about (for the header). */
+  private _pageName(page: Page): string {
+    if (page.kind === "list" || !("id" in page) || !page.id) return "";
+    const entry = "entry_id" in page ? page.entry_id : "";
+    if (entry) {
+      const room = this.snap?.rooms.find((r) => r.entry_id === entry);
+      const s = room?.schedules.find((x) => x.id === page.id);
+      return room && s ? `${room.name} · ${s.name}` : "";
+    }
+    return this.snap?.global_schedules?.find((g) => g.id === page.id)?.name ?? "";
   }
 
   private async _applyRooms() {
@@ -189,8 +258,10 @@ export class BtScheduleManager extends LitElement {
           ? page.mode === "new"
             ? t.global_new
             : t.rename
-          : t.global_schedules;
-    const sub = page.kind === "list" ? "" : this.snap.global_schedules?.find((g) => g.id === (page as any).id)?.name ?? "";
+          : page.kind === "make_global"
+            ? t.make_global_action
+            : t.global_schedules;
+    const sub = this._pageName(page);
     return html`
       <div class="backdrop" @click=${() => this.dispatchEvent(new CustomEvent("close"))}></div>
       <div class="dialog" role="dialog" aria-modal="true">
@@ -209,7 +280,13 @@ export class BtScheduleManager extends LitElement {
           </button>
         </header>
         <div class="content">
-          ${page.kind === "list" ? this._renderList() : page.kind === "rooms" ? this._renderRooms(page) : this._renderName(page)}
+          ${page.kind === "list"
+            ? this._renderList()
+            : page.kind === "rooms"
+              ? this._renderRooms(page)
+              : page.kind === "make_global"
+                ? this._renderMakeGlobal(page)
+                : this._renderName(page)}
           ${this._info && page.kind === "list" ? html`<div class="info">${this._info}</div>` : nothing}
           ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         </div>
@@ -222,11 +299,16 @@ export class BtScheduleManager extends LitElement {
     const t = this._t;
     const page = this._page;
     if (page.kind === "list") {
-      return html`<button class="text-btn" @click=${() => (this._page = { kind: "name", mode: "new", value: "" })}>
+      return html`<button class="text-btn" @click=${() => (this._page = { kind: "name", mode: "new", entry_id: "", value: "" })}>
           <ha-icon icon="mdi:plus"></ha-icon>${t.global_new}
         </button>
         <span class="spacer"></span>
         <button class="text-btn" @click=${() => this.dispatchEvent(new CustomEvent("close"))}>${t.close}</button>`;
+    }
+    if (page.kind === "make_global") {
+      return html`<span class="spacer"></span>
+        <button class="text-btn" @click=${() => this._back()}>${t.cancel}</button>
+        <button class="primary-btn" ?disabled=${this._busy} @click=${this._makeGlobal}>${t.make_global_action}</button>`;
     }
     if (page.kind === "rooms") {
       const disabled = this._busy || (page.mode === "assign" && !page.sel.size);
@@ -245,7 +327,9 @@ export class BtScheduleManager extends LitElement {
     const t = this._t;
     const list = this.snap!.global_schedules ?? [];
     const allRooms = this.snap!.rooms.map((r) => r.entry_id);
+    const rooms = this.snap!.rooms.filter((r) => r.schedules.some((s) => !s.global));
     return html`
+      <div class="section-title"><ha-icon icon="mdi:earth"></ha-icon>${t.global_section}</div>
       <div class="muted small">${list.length ? t.global_hint : t.global_none}</div>
       ${list.map((g) => {
         const offered =
@@ -261,7 +345,7 @@ export class BtScheduleManager extends LitElement {
             <ha-icon icon="mdi:earth"></ha-icon>
             <span class="item-name">${g.name}</span>
             <button class="icon-btn" aria-label=${t.edit_week} title=${t.edit_week}
-              @click=${() => (this._editing = g.id)}>
+              @click=${() => (this._editing = { entry_id: "", id: g.id })}>
               <ha-icon icon="mdi:pencil-outline"></ha-icon>
             </button>
           </div>
@@ -288,7 +372,8 @@ export class BtScheduleManager extends LitElement {
               })}>
               <ha-icon icon="mdi:eye-outline"></ha-icon>${t.visibility}
             </button>
-            <button class="chip" @click=${() => (this._page = { kind: "name", mode: "rename", id: g.id, value: g.name })}>
+            <button class="chip" @click=${() =>
+              (this._page = { kind: "name", mode: "rename", entry_id: "", id: g.id, value: g.name })}>
               <ha-icon icon="mdi:pencil-outline"></ha-icon>${t.rename}
             </button>
             <button class="chip danger" ?disabled=${this._busy} @click=${() => this._delete(g)}>
@@ -297,11 +382,88 @@ export class BtScheduleManager extends LitElement {
           </div>
         </div>`;
       })}
+      ${rooms.length
+        ? html`<div class="section-title"><ha-icon icon="mdi:home-outline"></ha-icon>${t.own_section}</div>
+            <div class="muted small">${t.own_hint}</div>
+            ${rooms.map((r) => this._renderRoomSchedules(r))}`
+        : nothing}
+    `;
+  }
+
+  private _renderRoomSchedules(room: RoomData) {
+    const t = this._t;
+    const own = room.schedules.filter((s) => !s.global);
+    return html`<div class="item">
+      <div class="item-head">
+        <span class="item-name">${room.name}</span>
+        ${room.floor ? html`<span class="muted small">${room.floor.name}</span>` : nothing}
+      </div>
+      ${own.map((s) => {
+        const active = s.id === room.base_schedule;
+        return html`<div class="own">
+          <div class="own-head">
+            <span class="own-name">${s.name}</span>
+            ${active ? html`<span class="badge">${t.active}</span>` : nothing}
+            <span class="spacer"></span>
+            <button class="icon-btn" aria-label=${t.edit_week} title=${t.edit_week}
+              @click=${() => (this._editing = { entry_id: room.entry_id, id: s.id })}>
+              <ha-icon icon="mdi:pencil-outline"></ha-icon>
+            </button>
+          </div>
+          ${this._renderPreview(s)}
+          <div class="actions">
+            <button class="chip" @click=${() => this._startMakeGlobal(room, s)}>
+              <ha-icon icon="mdi:earth"></ha-icon>${t.make_global}
+            </button>
+            <button class="chip" @click=${() =>
+              (this._page = { kind: "name", mode: "rename", entry_id: room.entry_id, id: s.id, value: s.name })}>
+              <ha-icon icon="mdi:pencil-outline"></ha-icon>${t.rename}
+            </button>
+            <button class="chip danger" ?disabled=${this._busy || active} title=${active ? t.not_deletable_active : ""}
+              @click=${() => this._deleteOwn(room, s)}>
+              <ha-icon icon="mdi:delete-outline"></ha-icon>${t.delete}
+            </button>
+          </div>
+        </div>`;
+      })}
+    </div>`;
+  }
+
+  private _renderMakeGlobal(page: Extract<Page, { kind: "make_global" }>) {
+    const t = this._t;
+    const room = this.snap!.rooms.find((r) => r.entry_id === page.entry_id);
+    const s = room?.schedules.find((x) => x.id === page.id);
+    if (!room || !s) return nothing;
+    const candidates = this._identical(room.entry_id, s.week);
+    const toggle = (id: string) => {
+      const sel = new Set(page.sel);
+      if (sel.has(id)) sel.delete(id);
+      else sel.add(id);
+      this._page = { ...page, sel };
+    };
+    return html`
+      <div class="muted small">${t.make_global_hint.replace("{name}", s.name)}</div>
+      <div class="picks">
+        ${candidates.length
+          ? candidates.map((c) => {
+              const on = page.sel.has(c.room.entry_id);
+              return html`<button class="pick" role="checkbox" aria-checked=${on} @click=${() => toggle(c.room.entry_id)}>
+                <ha-icon icon=${on ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+                <span class="grow">${c.room.name}</span>
+                <span class="muted small">${c.name}</span>
+              </button>`;
+            })
+          : html`<div class="muted small">${t.make_global_none}</div>`}
+      </div>
+      <button class="pick" role="checkbox" aria-checked=${page.all} @click=${() => (this._page = { ...page, all: !page.all })}>
+        <ha-icon icon=${page.all ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline"}></ha-icon>
+        <span class="grow">${t.make_global_all}</span>
+      </button>
     `;
   }
 
   /** Small preview of today's plan. */
-  private _renderPreview(g: GlobalScheduleData) {
+  private _renderPreview(g: { week: WeekData }) {
     const vars = this.snap!.variables;
     const day = g.week[todayKey(this.hass)] ?? g.week[DAYS[0]];
     return html`<div class="preview">
@@ -420,6 +582,66 @@ export class BtScheduleManager extends LitElement {
       .info {
         font-size: 13px;
         color: var(--bt-accent);
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--bt-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .section-title ha-icon {
+        --mdc-icon-size: 16px;
+      }
+      .own {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 8px;
+        border-top: 1px solid var(--divider-color);
+      }
+      .own-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .own-name {
+        font-weight: 500;
+      }
+      .badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--success-color, #43a047) 18%, transparent);
+        color: var(--success-color, #43a047);
+      }
+      .picks {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .pick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 8px;
+        border-radius: 10px;
+        text-align: left;
+      }
+      .pick:hover {
+        background: var(--bt-surface);
+      }
+      .pick[aria-checked="true"] ha-icon {
+        color: var(--bt-accent);
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
       }
     `,
   ];

@@ -44,6 +44,8 @@ export interface CardConfig {
   show_editor?: boolean;
   show_periods?: boolean;
   show_priorities?: boolean;
+  /** Row to choose how a change made on a thermostat is handled. */
+  show_hand_change?: boolean;
   show_battery?: boolean;
   /** Used inside the overview card: no card frame, optional header. */
   embedded?: boolean;
@@ -106,6 +108,7 @@ export class BestThermostatCard extends LitElement {
       show_editor: true,
       show_periods: true,
       show_priorities: true,
+      show_hand_change: true,
       show_battery: true,
       show_header: true,
       ...config,
@@ -525,6 +528,29 @@ export class BestThermostatCard extends LitElement {
         ? html`${this._row("mdi:layers-triple-outline", t.prio_short, winner.name, "prio")}
           ${this._section === "prio" ? html`<div class="detail">${this._renderPriorities(prio)}</div>` : nothing}`
         : nothing}
+      ${c.show_hand_change && room.hand_change ? this._renderHandChange(room) : nothing}
+    </div>`;
+  }
+
+  /** How a set-point changed on a thermostat is handled (small segmented control). */
+  private _renderHandChange(room: RoomData) {
+    const t = strings(this.hass);
+    const options: [NonNullable<RoomData["hand_change"]>, string, string][] = [
+      ["manual", t.hand_manual, t.hand_manual_long],
+      ["until_next_slot", t.hand_until, t.hand_until_long],
+      ["ignore", t.hand_ignore, t.hand_ignore_long],
+    ];
+    return html`<div class="row hand">
+      <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
+      <span class="row-label" title=${t.hand_label_long}>${t.hand_label}</span>
+      <div class="seg accent small" role="tablist" aria-label=${t.hand_label_long}>
+        ${options.map(
+          ([value, label, long]) => html`<button role="tab" aria-selected=${room.hand_change === value} title=${long}
+            @click=${() => this._call("room/hand_change", { entry_id: room.entry_id, hand_change: value })}>
+            ${label}
+          </button>`,
+        )}
+      </div>
     </div>`;
   }
 
@@ -832,6 +858,25 @@ export class BestThermostatCard extends LitElement {
         text-align: left;
         width: 100%;
         font-size: 14px;
+      }
+      .row.hand {
+        gap: 10px;
+      }
+      .row.hand .row-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .seg.small {
+        flex: none;
+        padding: 2px;
+        border-radius: 9px;
+      }
+      .seg.small button {
+        min-height: 26px;
+        padding: 0 8px;
+        border-radius: 7px;
+        font-size: 12px;
       }
       .row:disabled {
         cursor: default;

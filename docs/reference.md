@@ -11,6 +11,7 @@ options and services.
 |---|---|---|
 | `climate` | `climate.office` | Room thermostat. Current temperature = average, heating if one TRV heats |
 | `select` | `select.office_schedule` | Active schedule |
+| `select` | `select.office_change_on_thermostat` | Behaviour on changes made on a thermostat (configuration entity, see below) |
 | `calendar` | `calendar.office_periods` | Planned periods (create, change, delete) |
 | `sensor` | `sensor.office_next_change` | Next slot change (attribute `next_temperature`) |
 | `binary_sensor` | `binary_sensor.office_schedule_paused` | The schedule is currently not in control (attribute `reason`) |
@@ -35,6 +36,10 @@ language of Home Assistant.
   - *Keep until the next slot* (default)
   - *Ignore and restore schedule*: applies to changes on a thermostat. On the room
     thermostat this setting acts like "until the next slot".
+
+  This setting can also be switched at any time without reloading the room: with the
+  `select.<room>_change_on_thermostat` entity or in the room card (row *On thermostat*:
+  *Manual* / *Until next* / *Ignore*).
 - Sync changes on one thermostat to the others (on/off). When off, a change on a
   thermostat stays on that thermostat only: the room target does not change and the
   other thermostats keep their value. The deviation ends with the next slot (or, if the
@@ -218,13 +223,16 @@ appear in other rooms.
 
 <img src="images/schedule-manager.png" alt="Schedule manager" width="360">
 
-**Schedule manager** (overview card → *Schedules*): lists the global schedules with
+**Schedule manager** (overview card → *Schedules*): manages all schedules. At the top it
+lists the global schedules with
 today's plan, the rooms in which each is active, where it is offered and which periods
 use it. Per schedule: edit the weekly plan (pencil), **Assign …** (activate it in the
 chosen rooms), **Offered in …** (rooms that offer it; all rooms selected = all rooms,
 also future ones), rename, delete. *New global schedule* creates one from the default
 plan and opens the editor. The room selection has chips for all rooms and for each
-label.
+label. Below, grouped by room, it lists the **own schedules of every room** (the active
+one is marked): edit the weekly plan, **Make global …** (with the same merge of identical
+schedules as in the weekly editor), rename, delete (not the active one).
 
 ## Cards
 
@@ -238,6 +246,7 @@ show_timeline: true
 show_editor: true
 show_periods: true    # list active/planned periods and the "Plan period" button
 show_priorities: true   # row showing which priority layer is in control (expandable)
+show_hand_change: true  # row "On thermostat": Manual / Until next / Ignore
 show_battery: true      # battery indicator top right (found automatically, < 20 % in red)
 ```
 
@@ -257,6 +266,7 @@ room:                  # applies to all rooms – same options as the room card
   show_timeline: true
   show_periods: true
   show_priorities: true
+  show_hand_change: true
   show_battery: true
   show_editor: true
   compact: false
@@ -266,7 +276,8 @@ room:                  # applies to all rooms – same options as the room card
 target next to it (−/+ or **swipe horizontally** on the target; below it the variable and
 source in effect, e.g. "Comfort · Schedule"); mode and schedule selectors; a thin
 timeline for today with a small pencil that opens the weekly editor; below that calm rows
-– periods, priority – that expand when tapped.
+– periods, priority – that expand when tapped, and the row *On thermostat* with a small
+switch for how a change made on a thermostat is handled.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
 as a single switch (tap the temperature to open a slider with a temperature-coloured
