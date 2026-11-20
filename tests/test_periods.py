@@ -225,14 +225,16 @@ def test_parse_summary(guest_room_sync: None = None) -> None:
                 "standard": type("S", (), {"id": "standard", "name": "Default"})(),
                 "gast": type("S", (), {"id": "gast", "name": "Gast"})(),
             }
+            shared = {"g_party": type("S", (), {"id": "g_party", "name": "Party"})()}
 
     fake: RoomController = Fake()  # type: ignore[assignment]
     assert parse_summary(fake, "Besuch: Gast") == {"schedule": "gast"}
+    assert parse_summary(fake, "Party") == {"schedule": "g_party"}
     assert parse_summary(fake, "Aus") == {"mode": "off"}
     assert parse_summary(fake, "Manuell 22,5 °C") == {"mode": "heat", "temperature": 22.5}
     assert parse_summary(fake, "Auto") == {"mode": "auto"}
     with pytest.raises(HomeAssistantError):
-        parse_summary(fake, "Party")
+        parse_summary(fake, "Concert")
 
 
 async def test_websocket_add_period_local_time(

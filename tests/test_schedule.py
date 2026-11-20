@@ -13,9 +13,11 @@ from custom_components.bestthermostat.schedule import (
     MODE_HEAT,
     MODE_OFF,
     GlobalOverride,
+    Period,
     RoomState,
     Schedule,
     ScheduleError,
+    SharedSchedule,
     Slot,
     Week,
     clamp,
@@ -249,3 +251,44 @@ def test_override_mode_flags() -> None:
     assert not override.applies_to(MODE_HEAT)
     assert override.applies_to(MODE_OFF)
     assert not GlobalOverride(active=False, include_off=True).applies_to(MODE_OFF)
+
+
+def test_shared_schedule_visibility_and_roundtrip() -> None:
+    """A global schedule is visible in all rooms (None) or the listed ones."""
+    everywhere = SharedSchedule("g_guest", "Guest", simple_week())
+    assert everywhere.visible_to("a") and everywhere.visible_to("b")
+    some = SharedSchedule("g_guest", "Guest", simple_week(), rooms={"a"})
+    assert some.visible_to("a") and not some.visible_to("b")
+    restored = SharedSchedule.from_dict(some.to_dict())
+    assert restored.rooms == {"a"}
+    assert restored.week == some.week
+    assert SharedSchedule.from_dict(everywhere.to_dict()).rooms is None
+
+
+def test_room_uses_global_schedule() -> None:
+    """The active schedule and periods may reference a global schedule."""
+    now = datetime(2026, 11, 9, 7, 0, tzinfo=BERLIN)
+    warm = Week.from_dict({d: [{"start": "00:00", "temperature": 23}] for d in DAYS})
+    shared = {"g_warm": SharedSchedule("g_warm", "Warm", warm)}
+    state = RoomState(
+        schedules={"own": Schedule("own", "Own", simple_week())},
+        active_schedule="g_warm",
+        shared=shared,
+    )
+    assert state.has_schedule("g_warm")
+    assert state.schedule.name == "Warm"
+    kwargs = {
+        "frost_temperature": 5.0,
+        "override": GlobalOverride(),
+        "variables": VARS,
+        "now": now,
+        "tz": BERLIN,
+    }
+    assert compute_target(state, **kwargs).temperature == 23.0
+    state.active_schedule = "own"
+    assert compute_target(state, **kwargs).temperature == 21.0
+    state.periods.append(
+        Period("p", now - timedelta(hours=1), None, now, schedule="g_warm", group="p")
+    )
+    assert compute_target(state, **kwargs).temperature == 23.0
+    assert Period.from_dict(state.periods[0].to_dict()).group == "p"

@@ -175,10 +175,6 @@
       "name": "Set active schedule",
       "description": "Activates a schedule of one or more rooms.",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "schedule": {
           "name": "Schedule",
           "description": "Name or ID of the schedule."
@@ -189,10 +185,6 @@
       "name": "Set mode",
       "description": "Sets auto, manual or off.",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "mode": {
           "name": "Mode",
           "description": "Operating mode."
@@ -207,10 +199,6 @@
       "name": "Get schedules",
       "description": "Returns state, schedules and weekly plans of rooms.",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "schedule": {
           "name": "Schedule",
           "description": "Only this schedule (optional)."
@@ -221,10 +209,6 @@
       "name": "Set weekly plan",
       "description": "Replaces the weekly plan of a schedule (creates it if missing).",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "schedule": {
           "name": "Schedule",
           "description": "Name or ID of the schedule."
@@ -287,10 +271,6 @@
       "name": "Add period",
       "description": "Activates a schedule and/or mode for a period (now or later, until an end or cancelled). Afterwards the room continues as before. Returns the period id.",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "schedule": {
           "name": "Schedule",
           "description": "Name or ID of the schedule to activate."
@@ -325,10 +305,6 @@
       "name": "Cancel period",
       "description": "Ends or deletes a planned period; without id all periods of the room.",
       "fields": {
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
-        },
         "period_id": {
           "name": "Period ID",
           "description": "ID returned by add_period."
@@ -342,10 +318,6 @@
         "period_id": {
           "name": "Period ID",
           "description": "ID of the period."
-        },
-        "entity_id": {
-          "name": "Room",
-          "description": "Room thermostat(s)."
         },
         "schedule": {
           "name": "Schedule",

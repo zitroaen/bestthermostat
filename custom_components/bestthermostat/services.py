@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE
+from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.service import async_extract_referenced_entity_ids
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
@@ -33,21 +34,37 @@ ATTR_PERIOD_ID = "period_id"
 ATTR_SUMMARY = "summary"
 ATTR_OPEN_END = "open_end"
 
-ROOM_SCHEMA: dict[Any, Any] = {vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids}
+
+def room_schema(fields: dict[Any, Any]) -> Any:
+    """Schema of a room service: a target (entities, devices, areas, floors, labels)."""
+    return cv.make_entity_service_schema(fields)
 
 
-def rooms_for(hass: HomeAssistant, entity_ids: list[str]) -> list[RoomController]:
-    """Resolve climate entity ids of rooms to their controllers."""
+def rooms_for(hass: HomeAssistant, call: ServiceCall) -> list[RoomController]:
+    """Resolve the target of a call (rooms, areas, floors, labels) to room controllers.
+
+    An entity named explicitly must belong to a room; rooms found through an area,
+    floor, label or device are used, anything else there is ignored.
+    """
     hub = get_hub(hass)
     registry = er.async_get(hass)
-    rooms: list[RoomController] = []
-    for entity_id in entity_ids:
+
+    def controller(entity_id: str) -> RoomController | None:
         entry = registry.async_get(entity_id)
-        controller = hub.controllers.get(entry.config_entry_id or "") if entry else None
-        if controller is None:
+        return hub.controllers.get(entry.config_entry_id or "") if entry else None
+
+    selected = async_extract_referenced_entity_ids(hass, call)
+    rooms: dict[str, RoomController] = {}
+    for entity_id in sorted(selected.referenced):
+        if (room := controller(entity_id)) is None:
             raise ServiceValidationError(f"{entity_id} is not a Best Thermostat room")
-        rooms.append(controller)
-    return rooms
+        rooms.setdefault(room.entry_id, room)
+    for entity_id in sorted(selected.indirectly_referenced):
+        if (room := controller(entity_id)) is not None:
+            rooms.setdefault(room.entry_id, room)
+    if not rooms:
+        raise ServiceValidationError("The target contains no Best Thermostat room")
+    return sorted(rooms.values(), key=lambda r: r.name.casefold())
 
 
 def async_register_services(hass: HomeAssistant) -> None:
@@ -55,16 +72,16 @@ def async_register_services(hass: HomeAssistant) -> None:
     hub = get_hub(hass)
 
     async def set_active_schedule(call: ServiceCall) -> None:
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             room.set_active_schedule(call.data[ATTR_SCHEDULE])
 
     async def set_mode(call: ServiceCall) -> None:
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             room.set_mode(call.data[ATTR_MODE], call.data.get(ATTR_TEMPERATURE))
 
     async def get_schedule(call: ServiceCall) -> ServiceResponse:
         result: dict[str, Any] = {}
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             data = room.as_dict()
             if key := call.data.get(ATTR_SCHEDULE):
                 sched = room.find_schedule(key)
@@ -73,7 +90,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         return {"rooms": result, "variables": [v.to_dict() for v in hub.variables.values()]}
 
     async def set_schedule(call: ServiceCall) -> None:
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             key = call.data[ATTR_SCHEDULE]
             try:
                 room.find_schedule(key)
@@ -104,18 +121,20 @@ def async_register_services(hass: HomeAssistant) -> None:
             if end is not None:
                 raise ServiceValidationError("Use either end or duration, not both")
             end = (start or dt_util.now()) + duration
-        result: list[Any] = []
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
-            period = room.add_period(
-                start=start,
-                end=end,
-                schedule=call.data.get(ATTR_SCHEDULE),
-                mode=call.data.get(ATTR_MODE),
-                temperature=call.data.get(ATTR_TEMPERATURE),
-                summary=call.data.get(ATTR_SUMMARY),
-            )
-            result.append({"room": room.climate_entity_id, **room.period_dict(period)})
-        return {"periods": result}
+        rooms = rooms_for(hass, call)
+        fields: dict[str, Any] = {
+            "start": start,
+            "end": end,
+            "schedule": call.data.get(ATTR_SCHEDULE),
+            "mode": call.data.get(ATTR_MODE),
+            "temperature": call.data.get(ATTR_TEMPERATURE),
+            "summary": call.data.get(ATTR_SUMMARY),
+        }
+        if len(rooms) > 1:  # planned together: one group, edited and cancelled together
+            pairs = hub.add_group_period([r.entry_id for r in rooms], **fields)
+        else:
+            pairs = [(rooms[0], rooms[0].add_period(**fields))]
+        return {"periods": [{"room": r.climate_entity_id, **r.period_dict(p)} for r, p in pairs]}
 
     async def update_period(call: ServiceCall) -> ServiceResponse:
         start = call.data.get(ATTR_START)
@@ -123,10 +142,10 @@ def async_register_services(hass: HomeAssistant) -> None:
         if (duration := call.data.get(ATTR_DURATION)) is not None:
             if end is not None:
                 raise ServiceValidationError("Use either end or duration, not both")
-            room = rooms_for(hass, call.data[ATTR_ENTITY_ID])[0]
+            room = rooms_for(hass, call)[0]
             end = (start or room.find_period(call.data[ATTR_PERIOD_ID]).start) + duration
         result: list[Any] = []
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             period = room.update_period(
                 call.data[ATTR_PERIOD_ID],
                 start=start,
@@ -141,7 +160,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         return {"periods": result}
 
     async def cancel_period(call: ServiceCall) -> None:
-        for room in rooms_for(hass, call.data[ATTR_ENTITY_ID]):
+        for room in rooms_for(hass, call):
             room.cancel_period(call.data.get(ATTR_PERIOD_ID))
 
     temp = vol.All(vol.Coerce(float), vol.Range(min=MIN_TEMP, max=MAX_TEMP))
@@ -149,9 +168,8 @@ def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN,
         "add_period",
         add_period,
-        vol.Schema(
+        room_schema(
             {
-                **ROOM_SCHEMA,
                 vol.Optional(ATTR_SCHEDULE): cv.string,
                 vol.Optional(ATTR_MODE): vol.In(MODES),
                 vol.Optional(ATTR_TEMPERATURE): temp,
@@ -167,9 +185,8 @@ def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN,
         "update_period",
         update_period,
-        vol.Schema(
+        room_schema(
             {
-                **ROOM_SCHEMA,
                 vol.Required(ATTR_PERIOD_ID): cv.string,
                 vol.Optional(ATTR_SCHEDULE): cv.string,
                 vol.Optional(ATTR_MODE): vol.In(MODES),
@@ -187,21 +204,20 @@ def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN,
         "cancel_period",
         cancel_period,
-        vol.Schema({**ROOM_SCHEMA, vol.Optional(ATTR_PERIOD_ID): cv.string}),
+        room_schema({vol.Optional(ATTR_PERIOD_ID): cv.string}),
     )
     hass.services.async_register(
         DOMAIN,
         "set_active_schedule",
         set_active_schedule,
-        vol.Schema({**ROOM_SCHEMA, vol.Required(ATTR_SCHEDULE): cv.string}),
+        room_schema({vol.Required(ATTR_SCHEDULE): cv.string}),
     )
     hass.services.async_register(
         DOMAIN,
         "set_mode",
         set_mode,
-        vol.Schema(
+        room_schema(
             {
-                **ROOM_SCHEMA,
                 vol.Required(ATTR_MODE): vol.In(MODES),
                 vol.Optional(ATTR_TEMPERATURE): temp,
             }
@@ -211,16 +227,14 @@ def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN,
         "get_schedule",
         get_schedule,
-        vol.Schema({**ROOM_SCHEMA, vol.Optional(ATTR_SCHEDULE): cv.string}),
+        room_schema({vol.Optional(ATTR_SCHEDULE): cv.string}),
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "set_schedule",
         set_schedule,
-        vol.Schema(
-            {**ROOM_SCHEMA, vol.Required(ATTR_SCHEDULE): cv.string, vol.Required(ATTR_WEEK): dict}
-        ),
+        room_schema({vol.Required(ATTR_SCHEDULE): cv.string, vol.Required(ATTR_WEEK): dict}),
     )
     hass.services.async_register(
         DOMAIN,

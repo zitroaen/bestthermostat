@@ -1,26 +1,20 @@
 set_active_schedule:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     schedule:
       required: true
       example: "Guest"
       selector:
         text:
 set_mode:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     mode:
       required: true
       selector:
@@ -38,26 +32,20 @@ set_mode:
           step: 0.5
           unit_of_measurement: "°C"
 get_schedule:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     schedule:
       selector:
         text:
 set_schedule:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     schedule:
       required: true
       selector:
@@ -109,14 +97,11 @@ set_global_override:
       selector:
         boolean:
 add_period:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     schedule:
       example: "Guest"
       selector:
@@ -149,14 +134,11 @@ add_period:
       selector:
         text:
 update_period:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     period_id:
       required: true
       selector:
@@ -196,14 +178,11 @@ update_period:
       selector:
         text:
 cancel_period:
+  target:
+    entity:
+      integration: bestthermostat
+      domain: climate
   fields:
-    entity_id:
-      required: true
-      selector:
-        entity:
-          integration: bestthermostat
-          domain: climate
-          multiple: true
     period_id:
       selector:
         text:
