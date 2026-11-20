@@ -8,7 +8,15 @@ from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
-from homeassistant.helpers.service import async_extract_referenced_entity_ids
+
+try:  # Home Assistant 2025.8+; the old helper in helpers.service was removed later
+    from homeassistant.helpers.target import (
+        TargetSelection,
+        async_extract_referenced_entity_ids as _extract_target,
+    )
+except ImportError:  # pragma: no cover - older Home Assistant
+    TargetSelection = None  # type: ignore[assignment,misc]
+    _extract_target = None  # type: ignore[assignment]
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
@@ -40,6 +48,17 @@ def room_schema(fields: dict[Any, Any]) -> Any:
     return cv.make_entity_service_schema(fields)
 
 
+def _referenced(hass: HomeAssistant, call: ServiceCall) -> Any:
+    """Entities a call targets (directly and via areas, floors, devices, labels)."""
+    if _extract_target is not None:
+        return _extract_target(hass, TargetSelection(call.data))
+    from homeassistant.helpers.service import (  # pragma: no cover
+        async_extract_referenced_entity_ids,
+    )
+
+    return async_extract_referenced_entity_ids(hass, call)  # pragma: no cover
+
+
 def rooms_for(hass: HomeAssistant, call: ServiceCall) -> list[RoomController]:
     """Resolve the target of a call (rooms, areas, floors, labels) to room controllers.
 
@@ -53,7 +72,7 @@ def rooms_for(hass: HomeAssistant, call: ServiceCall) -> list[RoomController]:
         entry = registry.async_get(entity_id)
         return hub.controllers.get(entry.config_entry_id or "") if entry else None
 
-    selected = async_extract_referenced_entity_ids(hass, call)
+    selected = _referenced(hass, call)
     rooms: dict[str, RoomController] = {}
     for entity_id in sorted(selected.referenced):
         if (room := controller(entity_id)) is None:
