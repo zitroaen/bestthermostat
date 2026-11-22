@@ -277,7 +277,10 @@ target next to it (−/+ or **swipe horizontally** on the target; below it the v
 source in effect, e.g. "Comfort · Schedule"); mode and schedule selectors; a thin
 timeline for today with a small pencil that opens the weekly editor; below that calm rows
 – periods, priority – that expand when tapped, and the row *On thermostat* with a small
-switch for how a change made on a thermostat is handled.
+switch for how a change made on a thermostat is handled. Tapping the room icon or the
+current temperature opens Home Assistant's dialog of the room thermostat (history,
+details). On a narrow card (e.g. two cards side by side on a tablet) −/+ move below the
+current temperature and the switch gets its own line.
 
 **Overview card:** a summary ("2 of 5 rooms heating · Ø 19.4 °C"), the global override
 as a single switch (tap the temperature to open a slider with a temperature-coloured

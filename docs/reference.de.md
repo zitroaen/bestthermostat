@@ -283,7 +283,11 @@ room:                  # gilt für alle Räume – dieselben Optionen wie die Ra
 „Komfort · Zeitplan“); Modus- und Zeitplan-Auswahl, eine schmale Zeitleiste für heute
 mit einem kleinen Stift, der den Wocheneditor öffnet, und ruhige Zeilen – Zeiträume,
 Priorität –, die sich beim Antippen aufklappen, sowie die Zeile *Am Thermostat* mit einem
-kleinen Umschalter, wie eine Änderung direkt am Thermostat behandelt wird.
+kleinen Umschalter, wie eine Änderung direkt am Thermostat behandelt wird. Ein Tipp auf
+das Raum-Icon oder die Ist-Temperatur öffnet den Home-Assistant-Dialog des
+Raumthermostats (Verlauf, Details). Auf einer schmalen Karte (z. B. zwei Karten
+nebeneinander auf einem Tablet) rutschen −/+ unter die Ist-Temperatur und der Umschalter
+bekommt eine eigene Zeile.
 
 **Übersichtskarte:** Eine Zusammenfassung („2 von 5 Räumen heizen · Ø 19,4 °C“), der
 globale Override als ein Schalter (Tipp auf die Temperatur öffnet einen Regler mit
