@@ -364,9 +364,10 @@ export class BestThermostatCard extends LitElement {
         ${this._batOpen && c.show_battery ? this._batteryPanel(room) : nothing}
 
         <div class="hero">
-          <div class="current">
+          <button class="current" title=${t.history} aria-label=${t.history}
+            @click=${() => this._moreInfo(room)}>
             <span class="big">${fmtTemp(room.current_temperature, false)}</span><span class="unit">°C</span>
-          </div>
+          </button>
           <div class="ctl">
             <button class="round" @click=${() => this._step(room, -0.5)} aria-label="-0.5">−</button>
             <div class="target ${this._swipe?.moved ? "swiping" : ""}" title=${t.swipe_hint}
@@ -621,6 +622,8 @@ export class BestThermostatCard extends LitElement {
         vertical-align: -2px;
       }
       ha-card {
+        /* The layout follows the card's own width (e.g. two cards side by side). */
+        container-type: inline-size;
         padding: 16px;
         display: flex;
         flex-direction: column;
@@ -697,9 +700,47 @@ export class BestThermostatCard extends LitElement {
       }
       .hero {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-end;
         justify-content: space-between;
         gap: 12px;
+      }
+      .current {
+        padding: 0;
+        text-align: left;
+        border-radius: 8px;
+      }
+      .current:focus-visible {
+        outline: 2px solid var(--bt-accent);
+      }
+      .ctl {
+        margin-left: auto;
+      }
+      /* Narrow card: −/+ below the current temperature, using the full width. */
+      @container (max-width: 330px) {
+        .ctl {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .target {
+          flex: 1;
+        }
+      }
+      /* Narrow card: the hand change switch gets its own line. */
+      @container (max-width: 400px) {
+        .row.hand {
+          flex-wrap: wrap;
+          row-gap: 6px;
+          padding-top: 8px;
+          padding-bottom: 8px;
+        }
+        .row.hand .seg.small {
+          flex: 1 1 100%;
+        }
+        .row.hand .seg.small button {
+          flex: 1 1 0;
+          padding: 0 4px;
+        }
       }
       .big {
         font-size: 52px;
