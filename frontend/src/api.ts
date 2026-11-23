@@ -114,6 +114,8 @@ export interface RoomData {
   override_active: boolean;
   /** Thermostats changed by hand that are not synced (room option "sync" off). */
   trv_deviations?: { entity_id: string; name: string; temperature: number; until: string | null }[];
+  /** Thermostats that did not take their set-point for a while (e.g. they ignore writes). */
+  trvs_not_following?: { entity_id: string; name: string; temperature: number | null; target: number; since: string }[];
   next_change: string | null;
   next_temperature: number | null;
   schedules: ScheduleData[];

@@ -161,6 +161,9 @@ const snapshot = {
       hand_until: todayAt(22),
       hvac_action: "heating",
       batteries: [{ entity_id: "climate.trv5", device_id: "dev5", name: "TRV", level: 14, low: true }],
+      trvs_not_following: [
+        { entity_id: "climate.trv5", name: "TRV", temperature: 15, target: 23, since: iso(-1) },
+      ],
     }),
     room(de ? "Gästezimmer" : "Guest room", "mdi:bed-outline", "upper", {
       mode: "off",

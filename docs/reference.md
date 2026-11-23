@@ -72,6 +72,19 @@ small battery indicator with the level(s) in the top right corner (red below 20 
 to see every thermostat – each entry links to the device in Home Assistant. The overview
 marks rooms with a weak battery. Option `show_battery`.
 
+## Thermostats that do not follow
+
+If a thermostat still has another set-point 10 minutes after it should have changed
+(for example because it accepts commands but ignores them), it gets the set-point once
+more and is then reported: the room card shows a warning line with the reported and the
+wanted value (tap it to open the thermostat), the overview marks the room, the room
+entity lists it in the attribute `trvs_not_following` and the log shows a warning. The
+report disappears as soon as the thermostat has the right value. Unavailable thermostats
+are not reported.
+
+A thermostat whose state is `unknown` (some bridges report this when they cannot map
+the HVAC mode) is still controlled and measured as long as it reports a set-point.
+
 ## Limitations
 
 - Temperatures are in **°C**. Home Assistant systems configured for °F are not

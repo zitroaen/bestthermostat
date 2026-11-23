@@ -89,6 +89,17 @@ The behaviour is a room option, but it can also be switched at runtime (a `selec
 entity per room, a row in the room card). That change is written to the entry options
 without reloading the room (`RoomController.options` remembers what is applied).
 
+## Thermostats without a mode, thermostats that do not follow
+
+- A TRV in state `unknown` that reports a set-point is used like any other TRV
+  (written to, averaged). Only `unavailable`, or `unknown` without a set-point, excludes
+  it. Before, such a TRV was skipped silently and kept its own set-point for days.
+- Losing or regaining the mode (`unknown` <-> a mode) is treated like a reconnect: the
+  TRV is resynced, it is never a hand change and never the "switched to auto" gesture.
+- A TRV that differs from its set-point for `FOLLOW_TIMEOUT` (10 min) gets exactly one
+  more write and is then reported (`trvs_not_following`); there are no endless retries,
+  so a broken TRV does not keep the Zigbee network busy.
+
 ## Cards
 
 - Both cards ship with the integration in one repository and are registered

@@ -20,6 +20,7 @@ import {
 import {
   batteryIcon,
   lowestBattery,
+  notFollowing,
   priorities,
   roomIcon,
   roomStatus,
@@ -296,13 +297,12 @@ export class BestThermostatCard extends LitElement {
   }
 
   private _moreInfo(room: RoomData) {
-    if (!room.climate_entity_id) return;
+    if (room.climate_entity_id) this._moreInfoEntity(room.climate_entity_id);
+  }
+
+  private _moreInfoEntity(entityId: string) {
     this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        detail: { entityId: room.climate_entity_id },
-        bubbles: true,
-        composed: true,
-      }),
+      new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }),
     );
   }
 
@@ -362,6 +362,11 @@ export class BestThermostatCard extends LitElement {
           ? html`<div class="bat-line">${this._batteryChip(room)}</div>`
           : nothing}
         ${this._batOpen && c.show_battery ? this._batteryPanel(room) : nothing}
+        ${notFollowing(room, t).map(
+          (n) => html`<button class="warn" @click=${() => this._moreInfoEntity(n.entity_id)}>
+            <ha-icon icon="mdi:thermometer-alert"></ha-icon><span>${n.text}</span>
+          </button>`,
+        )}
 
         <div class="hero">
           <button class="current" title=${t.history} aria-label=${t.history}
@@ -643,6 +648,26 @@ export class BestThermostatCard extends LitElement {
       }
       .update span {
         flex: 1;
+      }
+      .warn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 13px;
+        text-align: left;
+        color: var(--primary-text-color);
+        background: color-mix(in srgb, var(--warning-color, #ffa600) 18%, transparent);
+        cursor: pointer;
+      }
+      .warn ha-icon {
+        --mdc-icon-size: 18px;
+        flex: none;
+        color: var(--warning-color, #ffa600);
       }
       .msg {
         padding: 8px;

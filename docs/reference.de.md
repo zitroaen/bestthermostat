@@ -71,6 +71,20 @@ ein kleines Batteriesymbol mit dem Stand bzw. den Ständen (unter 20 % rot); ant
 jedes Thermostat – jeder Eintrag führt direkt zum Gerät in Home Assistant. Die Übersicht
 markiert Räume mit schwacher Batterie. Option `show_battery`.
 
+## Thermostate, die nicht folgen
+
+Hat ein Thermostat 10 Minuten nach einer Änderung immer noch einen anderen Sollwert (etwa
+weil es Befehle annimmt, aber nicht übernimmt), bekommt es den Sollwert noch einmal und
+wird dann gemeldet: Die Raumkarte zeigt eine Warnzeile mit gemeldetem und gewünschtem
+Wert (antippen öffnet das Thermostat), die Übersicht markiert den Raum, die
+Raum-Entität führt es im Attribut `trvs_not_following` und im Log steht eine Warnung.
+Die Meldung verschwindet, sobald das Thermostat den richtigen Wert hat. Nicht erreichbare
+Thermostate werden nicht gemeldet.
+
+Ein Thermostat im Zustand `unknown` (manche Bridges melden das, wenn sie den
+Betriebsmodus nicht zuordnen können) wird weiter angesteuert und mitgemessen, solange es
+einen Sollwert meldet.
+
 ## Einschränkungen
 
 - Temperaturen sind in **°C**. Home-Assistant-Systeme mit °F werden nicht unterstützt.
