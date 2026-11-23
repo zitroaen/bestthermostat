@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "bestthermostat"
 NAME: Final = "Best Thermostat"
-VERSION: Final = "0.10.1"
+VERSION: Final = "0.11.0"
 
 CONF_ENTRY_TYPE: Final = "entry_type"
 ENTRY_TYPE_GLOBAL: Final = "global"
@@ -50,3 +50,5 @@ SEND_RETRIES: Final = 3
 SEND_RETRY_DELAY: Final = 10.0
 OWN_WRITE_WINDOW: Final = 120.0
 SETTLE_SECONDS: Final = 15.0
+FOLLOW_TIMEOUT: Final = 600.0
+"""Seconds a TRV may differ from its set-point before it is reported as not following."""

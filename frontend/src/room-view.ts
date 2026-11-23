@@ -147,6 +147,14 @@ export function batteryIcon(level: number | null, low: boolean | null): string {
   return `mdi:battery-${Math.max(10, Math.floor(level / 10) * 10)}`;
 }
 
+/** One line per thermostat that does not take its set-point, e.g. "TRV right does not … : 15.0 °C instead of 20.0 °C". */
+export function notFollowing(room: RoomData, t: Strings): { entity_id: string; text: string }[] {
+  return (room.trvs_not_following ?? []).map((n) => ({
+    entity_id: n.entity_id,
+    text: `${n.name} ${t.not_following}: ${fmtTemp(n.temperature)} ${t.instead_of} ${fmtTemp(n.target)}`,
+  }));
+}
+
 /** Unsynced hand changes on single thermostats, e.g. "TRV left 23.0 °C · until 22:00". */
 export function deviations(room: RoomData, t: Strings, hass: HomeAssistant): string {
   return (room.trv_deviations ?? [])

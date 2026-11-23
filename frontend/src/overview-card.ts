@@ -5,6 +5,7 @@ import {
   commonNextChange,
   followsSchedule,
   lowestBattery,
+  notFollowing,
   roomIcon,
   roomStatus,
   upcomingPeriods,
@@ -615,6 +616,9 @@ export class BestThermostatOverviewCard extends LitElement {
           <span class="name">${room.name}${this._config?.room?.show_battery && lowestBattery(room)?.low
             ? html`<ha-icon class="bat-low" icon="mdi:battery-alert-variant-outline"
                 title=${t.battery_low}></ha-icon>`
+            : nothing}${room.trvs_not_following?.length
+            ? html`<ha-icon class="not-following" icon="mdi:thermometer-alert"
+                title=${notFollowing(room, t).map((n) => n.text).join("\n")}></ha-icon>`
             : nothing}</span>
           <span class="muted sub">${roomStatus(room, t, h, omitNext)}</span>
           ${next
@@ -1165,11 +1169,15 @@ export class BestThermostatOverviewCard extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .bat-low {
+      .bat-low,
+      .not-following {
         --mdc-icon-size: 16px;
         color: var(--error-color, #db4437);
         margin-left: 4px;
         vertical-align: -2px;
+      }
+      .not-following {
+        color: var(--warning-color, #ffa600);
       }
       .planned {
         display: inline-flex;

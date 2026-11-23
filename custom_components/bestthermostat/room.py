@@ -59,6 +59,7 @@ from .const import (
     DEFAULT_SCHEDULE_ID,
     DEFAULT_SYNC_TRVS,
     DOMAIN,
+    FOLLOW_TIMEOUT,
     HAND_CHANGE_OPTIONS,
     HAND_IGNORE,
     HAND_MANUAL,
@@ -100,7 +101,17 @@ BATTERY_LOW = 20
 
 
 def _available(state: State | None) -> bool:
-    return state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
+    """Return True if the TRV can be read and written.
+
+    Some bridges report a thermostat whose HVAC mode they cannot map as "unknown",
+    although it reports its set-point and accepts new ones. Such a TRV is used as
+    long as it reports a set-point.
+    """
+    if state is None or state.state == STATE_UNAVAILABLE:
+        return False
+    if state.state == STATE_UNKNOWN:
+        return _float(state.attributes.get(ATTR_TEMPERATURE)) is not None
+    return True
 
 
 # TRV attributes the room uses; changes of anything else are ignored.
@@ -238,6 +249,10 @@ class RoomController:
         self._unsubs: list[Callable[[], None]] = []
         self._timer: Callable[[], None] | None = None
         self._settle: dict[str, Callable[[], None]] = {}
+        # Since when each TRV's set-point differs from the value it should have (and that value).
+        self._mismatch: dict[str, tuple[datetime, float]] = {}
+        self._not_following: frozenset[str] = frozenset()
+        self._follow_timer: Callable[[], None] | None = None
         self.climate_entity_id: str | None = None
         self._battery_unsub: Callable[[], None] | None = None
         self._battery_ids: set[str] = set()
@@ -417,6 +432,9 @@ class RoomController:
         if self._timer:
             self._timer()
             self._timer = None
+        if self._follow_timer:
+            self._follow_timer()
+            self._follow_timer = None
 
     def state_to_dict(self) -> dict[str, Any]:
         """Serialize for storage."""
@@ -591,6 +609,81 @@ class RoomController:
                 or self.hub.sender.is_pending(entity_id)
             ):
                 self.hub.sender.send(entity_id, want)
+        self._check_following()
+
+    @callback
+    def _check_following(self) -> None:
+        """Track TRVs whose set-point differs from the one they should have.
+
+        A TRV that still differs after FOLLOW_TIMEOUT is reported as not following
+        (e.g. it ignores our writes); it gets one more write at that moment.
+        """
+        now = dt_util.utcnow()
+        target = self.target()
+        mismatch: dict[str, tuple[datetime, float]] = {}
+        if target.temperature is not None:
+            for entity_id in self.trvs:
+                state = self.hass.states.get(entity_id)
+                if not _available(state):
+                    continue  # unavailable is shown elsewhere; nothing to compare
+                assert state is not None
+                current = _float(state.attributes.get(ATTR_TEMPERATURE))
+                want = self._want(state, target)
+                if current is None or abs(current - want) <= TOLERANCE:
+                    continue
+                previous = self._mismatch.get(entity_id)
+                # A new wanted value starts the wait again.
+                mismatch[entity_id] = previous if previous and previous[1] == want else (now, want)
+        self._mismatch = mismatch
+        if self._follow_timer:
+            self._follow_timer()
+            self._follow_timer = None
+        waited = {e: (now - since).total_seconds() for e, (since, _) in mismatch.items()}
+        lagging = frozenset(e for e, seconds in waited.items() if seconds >= FOLLOW_TIMEOUT)
+        if pending := [since for e, (since, _) in mismatch.items() if e not in lagging]:
+            delay = FOLLOW_TIMEOUT - (now - min(pending)).total_seconds()
+            self._follow_timer = async_call_later(self.hass, max(delay, 0), self._on_follow_timer)
+        if lagging == self._not_following:
+            return
+        for entity_id in lagging - self._not_following:
+            _LOGGER.warning(
+                "%s: %s does not take its set-point (%s °C instead of %s °C)",
+                self.name,
+                entity_id,
+                _float(self.hass.states.get(entity_id).attributes.get(ATTR_TEMPERATURE)),  # type: ignore[union-attr]
+                target.temperature,
+            )
+        for entity_id in self._not_following - lagging:
+            _LOGGER.info("%s: %s follows its set-point again", self.name, entity_id)
+        self._not_following = lagging
+        self.notify()
+
+    @callback
+    def _on_follow_timer(self, _now: datetime) -> None:
+        # The handle has fired; forget it so _check_following does not cancel it.
+        self._follow_timer = None
+        self.apply()  # one more write, then the TRV counts as not following
+
+    def not_following(self) -> list[dict[str, Any]]:
+        """TRVs that did not take their set-point for FOLLOW_TIMEOUT (for the API)."""
+        target = self.target()
+        result = []
+        for entity_id in self.trvs:
+            if entity_id not in self._not_following:
+                continue
+            state = self.hass.states.get(entity_id)
+            if state is None or target.temperature is None:
+                continue
+            result.append(
+                {
+                    "entity_id": entity_id,
+                    "name": state.name,
+                    "temperature": _float(state.attributes.get(ATTR_TEMPERATURE)),
+                    "target": self._want(state, target),
+                    "since": self._mismatch[entity_id][0].isoformat(),
+                }
+            )
+        return result
 
     def deviation(self, entity_id: str) -> TrvDeviation | None:
         """Active unsynced hand change of a thermostat (only with sync off)."""
@@ -644,6 +737,7 @@ class RoomController:
             return  # e.g. only link quality or "last seen" changed
         self.notify()
         if not _available(new):
+            self._check_following()  # an unavailable TRV is not reported as not following
             return
         assert new is not None
         if not _available(old):
@@ -651,15 +745,22 @@ class RoomController:
             self.apply()
             return
         assert old is not None
+        if STATE_UNKNOWN in (old.state, new.state) and old.state != new.state:
+            # The bridge lost or found the HVAC mode: no user action (also not
+            # "auto"), the reported set-point may be stale. Resync like a reconnect.
+            self.apply()
+            return
         if new.state == HVACMode.AUTO and old.state != HVACMode.AUTO:
             self._on_trv_auto(entity_id, old.state)
             return
         new_t = _float(new.attributes.get(ATTR_TEMPERATURE))
         old_t = _float(old.attributes.get(ATTR_TEMPERATURE))
         if new_t is None or new_t == old_t:
+            self._check_following()
             return
         if self.hub.sender.is_own(entity_id, new.context, new_t):
             _LOGGER.debug("%s: %s %s -> %s °C (own write)", self.name, entity_id, old_t, new_t)
+            self._check_following()
             return
         target = self.target().temperature
         _LOGGER.debug(
@@ -674,6 +775,7 @@ class RoomController:
             new.context.parent_id,
         )
         if target is not None and abs(new_t - self._want(new, self.target())) <= TOLERANCE:
+            self._check_following()
             return
         if self.hub.sender.recently_sent(entity_id, SETTLE_SECONDS):
             # Probably a stale report right after our write - re-check later.
@@ -1307,6 +1409,7 @@ class RoomController:
             ),
             "override_active": self.override_active,
             "trv_deviations": self.deviations_list(),
+            "trvs_not_following": self.not_following(),
             "next_change": nxt[0].isoformat() if nxt else None,
             "next_temperature": nxt[1] if nxt else None,
             "schedules": self.schedules_list(with_weeks=with_weeks),
