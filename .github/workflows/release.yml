@@ -1,33 +1,63 @@
 name: Release
 
+# A release is published for every version that reaches main: when the version in
+# manifest.json has no tag `vX.Y.Z` yet, this workflow creates the tag and the release.
+# Pushing a tag `vX.Y.Z` by hand still works, and "Run workflow" releases the current
+# version of main if it has not been released yet.
+
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # all tags, to see whether the version was released already
       - name: Check version
+        id: version
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          MANIFEST=$(jq -r .version custom_components/bestthermostat/manifest.json)
-          test "$TAG" = "$MANIFEST" || { echo "Tag $TAG != manifest $MANIFEST"; exit 1; }
+          VERSION=$(jq -r .version custom_components/bestthermostat/manifest.json)
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            test "$GITHUB_REF_NAME" = "$TAG" || { echo "Tag $GITHUB_REF_NAME != manifest $VERSION"; exit 1; }
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          elif git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG is released already, nothing to do"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.release == 'true'
         with:
           node-version: "22"
       - run: npm ci && npm run build
+        if: steps.version.outputs.release == 'true'
         working-directory: frontend
       - name: Package
+        if: steps.version.outputs.release == 'true'
         run: |
           cd custom_components/bestthermostat
           zip -r ../../bestthermostat.zip . -x '__pycache__/*'
       - uses: softprops/action-gh-release@v2
+        if: steps.version.outputs.release == 'true'
         with:
+          # Creates the tag on this commit if it does not exist yet.
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
             bestthermostat.zip
