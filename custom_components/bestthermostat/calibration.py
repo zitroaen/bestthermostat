@@ -4,6 +4,10 @@ The offset is written to the calibration entity of the TRV's device, e.g.
 ``number.office_local_temperature_calibration`` (Zigbee2MQTT) or
 ``number.office_local_temperature_offset`` (ZHA). It is written at start and again
 whenever the device reports another value (e.g. after a battery change).
+
+A TRV without such an entity is compensated by the room instead (``compensated``):
+it gets ``room target - offset`` as set-point and its reading counts as
+``reading + offset``.
 """
 
 from __future__ import annotations
@@ -60,6 +64,7 @@ class Calibrator:
         self.room_name = room_name
         self.offsets = offsets
         self.entities: dict[str, str] = {}  # calibration entity -> TRV
+        self.compensated: dict[str, float] = {}  # TRV without calibration entity -> offset
         self._written: dict[str, float] = {}  # calibration entity -> monotonic time
         self._unsub: Callable[[], None] | None = None
 
@@ -68,13 +73,18 @@ class Calibrator:
         """Find the calibration entities, write the offsets and watch for resets."""
         self.async_stop()
         self.entities = {}
-        for trv in self.offsets:
+        self.compensated = {}
+        for trv, offset in self.offsets.items():
             if (entity_id := find_calibration_entity(self.hass, trv)) is None:
-                _LOGGER.warning(
-                    "%s: no calibration entity found for %s; its offset is not applied",
-                    self.room_name,
-                    trv,
-                )
+                if offset:
+                    _LOGGER.info(
+                        "%s: %s has no calibration entity; its offset %s K is compensated "
+                        "through the set-point",
+                        self.room_name,
+                        trv,
+                        offset,
+                    )
+                    self.compensated[trv] = offset
                 continue
             self.entities[entity_id] = trv
         if not self.entities:

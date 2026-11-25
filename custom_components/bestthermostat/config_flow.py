@@ -180,7 +180,6 @@ class RoomOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         """Initialize."""
         self._data: dict[str, Any] = {}
-        self._calibratable: dict[str, str] = {}  # TRV -> calibration entity
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Edit the room."""
@@ -201,14 +200,7 @@ class RoomOptionsFlow(OptionsFlow):
                 self._data[CONF_CALIBRATION] = {
                     t: v for t, v in old.items() if t in self._data[CONF_TRVS]
                 }
-                self._calibratable = {
-                    trv: entity
-                    for trv in self._data[CONF_TRVS]
-                    if (entity := find_calibration_entity(self.hass, trv))
-                }
-                if self._calibratable:
-                    return await self.async_step_calibration()
-                return self.async_create_entry(data=self._data)
+                return await self.async_step_calibration()
         defaults = {**self.config_entry.options, **(user_input or {})}
         return self.async_show_form(
             step_id="init",
@@ -224,17 +216,18 @@ class RoomOptionsFlow(OptionsFlow):
         if user_input is not None:
             self._data[CONF_CALIBRATION] = {
                 trv: round(float(user_input[trv]), 1)
-                for trv in self._calibratable
+                for trv in self._data[CONF_TRVS]
                 if user_input.get(trv) is not None
             }
             return self.async_create_entry(data=self._data)
         current = self._data.get(CONF_CALIBRATION) or {}
         lines = []
-        for trv, entity in self._calibratable.items():
+        for trv in self._data[CONF_TRVS]:
             state = self.hass.states.get(trv)
-            device = self.hass.states.get(entity)
-            now = f" ({device.state} K)" if device else ""
-            lines.append(f"- {trv}: {state.name if state else trv}{now}")
+            entity = find_calibration_entity(self.hass, trv)
+            device = self.hass.states.get(entity) if entity else None
+            now = f"{device.state} K" if device else "–"
+            lines.append(f"- {trv}: {state.name if state else trv} ({now})")
         return self.async_show_form(
             step_id="calibration",
             data_schema=vol.Schema(
@@ -242,7 +235,7 @@ class RoomOptionsFlow(OptionsFlow):
                     vol.Optional(
                         trv, description={"suggested_value": current.get(trv)}
                     ): OFFSET_SELECTOR
-                    for trv in self._calibratable
+                    for trv in self._data[CONF_TRVS]
                 }
             ),
             description_placeholders={"trvs": "\n".join(lines)},

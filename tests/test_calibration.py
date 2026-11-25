@@ -16,7 +16,7 @@ from custom_components.bestthermostat.calibration import find_calibration_entity
 from custom_components.bestthermostat.room import RoomController
 
 from .conftest import TRV_ATTRS
-from .test_integration import MONDAY_7, create_room, settle
+from .test_integration import MONDAY_7, create_room, settle, temps
 
 NUMBER_ATTRS = {"min": -5.0, "max": 5.0, "step": 0.5}
 
@@ -94,7 +94,7 @@ async def _room_with_offsets(
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "calibration"
-    assert list(result["data_schema"].schema) == ["climate.trv1"]  # trv2 cannot be calibrated
+    assert list(result["data_schema"].schema) == ["climate.trv1", "climate.trv2"]
     result = await hass.config_entries.options.async_configure(result["flow_id"], offsets)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await settle(hass)
@@ -173,7 +173,7 @@ async def test_empty_field_leaves_device_alone(
 async def test_offset_of_removed_trv_is_dropped(
     hass: HomeAssistant, devices: list[ServiceCall], freezer: FrozenDateTimeFactory
 ) -> None:
-    """Removing a TRV from the room drops its offset; without calibratable TRVs no 2nd step."""
+    """Removing a TRV from the room drops its offset."""
     room = await _room_with_offsets(hass, freezer, {"climate.trv1": -1.0})
     result = await hass.config_entries.options.async_init(room.entry_id)
     result = await hass.config_entries.options.async_configure(
@@ -185,7 +185,43 @@ async def test_offset_of_removed_trv_is_dropped(
             "sync_trvs": True,
         },
     )
+    assert result["step_id"] == "calibration"
+    assert list(result["data_schema"].schema) == ["climate.trv2"]
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(room.entry_id)
     assert entry is not None
     assert entry.options["calibration"] == {}
+
+
+async def test_trv_without_calibration_entity_is_compensated(
+    hass: HomeAssistant, devices: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """Without a calibration entity the room corrects set-point and reading itself."""
+    room = await _room_with_offsets(hass, freezer, {"climate.trv2": -1.0})
+    assert room.offset("climate.trv2") == -1.0
+    assert room.offset("climate.trv1") == 0.0
+    assert devices == []  # nothing written to any calibration entity
+    # trv2 measures 1 K too warm: it gets 1 K more than the room target (21 °C).
+    assert temps(hass) == (21.0, 22.0)
+    # Readings 19.0 and 19.0 -> 19.0 and 18.0 corrected.
+    assert room.current_temperature == 18.5
+    state = hass.states.get("climate.arbeitszimmer")
+    assert state is not None
+    assert state.attributes["temperature"] == 21.0  # the room target is unchanged
+
+    # A change on the device is in its own scale: 23 on trv2 means 22 in the room.
+    hass.states.async_set("climate.trv2", "heat", {**TRV_ATTRS, "temperature": 23.0})
+    await settle(hass)
+    assert room.target().temperature == 22.0
+    assert temps(hass) == (22.0, 23.0)
+    assert room.as_dict()["trvs_not_following"] == []
+
+
+async def test_zero_offset_changes_nothing(
+    hass: HomeAssistant, devices: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    """An offset of 0 on a TRV without calibration entity is no compensation."""
+    room = await _room_with_offsets(hass, freezer, {"climate.trv2": 0.0})
+    assert room.calibrator.compensated == {}
+    assert temps(hass) == (21.0, 21.0)

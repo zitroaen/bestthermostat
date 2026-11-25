@@ -57,7 +57,7 @@
       },
       "calibration": {
         "title": "Calibration of the thermostats",
-        "description": "Fixed correction of the temperature each thermostat measures, in K (e.g. -1.5 if it reads 1.5 K too warm). The value is written to the calibration setting of the device and again whenever the device resets it. Leave a field empty and the integration does not touch that device. Current value in brackets.\n\n{trvs}"
+        "description": "Fixed correction of the temperature each thermostat measures, in K (e.g. -1.5 if it reads 1.5 K too warm). If the device has a calibration setting (its current value is shown in brackets), the value is written there, and again whenever the device resets it. Without one (–), the integration compensates: the thermostat gets the room target minus the offset as set-point, and its reading counts corrected. Leave a field empty and nothing is corrected for that thermostat.\n\n{trvs}"
       },
       "add_variable": {
         "title": "Add variable",

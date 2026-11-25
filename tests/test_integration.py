@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import Context, HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
@@ -45,6 +46,22 @@ def temps(hass: HomeAssistant) -> tuple[float, float]:
         hass.states.get("climate.trv1").attributes["temperature"],  # type: ignore[union-attr]
         hass.states.get("climate.trv2").attributes["temperature"],  # type: ignore[union-attr]
     )
+
+
+async def configure_room(
+    hass: HomeAssistant,
+    entry_id: str,
+    options: dict[str, Any],
+    calibration: dict[str, Any] | None = None,
+) -> ConfigFlowResult:
+    """Run the room options flow: the settings page, then the calibration page."""
+    result = await hass.config_entries.options.async_init(entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], options)
+    if result["type"] is FlowResultType.FORM and result["step_id"] == "calibration":
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], calibration or {}
+        )
+    return result
 
 
 async def create_room(hass: HomeAssistant, **options: object) -> ConfigEntry:
@@ -380,9 +397,9 @@ async def test_options_flow(hass: HomeAssistant, room: RoomController) -> None:
     """TRVs can be changed later."""
     entry = hass.config_entries.async_get_entry(room.entry_id)
     assert entry is not None
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
+    result = await configure_room(
+        hass,
+        entry.entry_id,
         {
             "trvs": ["climate.trv1"],
             "frost_temperature": 7.0,
@@ -414,9 +431,9 @@ async def test_hide_trvs(
     assert registry.async_get("climate.trv1").hidden_by is er.RegistryEntryHider.INTEGRATION  # type: ignore[union-attr]
     assert registry.async_get("climate.trv2").hidden_by is er.RegistryEntryHider.USER  # type: ignore[union-attr]
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    await hass.config_entries.options.async_configure(
-        result["flow_id"],
+    await configure_room(
+        hass,
+        entry.entry_id,
         {
             "trvs": ["climate.trv1", "climate.trv2"],
             "frost_temperature": 5.0,
@@ -429,8 +446,9 @@ async def test_hide_trvs(
     assert registry.async_get("climate.trv1").hidden_by is None  # type: ignore[union-attr]
     assert registry.async_get("climate.trv2").hidden_by is er.RegistryEntryHider.USER  # type: ignore[union-attr]
 
-    await hass.config_entries.options.async_configure(
-        (await hass.config_entries.options.async_init(entry.entry_id))["flow_id"],
+    await configure_room(
+        hass,
+        entry.entry_id,
         {
             "trvs": ["climate.trv1", "climate.trv2"],
             "frost_temperature": 5.0,
@@ -731,9 +749,8 @@ async def test_trv_cannot_be_used_in_two_rooms(hass: HomeAssistant, room: RoomCo
     # Editing the room itself keeps its own thermostats valid.
     entry = hass.config_entries.async_get_entry(room.entry_id)
     assert entry is not None
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {**entry.options, "trvs": ["climate.trv1", "climate.trv2"]}
+    result = await configure_room(
+        hass, entry.entry_id, {**entry.options, "trvs": ["climate.trv1", "climate.trv2"]}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
