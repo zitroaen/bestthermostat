@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "bestthermostat"
 NAME: Final = "Best Thermostat"
-VERSION: Final = "0.11.0"
+VERSION: Final = "0.12.0"
 
 CONF_ENTRY_TYPE: Final = "entry_type"
 ENTRY_TYPE_GLOBAL: Final = "global"
@@ -18,6 +18,8 @@ CONF_FROST_TEMPERATURE: Final = "frost_temperature"
 CONF_HAND_CHANGE: Final = "hand_change"
 CONF_SYNC_TRVS: Final = "sync_trvs"
 CONF_HIDE_TRVS: Final = "hide_trvs"
+CONF_CALIBRATION: Final = "calibration"
+"""Room option: {TRV entity id: temperature offset in K} written to the device."""
 CONF_SIMPLE_MODES: Final = "simple_modes"
 
 HAND_MANUAL: Final = "manual"

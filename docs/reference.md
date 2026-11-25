@@ -52,6 +52,19 @@ language of Home Assistant.
   voice assistants; the room thermostat replaces them. Entities you hid yourself are left
   untouched. They are shown again when the option is turned off, a TRV is removed from the
   room or the room is deleted.
+- Calibration (only via *Configure*, second page): a fixed correction in K per
+  thermostat, e.g. -1.5 if it measures 1.5 K too warm. An empty field means no
+  correction.
+  - If the device has a calibration entity (Zigbee2MQTT:
+    `number.<device>_local_temperature_calibration`, ZHA:
+    `number.<device>_local_temperature_offset`), the value is written there, limited and
+    rounded to what the device accepts, and written again when the device resets it
+    (e.g. after a battery change). Clearing the field does not reset the device.
+  - Without one, the integration compensates: the thermostat gets the room target minus
+    the offset as set-point (with -1.5 and a room target of 20 °C it gets 21.5 °C), and
+    its reading counts corrected in the room temperature. A change made on the device
+    is taken back into the room's scale (23 °C on that device means 21.5 °C for the
+    room). The device itself keeps showing its own, uncorrected values.
 
 **Auto on the thermostat:** switching a thermostat to *auto* directly on the device (or
 in its own entity) makes the room follow its schedule again: manual/off mode, a hand

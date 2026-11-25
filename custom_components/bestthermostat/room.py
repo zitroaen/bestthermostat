@@ -49,7 +49,9 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util, slugify
 
+from .calibration import Calibrator
 from .const import (
+    CONF_CALIBRATION,
     CONF_FROST_TEMPERATURE,
     CONF_HAND_CHANGE,
     CONF_SYNC_TRVS,
@@ -255,6 +257,15 @@ class RoomController:
         self._follow_timer: Callable[[], None] | None = None
         self.climate_entity_id: str | None = None
         self._battery_unsub: Callable[[], None] | None = None
+        self.calibrator = Calibrator(
+            hass,
+            self.name,
+            {
+                trv: float(offset)
+                for trv, offset in (options.get(CONF_CALIBRATION) or {}).items()
+                if trv in self.trvs
+            },
+        )
         self._battery_ids: set[str] = set()
         self._last_period_id: str | None = None
 
@@ -384,6 +395,7 @@ class RoomController:
                 er.EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated
             )
         )
+        self.calibrator.async_start()  # before apply(): it decides which TRVs are compensated
         self.apply()
         self._schedule_timer()
 
@@ -426,6 +438,7 @@ class RoomController:
         if self._battery_unsub:
             self._battery_unsub()
             self._battery_unsub = None
+        self.calibrator.async_stop()
         for unsub in self._settle.values():
             unsub()
         self._settle.clear()
@@ -539,11 +552,15 @@ class RoomController:
         """Return the states of all available TRVs."""
         return [s for e in self.trvs if _available(s := self.hass.states.get(e))]  # type: ignore[misc]
 
+    def offset(self, entity_id: str) -> float:
+        """Calibration the room applies itself (TRVs without a calibration entity)."""
+        return self.calibrator.compensated.get(entity_id, 0.0)
+
     @property
     def current_temperature(self) -> float | None:
-        """Average current temperature of the available TRVs."""
+        """Average current temperature of the available TRVs (corrected by their offset)."""
         temps = [
-            t
+            t + self.offset(s.entity_id)
             for s in self.trv_states()
             if (t := _float(s.attributes.get(ATTR_CURRENT_TEMPERATURE))) is not None
         ]
@@ -693,12 +710,17 @@ class RoomController:
         return deviation
 
     def _want(self, state: State, target: Target) -> float:
-        """Set-point a thermostat should have (its own deviation, unless overridden)."""
+        """Set-point a thermostat should have (its own deviation, unless overridden).
+
+        Room values are corrected by the TRV's offset: a TRV that measures 1.5 K too
+        warm (offset -1.5) gets 1.5 K more.
+        """
         assert target.temperature is not None
         deviation = self.deviation(state.entity_id)
+        value = target.temperature
         if deviation is not None and target.source != SOURCE_OVERRIDE:
-            return self._for_trv(state, deviation.temperature)
-        return self._for_trv(state, target.temperature)
+            value = deviation.temperature
+        return self._for_trv(state, value - self.offset(state.entity_id))
 
     def deviations_list(self) -> list[dict[str, Any]]:
         """Active unsynced thermostat changes for the API."""
@@ -784,7 +806,8 @@ class RoomController:
             )
             self._recheck_later(entity_id)
             return
-        self._handle_hand_change(entity_id, new_t)
+        # The value set on the device is in its own (uncorrected) scale.
+        self._handle_hand_change(entity_id, round(new_t + self.offset(entity_id), 1))
 
     def _on_trv_auto(self, entity_id: str, previous_mode: str) -> None:
         """A thermostat was switched to auto: the room follows its schedule again.

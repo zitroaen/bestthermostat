@@ -31,7 +31,9 @@ npm run screenshots  # regenerates docs/images/*.png from the demo (needs Playwr
 
 CI (`.github/workflows`): `tests.yml` runs ruff, mypy, pytest and checks that the built
 card is committed; `validate.yml` runs hassfest and the HACS action; `release.yml`
-publishes a release for a tag `vX.Y.Z` that matches the manifest version.
+publishes a release whenever the manifest version on `main` has no tag `vX.Y.Z` yet
+(it creates the tag itself), so merging a version bump is the release. Agents in cloud
+sessions cannot push tags; they do not need to.
 
 ## Rules of this repository
 

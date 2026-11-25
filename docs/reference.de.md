@@ -50,6 +50,20 @@ Die Entity-IDs hängen von der Sprache ab, in der der Raum angelegt wurde.
   bei Sprachassistenten aus, das Raumthermostat ersetzt sie. Von dir selbst versteckte
   Entitäten bleiben unberührt. Beim Ausschalten der Option, beim Entfernen eines TRVs aus
   dem Raum oder beim Löschen des Raums werden sie wieder eingeblendet.
+- Kalibrierung (nur über *Konfigurieren*, zweite Seite): eine feste Korrektur in K je
+  Thermostat, z. B. -1,5, wenn es 1,5 K zu warm misst. Ein leeres Feld heißt: keine
+  Korrektur.
+  - Hat das Gerät eine Kalibrier-Entität (Zigbee2MQTT:
+    `number.<gerät>_local_temperature_calibration`, ZHA:
+    `number.<gerät>_local_temperature_offset`), wird der Wert dort eingetragen, auf den
+    erlaubten Bereich und die Schrittweite des Geräts begrenzt und erneut geschrieben,
+    wenn das Gerät ihn zurücksetzt (z. B. nach einem Batteriewechsel). Ein geleertes Feld
+    setzt das Gerät nicht zurück.
+  - Ohne Kalibrier-Entität gleicht die Integration aus: Das Thermostat bekommt das
+    Raumziel minus den Offset als Sollwert (bei -1,5 und 20 °C Raumziel also 21,5 °C),
+    und sein Messwert geht korrigiert in die Raumtemperatur ein. Eine Änderung direkt am
+    Gerät wird auf die Raumskala zurückgerechnet (23 °C an diesem Gerät heißen 21,5 °C
+    für den Raum). Das Gerät selbst zeigt weiter seine eigenen, unkorrigierten Werte.
 
 **Auto am Thermostat:** Wird ein Thermostat direkt am Gerät (oder über seine eigene
 Entität) auf *Auto* gestellt, folgt der Raum wieder seinem Zeitplan: Modus
