@@ -55,6 +55,10 @@
           "settings": "Settings"
         }
       },
+      "calibration": {
+        "title": "Calibration of the thermostats",
+        "description": "Fixed correction of the temperature each thermostat measures, in K (e.g. -1.5 if it reads 1.5 K too warm). The value is written to the calibration setting of the device and again whenever the device resets it. Leave a field empty and the integration does not touch that device. Current value in brackets.\n\n{trvs}"
+      },
       "add_variable": {
         "title": "Add variable",
         "data": {

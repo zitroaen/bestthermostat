@@ -9,7 +9,19 @@ Decisions that were made deliberately. Change them only when the owner asks for 
 - A **room** is one config entry with 1..n TRVs and appears as one device with a room
   thermostat. Global settings live in a second, automatically created entry.
 - Not included on purpose: per-room temperature offsets, boost, open-window detection,
-  presence detection, external temperature sensors. The integration only sets set-points.
+  presence detection, external temperature sensors. The integration sets set-points; the
+  only other thing it writes is an optional fixed calibration per TRV (below).
+
+## Calibration per TRV
+
+- A fixed offset per thermostat, configured in the room options and written to the
+  device's own calibration entity (found on the TRV's device by name). The integration
+  does not correct temperatures itself and does not compute offsets from other sensors.
+- Only configured TRVs are touched; an empty field means "leave the device alone", and
+  removing an offset does not reset the device.
+- The offset is written at start and when the device reports another value, but not
+  again within 60 s of our own write, so a device that rounds or ignores the value
+  cannot cause a write loop.
 
 ## Modes
 

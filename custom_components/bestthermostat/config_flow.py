@@ -16,7 +16,9 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er, selector
 import voluptuous as vol
 
+from .calibration import find_calibration_entity
 from .const import (
+    CONF_CALIBRATION,
     CONF_ENTRY_TYPE,
     CONF_FROST_TEMPERATURE,
     CONF_HAND_CHANGE,
@@ -38,6 +40,12 @@ from .const import (
 from .hub import get_hub
 from .schedule import MAX_TEMP, MIN_TEMP, TEMP_STEP
 from .visibility import async_unhide_trvs
+
+OFFSET_SELECTOR = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=-10, max=10, step=0.1, unit_of_measurement="K", mode=selector.NumberSelectorMode.BOX
+    )
+)
 
 TEMP_SELECTOR = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -167,7 +175,12 @@ class BestThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class RoomOptionsFlow(OptionsFlow):
-    """Change TRVs and behaviour of a room."""
+    """Change TRVs and behaviour of a room, then the calibration of its TRVs."""
+
+    def __init__(self) -> None:
+        """Initialize."""
+        self._data: dict[str, Any] = {}
+        self._calibratable: dict[str, str] = {}  # TRV -> calibration entity
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Edit the room."""
@@ -183,13 +196,56 @@ class RoomOptionsFlow(OptionsFlow):
                     user_input[CONF_TRVS]
                 )
                 async_unhide_trvs(self.hass, list(removed))
-                return self.async_create_entry(data=_options(user_input))
+                self._data = _options(user_input)
+                old = self.config_entry.options.get(CONF_CALIBRATION) or {}
+                self._data[CONF_CALIBRATION] = {
+                    t: v for t, v in old.items() if t in self._data[CONF_TRVS]
+                }
+                self._calibratable = {
+                    trv: entity
+                    for trv in self._data[CONF_TRVS]
+                    if (entity := find_calibration_entity(self.hass, trv))
+                }
+                if self._calibratable:
+                    return await self.async_step_calibration()
+                return self.async_create_entry(data=self._data)
         defaults = {**self.config_entry.options, **(user_input or {})}
         return self.async_show_form(
             step_id="init",
             data_schema=_room_schema(defaults, with_name=False),
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_calibration(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Fixed temperature offset per TRV (empty: the device is not touched)."""
+        if user_input is not None:
+            self._data[CONF_CALIBRATION] = {
+                trv: round(float(user_input[trv]), 1)
+                for trv in self._calibratable
+                if user_input.get(trv) is not None
+            }
+            return self.async_create_entry(data=self._data)
+        current = self._data.get(CONF_CALIBRATION) or {}
+        lines = []
+        for trv, entity in self._calibratable.items():
+            state = self.hass.states.get(trv)
+            device = self.hass.states.get(entity)
+            now = f" ({device.state} K)" if device else ""
+            lines.append(f"- {trv}: {state.name if state else trv}{now}")
+        return self.async_show_form(
+            step_id="calibration",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        trv, description={"suggested_value": current.get(trv)}
+                    ): OFFSET_SELECTOR
+                    for trv in self._calibratable
+                }
+            ),
+            description_placeholders={"trvs": "\n".join(lines)},
         )
 
 

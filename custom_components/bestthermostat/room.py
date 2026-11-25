@@ -49,7 +49,9 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util, slugify
 
+from .calibration import Calibrator
 from .const import (
+    CONF_CALIBRATION,
     CONF_FROST_TEMPERATURE,
     CONF_HAND_CHANGE,
     CONF_SYNC_TRVS,
@@ -255,6 +257,15 @@ class RoomController:
         self._follow_timer: Callable[[], None] | None = None
         self.climate_entity_id: str | None = None
         self._battery_unsub: Callable[[], None] | None = None
+        self.calibrator = Calibrator(
+            hass,
+            self.name,
+            {
+                trv: float(offset)
+                for trv, offset in (options.get(CONF_CALIBRATION) or {}).items()
+                if trv in self.trvs
+            },
+        )
         self._battery_ids: set[str] = set()
         self._last_period_id: str | None = None
 
@@ -386,6 +397,7 @@ class RoomController:
         )
         self.apply()
         self._schedule_timer()
+        self.calibrator.async_start()
 
     def _track_batteries(self) -> None:
         """(Re)subscribe to the battery entities of the TRV devices."""
@@ -426,6 +438,7 @@ class RoomController:
         if self._battery_unsub:
             self._battery_unsub()
             self._battery_unsub = None
+        self.calibrator.async_stop()
         for unsub in self._settle.values():
             unsub()
         self._settle.clear()

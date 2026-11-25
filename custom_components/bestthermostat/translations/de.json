@@ -55,6 +55,10 @@
           "settings": "Einstellungen"
         }
       },
+      "calibration": {
+        "title": "Kalibrierung der Thermostate",
+        "description": "Feste Korrektur der Temperatur, die jedes Thermostat misst, in K (z. B. -1,5, wenn es 1,5 K zu warm misst). Der Wert wird in die Kalibrier-Einstellung des Geräts geschrieben und erneut, wenn das Gerät sie zurücksetzt. Ein leeres Feld lässt das Gerät unverändert. Aktueller Wert in Klammern.\n\n{trvs}"
+      },
       "add_variable": {
         "title": "Variable hinzufügen",
         "data": {
